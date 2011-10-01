@@ -50,7 +50,7 @@ class ccRequest implements ArrayAccess, IteratorAggregate
 	 */
 	function __construct($URI=NULL,$defaultDocName='index')
 	{
-		$path = $URI ? $URI : $_SERVER['SCRIPT_URL'];
+		$path = $URI ? $URI : $_SERVER['REDIRECT_URL']; // SCRIPT_URL
 		$path = substr($path, strlen(ccApp::getApp()->getUrlOffset()));
 		$this->components = explode('/',$path);
 		$this->document = array_pop($this->components);
@@ -88,6 +88,8 @@ class ccRequest implements ArrayAccess, IteratorAggregate
 		$this->userAgentInfo = $this->parseUserAgent();
 // echo '<pre>';
 // print_r($this->components);
+// print_r($this->getUrlDocument());
+// var_dump($GLOBALS);
 	} // __construct()
 	
 	/**
