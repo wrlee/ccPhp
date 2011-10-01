@@ -23,13 +23,13 @@ class ccSmarty extends Smarty
 // echo __METHOD__.'('.$className.')#'.__LINE__.SMARTY_DIR.$this->plugins_dir .'<br/>'.PHP_EOL;
 
 		$devmode = $app->getDevMode();
-		$this->debugging_ctrl = ( $devmode == ccApp::MODE_DEVELOPMENT 
+		$this->debugging_ctrl = ( $devmode & ccApp::MODE_DEVELOPMENT 
 		                          ? 'URL' 
 								  : 'NONE' );
-		$this->setCaching($devmode == ccApp::MODE_DEVELOPMENT 
+		$this->setCaching($devmode & ccApp::MODE_DEVELOPMENT 
 							? Smarty::CACHING_OFF
 							: Smarty::CACHING_LIFETIME_CURRENT);
-		$this->setCompileCheck( $devmode != ccApp::MODE_PRODUCTION );
+		$this->setCompileCheck( !($devmode & ccApp::MODE_PRODUCTION ) );
 //		$this->testInstall();
 	} // __construct()
 	

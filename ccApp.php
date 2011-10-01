@@ -28,7 +28,7 @@ ccApp::setFrameworkPath(dirname(__FILE__));	// Function probably not needed
  */
 class ccApp
 {
-	const MODE_DEVELOPMENT = 0;
+	const MODE_DEVELOPMENT = 1;
 	const MODE_TESTING = 2;
 	const MODE_STAGING = 4;
 	const MODE_PRODUCTION = 6;

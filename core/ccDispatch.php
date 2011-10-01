@@ -89,7 +89,7 @@ class ccDispatch
 
 	function getDebug()
 	{
-		return ccApp::getApp()->getDevMode() == ccApp::MODE_DEVELOPMENT;
+		return ccApp::getApp()->getDevMode() & ccApp::MODE_DEVELOPMENT;
 	}
 	
 	/**
