@@ -22,21 +22,23 @@ class ccSimpleController extends ccController
 //			return call_user_func(array($this,$action),$request);
 //		}	
 //		else
+		{
 		$rv = $this->invokeAction($action, $request);
 // echo __METHOD__.'#'.__LINE__.' '.$rv.'<br/>';
 		if ( $rv === NULL )
 		{
-			trigger_error('Action method '.get_class($this).'::'.$action.' does not exist.',E_USER_NOTICE);
+//			trigger_error('Action method '.get_class($this).'::'.$action.' does not exist.',E_USER_NOTICE);
 			return $this->handle404($request);
 		}
 		else
 			return $rv;
+		}
 	} // handleRequest()
 
 	/**
 	 * Consider a default 404 handler that would, by default, do nothing; but
 	 * provides a hook for the controller to easily provide a catch all for 
-	 * its class of handling, before returning and to dispatcher.
+	 * its class of handling, before returning to dispatcher.
 	 */
 	function handle404(ccRequest $request)
 	{

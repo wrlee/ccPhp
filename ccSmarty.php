@@ -29,7 +29,7 @@ class ccSmarty extends Smarty
 		$this->setCaching($devmode & ccApp::MODE_DEVELOPMENT 
 							? Smarty::CACHING_OFF
 							: Smarty::CACHING_LIFETIME_CURRENT);
-		$this->setCompileCheck( !($devmode & ccApp::MODE_PRODUCTION ) );
+		$this->setCompileCheck( ($devmode & ~ccApp::MODE_PRODUCTION ) );
 //		$this->testInstall();
 	} // __construct()
 	

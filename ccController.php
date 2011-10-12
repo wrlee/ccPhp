@@ -11,8 +11,22 @@
  */
 abstract class ccController implements ccPageInterface
 {
-//	abstract function render(ccRequest $request); 
-	
+	/**
+	 * Default implementation is to call, first, a common 'before()' method 
+	 * before every method.
+	 *
+	 *
+	 * @todo Consider an "after()" call.
+	 */
+/*	function render(ccRequest $request)
+	{
+		if (method_exists($this, 'before'))
+			if (!call_user_func(array($this,'before'), $request))
+				return FALSE;
+		$rc = $this->invokeAction('', $request);
+		return $rc;
+	}
+*/
 	/**
 	 * Map the "action" name to a method name. This method can be overridden to 
 	 * implement different action-name to method mapping. 
@@ -25,7 +39,16 @@ abstract class ccController implements ccPageInterface
 			$methodName = strtoupper($action[0]).strtolower(substr($action,1));
 		else
 			$action = 'Index';
-		return method_exists( $this, $methodName ) ? $methodName : NULL;
+		
+		if (method_exists( $this, $methodName ))
+		{
+			$refl = new ReflectionMethod($this, $methodName);
+			return ($refl->isPublic())
+				? $methodName
+				: NULL;
+		}
+		else
+			return NULL;
 	} // findMethodName()
 	
 	/**
