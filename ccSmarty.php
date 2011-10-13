@@ -6,6 +6,7 @@
 class ccSmarty extends Smarty
 {
 	protected $commonParams=NULL;
+	protected $ext='.tpl';
 
 	function __construct()
 	{
@@ -42,6 +43,10 @@ class ccSmarty extends Smarty
 	function render($template, $paramAssocArray=NULL)
 	{
 // var_dump($paramAssocArray);
+// echo '<pre>'.$template.PHP_EOL;
+// ccApp::getApp()->showTrace(debug_backtrace());
+		if (substr($template,-strlen($this->ext)) != $this->ext)
+			$template .= $this->ext;
 		if ($this->templateExists($template))
 		{
 			$this->assign((Array)$paramAssocArray+(Array)$this->commonParams);

@@ -48,6 +48,7 @@ class ccApp
 	protected $devMode = self::MODE_DEVELOPMENT; 
 	protected $pluginpath=NULL;			// Path to include
 	protected $sitepath=NULL;			// Path to site specific files.
+	protected $page=NULL; 				// Main page for site
 	protected $error404 = NULL;
 										// The following are rel to sitepath:
 	protected $classpath=array();
@@ -60,8 +61,8 @@ class ccApp
 	
 	/**
 	 * Search for class definition from framework folder. If there is an  
-	 * instance, call its autoload first (esp since it can be derived and,
-	 * therefore, be more specific to the app). 
+	 * instance of the app, call its autoload first where site specific searches
+	 * will take precedence. 
 	 *
 	 * This method is appropriate to call this from __autoload() or 
 	 * register via spl_autoload_register()
@@ -91,16 +92,23 @@ class ccApp
 		}
 	} // _autoload()
 	
+	/**
+	 * Add a relative path to the list of site-secific paths to search when 
+	 * loading site-specific classes. 
+	 * @todo Allow array of directories to be passed in.
+	 */
 	function addClassPath($path)
 	{
 		if (substr($path,-1) != DIRECTORY_SEPARATOR)
 			$path .= DIRECTORY_SEPARATOR;
 		$this->classpath[] = $this->sitepath.$path;
-	}
+	} // addClassPath()
 
 	/**
 	 * Add to PHP search path
-	 * @param String $path Path component to add to search path.
+	 * @param string $path Path component to add to search path.
+	 * @param bool $prefix Prefix the search path with the new path. Default:
+	 *        false, append new path to the end of the search path.
 	 * @see set_include_path()
 	 */
 	public function addPhpPath($path,$prefix=FALSE)
@@ -113,9 +121,23 @@ class ccApp
 	} // addPhpPath()
 	
 	/**
-	 * Rather than embed and dictate where external utilities are to be installed,
-	 * this method allows the "installation" of the utility to be declared for 
-	 * the app globally. 
+	 * This is a convenience method that "installs" external modules from a 
+	 * single directory without having to fully spec the path. This assumes that
+	 * the external modules will be organized in a single directory and set via
+	 * setPluginPath(); otherwise explicit include() or require() can be used.
+	 * 
+	 * @note It is best not to call this within the modules being uses so that 
+	 * they are not loaded when they are not used. 
+	 *
+	 * @param string $pluginFilepath is the path/filename of the file to be 
+	 *        included.
+	 *
+	 * @example
+	 *    define('DS',DIRECTORY_SEPARATOR);
+	 *	  $app->setPluginPath($app->getFrameworkPath(). DS . 'plugins');
+	 *	  $app->includePlugin('smarty'.DS.'Smarty.php')
+	 *	  	  ->includePlugin('RedBeanPHP'.DS.'rb.php');
+	 *
 	 * @see include()
 	 * @see get/setPluginPath()
 	 * @todo Check for colon and '\' for Windows paths
@@ -125,18 +147,18 @@ class ccApp
 	 */
 	public function includePlugin($pluginFilepath)
 	{
-		$pluginpath = ($this->pluginpath) 
-			? $this->pluginpath
+		$pluginpath = ($this->pluginpath)	// If base-path set for plugins
+			? $this->pluginpath				//    use it.
 			: dirname(self::$_fwpath) . DIRECTORY_SEPARATOR;
 		if (substr($pluginFilepath,0,1) != DIRECTORY_SEPARATOR)
 			$pluginFilepath = $pluginpath . $pluginFilepath;
 // echo __METHOD__.'#'.__LINE__.' '. $pluginFilepath.'<br/>'.PHP_EOL;
 		require($pluginFilepath);
 		return $this;
-	}
+	} // includePlugin()
 	
 	/**
-	 * Instance specific autoload() checks site specific paths.
+	 * Instance specific autoload() searches site specific paths.
 	 */
 	public function autoload($className)
 	{
@@ -146,12 +168,10 @@ class ccApp
 		// Check app paths, first
 		if ($this->sitepath && file_exists($this->sitepath . $classFilename)) 
 		{
-// echo __METHOD__.'(<b>'.$className.'</b>)#'.__LINE__.' '.self::$_sitepath.$classFilename.'<br/>'.PHP_EOL;
 			include($this->sitepath . $classFilename);
 		}
 		else foreach ($this->classpath as $path)
 		{
-// echo __METHOD__.'(<b>'.$className.'</b>)#'.__LINE__.' '.$path.$classFilename.'<br/>'.PHP_EOL;
 			if (file_exists($path . $classFilename)) 
 			{
 				include($path . $classFilename);
@@ -174,6 +194,12 @@ class ccApp
 		return self::$_me = ($className ? new $className : new self);
 	} // createApp()
 	
+	/**
+	 * This method is called to render pages for the web site. It invokes the 
+	 * "main page" (which is usually a dispatcher or controller) to render 
+	 * content. If no content is rendered (i.e., the page's render() method
+	 * returns FALSE, then 404 handling is invoked. 
+	 */
 	function dispatch(ccRequest $request)
 	{
 		if (!$this->page->render($request))
@@ -210,8 +236,9 @@ class ccApp
 	
 	/**
 	 * Handle 404 (page not found errors).
-	 * @param ccPageInterface|$string $page404 The object or classname that would
+	 * @param ccPageInterface|string $error404page The object or classname that would
 	 *              render a 404 page.
+	 * @todo Add support for string name of class. 
 	 */
 	function set404Page(ccPageInterface $error404page)
 	{
@@ -228,7 +255,11 @@ class ccApp
 	} // getApp()
 
 	/**
-	 * Default cookie setting to URL Offset
+	 * Default cookie setting to URL Offset. If the path is not specified or 
+	 * not an absolute path, then the base is assumed to be the URL offset to
+	 * the site.
+	 *
+	 * @see getUrlOffset()
 	 */
 	function setCookie(
 		$name, 
@@ -241,13 +272,15 @@ class ccApp
 	{
 		if ($path === NULL)
 			$path = $this->getUrlOffset();
+		elseif (substr($path,0,1) != '/')
+			$path = $this->getUrlOffset() . $path;
 		if ($expire === 0 && ($value === NULL || $value == ''))
 			$expire = time()-3600;		// Delete cookie
 		setcookie($name, $value, $expire, $path, $domain, $secure, $httponly);
 	} // setCookie()
 	
 	/**
-	 * Get/set app's disposition.
+	 * Get/set app's disposition mask.
 	 */
 	public function getDevMode()
 	{
@@ -260,14 +293,14 @@ class ccApp
 	}
 	
 	/**
-	 * Set the error handler.
+	 * Set the error handler; a convenience method for stylistic consistency.
 	 * @param callback $function The name of the callback function or array, when
 	 *                           the callback is a class or object method.
 	 * The callback function should look like: 
 	 *   handler ( int $errno , string $errstr [, 
 	 *             string $errfile [, int $errline [, array $errcontext ]]] )
 	 * @see http://www.php.net/manual/en/function.set-error-handler.php
-	 * @todo Probably don't need this since it is chained to exceptions.
+	 * @todo Probably don't need this if errors are chained to exceptions.
 	 */
 	function setErrorHandler($function)
 	{
@@ -276,7 +309,7 @@ class ccApp
 	} // setErrorHandler()
 	
 	/**
-	 * Set the exception handler.
+	 * Set the exception handler; a convenience method for stylistic consistency.
 	 * @param callback $function The name of the callback function or array, when
 	 *                           the callback is a class or object method.
 	 * The callback function should look like: 
@@ -317,7 +350,8 @@ class ccApp
 	} // getMainPage()
 	public function setMainPage(ccPageInterface $page)
 	{
-		return $this->page = $page;
+		$this->page = $page;
+		return $this;
 	} // setMainPage()
 
 
@@ -340,9 +374,8 @@ class ccApp
 	 */
 	public function getSitePath()
 	{
-//echo __METHOD__.'('.$className.')#'.__LINE__ .self::$_sitepath.PHP_EOL;
 		return $this->sitepath;
-	}
+	} // getSitePath()
 	public function setSitePath($path)
 	{
 		if (substr($path,-1) != DIRECTORY_SEPARATOR)
@@ -400,9 +433,9 @@ class ccApp
 	} // on404()
 
 	/**
-	 * @todo Consider moving this to ccApp
 	 * @todo Consider throwing exception (caveat, flow of control does not continue)
 	 * @todo Add distinction between dev and production modes of output.
+	 * @todo Consider moving to separate Trace class
 	 */
 	static function onError($errno, $errstr, $errfile, $errline, $errcontext)
 	{
@@ -433,9 +466,9 @@ class ccApp
 	} // onError()
 	
 	/**
-	 * @todo Consider moving this to ccApp
 	 * @todo Add distinction between dev and production modes of output.
 	 * @todo See php.net on tips for proper handling of this handler.
+	 * @todo Consider moving to separate Trace class
 	 */
 	static function onException($exception)
 	{
@@ -476,7 +509,10 @@ EOD;
 		exit();
 	} // redirect()
 	
-	function show404(ccRequest $request)
+	/**
+	 * For whatever reason, display 404 page response.
+	 */
+	protected function show404(ccRequest $request)
 	{
 		if ($this->error404)
 		{
@@ -493,6 +529,9 @@ EOD;
 			$this->on404($request);
 	} // show404()
 	
+	/**
+	 * @todo Consider moving to separate Trace class
+	 */
 	static function showTrace(Array $trace)
 	{
 //		array_shift($trace);	// Ignore this method.
@@ -515,6 +554,13 @@ EOD;
 // echo '</pre>';
 	} // showTrace()
 	
+	/**
+	 * Format a line of the trace stack. 
+	 *
+	 * @see debug_traceback() http://us.php.net/manual/en/function.debug-backtrace.php
+	 * @see Exception::getTrace() http://us.php.net/manual/en/exception.gettrace.php
+	 * @todo Consider moving to separate Trace class
+	 */
 	protected static function showTraceLine($line)
 	{
 // echo __METHOD__.' ';
@@ -524,6 +570,9 @@ EOD;
 		$out = '';
 		if (isset($line['class']))
 			$out .= '<b>'.$line['class'].'</b>';
+		if (isset($line['object']) 
+			&& get_class($line['object']) != $line['class'])
+			$out .= '<i>('.get_class($line['object']).')</i>';
 		if (isset($line['type']))
 			$out .= ($line['type'] == '->' ? '&rarr;' : $line['type']);
 		$out .= '<b>'.$line['function'].'</b>(';
@@ -583,7 +632,7 @@ EOD;
 			$out .= '</tt>';
 		}
 		$out .= ')';
-		if ($line['file'])
+		if (isset($line['file']))
 			$out .= ' in <tt>'.dirname($line['file']).'/</tt><b>'.basename($line['file']).'</b>#'.$line['line'];
 		// echo ') in <tt>'.dirname($line['file']).'/<b>'.basename($line['file']).'</b>#</tt>'.$line['line'].'<br/>';
 // var_dump($line['args']);

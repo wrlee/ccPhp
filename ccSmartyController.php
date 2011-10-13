@@ -3,7 +3,7 @@
 /**
  * This controller processes page requests that map to Smarty templates. 
  */
-class ccSmartyController extends ccController
+class ccSmartyController extends ccSimpleController
 {
 	public $ext='.tpl';				// Template extension
 	protected $smarty;
@@ -16,32 +16,24 @@ class ccSmartyController extends ccController
 	
 	function render(ccRequest $request)
 	{
-		$template = $request->getUrlComponents();
-		$template = $template[0];
-		if (!$template || $template == '')
-			$template = $request->getUrlDocument();
 // echo '<pre>';
-// echo __METHOD__.'#'.__LINE__.' '.'"'.$template.'"'.PHP_EOL;
-
 // echo implode(',',$request->getUrlComponents()).PHP_EOL;
 
 		// Check to see if method exists based on first component of URL if no
 		// first component exists, use "index".
-		$methodName = $this->findMethodName($template);
+		$rv = parent::render($request);	// Note, this invokes begin()
 // echo __METHOD__.'#'.__LINE__.' '.'"'.$methodName.'"'.PHP_EOL;
-		if ( $methodName )
-		{
-			$request->shiftUrlComponent();
-			return call_user_func(array($this,$methodName), $request);
-		}	
+		if ( $rv !== NULL )			// If method found and run,
+			return $rv;				//    return its return value
 		// If no method exists, based on first component of the URL, look for 
 		// a Smarty template based on the full component path. 
 		else
 		{
+			$template = $request->shiftUrlComponents();
+			if (!$template || $template == '')
+				$template = $request->getUrlDocument();
 //			trigger_error('Method '.get_class($this).'::'.$template.' does not exist. Looking for template.',E_USER_NOTICE);
 // echo __METHOD__.'#'.__LINE__.' '.$template.'<br/>';
-			if (!$template || $template == '')
-				$template = 'index';
 			$path = implode('/',$request->getUrlComponents());
 			if ($path !== '')
 				$template =  $path . '/' . $template;
@@ -50,21 +42,11 @@ class ccSmartyController extends ccController
 		}
 	} // render()
 	
-	/**
-	 * Placeholder for overridable method to perform any common setup before
-	 * a page is rendered. 
-	 */
-	function initPage()
-	{
-		return TRUE;
-	} // initPage()
-	
-	function display($template, $args=NULL)
+	protected function display($template, $args=NULL)
 	{
 //		echo '<pre>';
 //		echo __METHOD__.'()#'.__LINE__.' "'.$template.'"<br/>'.PHP_EOL;
-		return   $this->initPage()
-		       && $this->smarty->render($template, (Array)$args);
+		return  $this->smarty->render($template, (Array)$args);
 	} // display()
 	
 	function setDebug($debug)

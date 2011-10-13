@@ -7,41 +7,25 @@
  */
 class ccSimpleController extends ccController
 {
+	/**
+	 * Default implementation is to call, first, a common 'begin()' method 
+	 * before every method.
+	 *
+	 * @returns bool|NULL Successfully handled? NULL: method not found.
+	 *
+	 * @todo Consider an "end()" call.
+	 * @todo Consider an "on404()" call for local 404 handling.
+	 */
 	function render(ccRequest $request)
 	{
-		$action = $request->shiftUrlComponent();
-		if (!$action || $action == '')
-			$action = $request->getUrlDocument();
-// echo '<pre>';
-// echo implode(',',$request->getUrlComponents()).PHP_EOL;
-// echo $action.PHP_EOL;
-
-//		if ( method_exists( $this, $action) )
-//		{
-///			return $this->initPage($request) &&
-//			return call_user_func(array($this,$action),$request);
-//		}	
-//		else
-		{
-		$rv = $this->invokeAction($action, $request);
-// echo __METHOD__.'#'.__LINE__.' '.$rv.'<br/>';
-		if ( $rv === NULL )
-		{
-//			trigger_error('Action method '.get_class($this).'::'.$action.' does not exist.',E_USER_NOTICE);
-			return $this->handle404($request);
-		}
+		if (method_exists($this, 'begin'))
+			if (!call_user_func(array($this,'begin'), $request))
+				return FALSE;
+				
+		$method = $this->getMethodFromRequest($request);
+		if ( $method )
+			return call_user_func(array($this,$method),$request);
 		else
-			return $rv;
-		}
-	} // handleRequest()
-
-	/**
-	 * Consider a default 404 handler that would, by default, do nothing; but
-	 * provides a hook for the controller to easily provide a catch all for 
-	 * its class of handling, before returning to dispatcher.
-	 */
-	function handle404(ccRequest $request)
-	{
-		return FALSE;
-	}
+			return NULL;		// Method not found.
+	} // render()
 } // class ccSimpleController
