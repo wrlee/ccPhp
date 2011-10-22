@@ -7,6 +7,7 @@
  * @todo Look into using AutoLoad package (by the Doctrine and Symfony folks)
  * @todo Add session handling.
  * @todo Need a way to set "debug" setting that will cascade thru components.
+ * @todo Move error handling ccError class and refer through ccApp
  */
 
 error_reporting(E_ALL|E_STRICT);
@@ -49,9 +50,9 @@ class ccApp
 	protected $pluginpath=NULL;			// Path to include
 	protected $sitepath=NULL;			// Path to site specific files.
 	protected $page=NULL; 				// Main page for site
-	protected $error404 = NULL;
+	protected $error404 = NULL;			// External ccPageInterface to render errors.
 										// The following are rel to sitepath:
-	protected $classpath=array();
+	protected $classpath=array();		// List of site paths to search for classes
 	protected $_wwwpath='public';		// Path to web visible files
 
 	protected function __construct()

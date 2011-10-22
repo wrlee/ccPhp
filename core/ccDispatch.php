@@ -1,29 +1,38 @@
 <?php 
 
 /**
+ * This is a page renderer of sorts; it is a controller; but it is a controller
+ * of controllers, more simply called a dispatcher. In particular this dipatcher
+ * simply chains other page renderers together (usually controllers, but they 
+ * can be any sort of page renderer).
+ *
+ * Each page renderer (implementing ccPageInterface) is added via the 
+ * addPageRenderer() method (by name or as an object). When this dispatcher is 
+ * invoked via its render() method, walks down the pages added, invoking each
+ * one in turn until one returns TRUE. If none of the added controllers returns
+ * true, then this render() returns FALSE (causing ccApp's dispatch() method to 
+ * activate 404 page handling). 
+ *
  * @todo Move error handling ccError class and refer through ccApp
+ * @todo Eliminate filter handling--not sure that it is needed.
  */
 class ccDispatch implements ccPageInterface
 {
-	protected $filterChainPrefix = Array();
-	protected $controllerChain = Array();
-	protected $controllerChainSuffix = Array();
-	
-	// function __construct()
-	// {
-	// }
+	protected $filterChainPrefix = Array();		// List of filters
+	protected $controllerChain = Array();		// List of controllers
+//	protected $controllerChainSuffix = Array();	// List of "suffix" handlers
 	
 	/**
-	 * Add controller to handle dispatches of requests.
-	 * @param ccController|string $controller Controller object or name of class.
-	 *        If string, it is instantiated at invocation time. 
+	 * Add page or controller to handle dispatches of requests.
+	 * @param ccPageInterface|string $controller Page object or name of one.
+	 *        If string, it is instantiated if needed. 
 	 */
 	function addPageRenderer($controller)
 	{
 		$this->controllerChain[] = $controller;
 		if (!is_string($controller) && !($controller instanceof ccPageInterface))
 			throw ErrrorException(get_class($controller).' rendering object needs to implement ccPageInterface.');
-		return $this;
+		return $this;			// Allow property chaining
 	} // function addPageRenderer()
 	
 	/**
@@ -47,25 +56,26 @@ class ccDispatch implements ccPageInterface
 	 * @param ccRequest $request The request object that represents the current req't
 	 */
 	function render(ccRequest $request)
-	{
+	{											// Iterate thru chain of filters
 		foreach ($this->filterChainPrefix as $filter)
 		{
-			$filter->filterRequest($request); // Can modify request
+			$filter->filterRequest($request); 	// Filters can modify request
 		}
-
+												// Now iterate thru chain of pages
 		foreach ($this->controllerChain as $key => $controller)
 		{
-			if (is_string($controller))
-			{
+			if (is_string($controller))			// If entry is name of class,
+			{									//    Instantiate it...
 				$this->controllerChain[$key] = new $controller;
-				if (!is_string($this->controllerChain[$key]) && !($this->controllerChain[$key] instanceof ccPageInterface))
+												// Make sure it is a valid type
+				if (!($this->controllerChain[$key] instanceof ccPageInterface))
 					throw ErrrorException($controller.' rendering object needs to implement ccPageInterface.');
 				$controller = $this->controllerChain[$key];
 			}
-			if ($controller->render(clone $request))
-				return TRUE;
-		}
-		return FALSE;
+			if ($controller->render(clone $request))// This one handled rendering
+				return TRUE;						// So we are done.
+		} // foreach
+		return FALSE;								// No handler, so we failed.
 	} // render()
 
 	// function getDebug()

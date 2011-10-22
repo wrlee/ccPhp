@@ -15,10 +15,10 @@
  */
 class ccRequest implements ArrayAccess, IteratorAggregate 
 {
-	protected $userAgentInfo;
-	protected $components = NULL;
-	protected $document = '';
-	protected $docInferred = TRUE;
+	protected $userAgentInfo;			// Array of client characteristics 
+	protected $components = NULL;		// Relative path parsed as an array
+	protected $document = '';			// Document portion of path
+	protected $inferred;				// Has document been set to default name?
 	protected $format; 					// Data request type: html|json|xml|text
 //	protected $inferredDoc = 'index';
 //	protected $isAjax;
@@ -31,7 +31,7 @@ class ccRequest implements ArrayAccess, IteratorAggregate
 	 */
 	function __clone()
 	{
-		$this->components = $this->components;	// Deep copy.
+		$this->components = $this->components;	// Deep copy (array assignments are copied).
 //		parent::__clone();
 	} // __clone()
 
@@ -40,9 +40,9 @@ class ccRequest implements ArrayAccess, IteratorAggregate
 	 * 
 	 * @param string $URI Create a request object 
 	 * @param string $defaultDocName If path ends with '/' then this doc name 
-	 *                    is assumed. If NULL or '', then the doc name is left
-	 *                    as ''. Otherwise the docname is set AND in any event
-	 *                    the extension is stripped from the docname. 
+	 *        is assumed. If NULL or '', then the doc name is left as ''. 
+	 *        Otherwise the docname is set AND in any event the extension is
+	 *        stripped from the docname. 
 	 * @see getUrlDocument()
 	 *
 	 * @todo Fix: Set other values for this object, here based on $URI rather 
@@ -50,15 +50,13 @@ class ccRequest implements ArrayAccess, IteratorAggregate
 	 */
 	function __construct($URI=NULL,$defaultDocName='index')
 	{
-// echo '<pre>';
-// var_dump($_SERVER);
 		$path = $URI ? $URI : isset($_SERVER['REDIRECT_URL']) 
 			? $_SERVER['REDIRECT_URL']
 			: $_SERVER['SCRIPT_URL'];
 		$path = substr($path, strlen(ccApp::getApp()->getUrlOffset()));
 		$this->components = explode('/',$path);
 		$this->document = array_pop($this->components);
-		if ($defaultDocName)	// If doc not specified, use default
+		if ($defaultDocName)	// If doc specified, use default
 		{
 			$this->inferred = ($this->document === '');
 			if ($this->inferred)
@@ -67,6 +65,8 @@ class ccRequest implements ArrayAccess, IteratorAggregate
 		else
 			$this->inferred = FALSE;
 								// Determine format requested
+//		$path_info = @pathinfo($temp_filename);
+//		if (array_key_exists("extension", $path_info) &&
 		$path = explode('.',$this->document);
 		if (count($path) > 1)
 			$this->format = strtolower(array_pop($path));
@@ -88,10 +88,8 @@ class ccRequest implements ArrayAccess, IteratorAggregate
 		{						// Reassemble doc name w/o extension (i.e., type)
 			$this->document = implode('.',$path);
 		}
-		
+								// Set client properties based on UserAgent string
 		$this->userAgentInfo = $this->parseUserAgent();
-// print_r($this->components);
-// print_r($this->getUrlDocument());
 	} // __construct()
 	
 	/**
@@ -102,6 +100,10 @@ class ccRequest implements ArrayAccess, IteratorAggregate
 		return strtolower($_SERVER['REQUEST_METHOD']);
 	}
 	
+	/**
+	 * @todo Use REDIRECT_URL
+	 * @todo Check that prefix of path matches UrlOffset before truncating it.
+	 */
 	function getRelativeUrl()
 	{
 		return strpos($_SERVER['SCRIPT_URL'],ccApp::getApp()->getUrlOffset()) === 0
@@ -146,7 +148,7 @@ class ccRequest implements ArrayAccess, IteratorAggregate
 	{
 		return $this->components;
 	}
-	function popUrlComponent()
+	function popUrlComponents()
 	{
 		if ($this->components)				// If array not empty
 		{
@@ -155,7 +157,7 @@ class ccRequest implements ArrayAccess, IteratorAggregate
 		else
 			$rval = NULL;
 		return $rval;
-	} // popUrlComponent()
+	} // popUrlComponents()
 	/**
 	 * Shift the component list "left", deleting the first component and 
 	 * returning that component.
