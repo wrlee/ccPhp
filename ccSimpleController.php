@@ -18,6 +18,7 @@ class ccSimpleController extends ccController
 	 */
 	function render(ccRequest $request)
 	{
+//		ccApp::tr('testing...');
 		if (method_exists($this, 'begin'))
 			if (!call_user_func(array($this,'begin'), $request))
 				return FALSE;

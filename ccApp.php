@@ -38,7 +38,7 @@ class ccApp
 	const MODE_DEVELOPMENT = 1;
 	const MODE_TESTING = 2;
 	const MODE_STAGING = 4;
-	const MODE_PRODUCTION = 6;
+	const MODE_PRODUCTION = 8;
 
 	protected static $_me=NULL;			// Singlton ref to $this
 	protected static $_fwpath=NULL;		// Path to framework files.
@@ -640,6 +640,22 @@ EOD;
 		// echo '&nbsp;&nbsp;&nbsp;'.implode(',',$line['args']).'<br/>';
 		return $out;
 	} // showTraceLine()
+	
+	/**
+	 * options: HTML, log, stderr, stdout, formatted, timestamp
+	 */
+	static function tr($msg)
+	{
+		$trace = debug_backtrace();		// Get whole stack list
+		echo ccApp::getApp()->showTraceLine($trace[0]).PHP_EOL;		// Display stack.
+		echo $msg.'<br/>'.PHP_EOL;
+		echo '<br/>'.PHP_EOL;
+		self::showTrace($trace);
+		// echo '<pre>';
+		// debug_print_backtrace();
+		// echo '</pre>';
+		
+	}
 
 } // class ccApp
 
