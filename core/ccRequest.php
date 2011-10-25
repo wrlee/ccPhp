@@ -1,4 +1,8 @@
 <?php 
+/*
+ * 2010-10-23 Better handling of path parsing into components and document values
+ *          - Easier to override by implementing parseUrl()
+ */
 
 /**
  * This is a holding place for request specific properties. It can be thought of
@@ -11,18 +15,16 @@
  * getUrlComponents(). The first element can be pulled out of the list via 
  * shiftUrlComponents(). 
  *
- * @todo Move defaultDocName to ccApp
+ * @todo Rather than rely on globals,use constructor's $URI value.
  */
 class ccRequest implements ArrayAccess, IteratorAggregate 
 {
+	protected $defaultDoc = 'index';	// Default document name
 	protected $userAgentInfo;			// Array of client characteristics 
 	protected $components = NULL;		// Relative path parsed as an array
-	protected $document = '';			// Document portion of path
-	protected $inferred;				// Has document been set to default name?
+	protected $truename = NULL;			// Full document name (potentially)
 	protected $format; 					// Data request type: html|json|xml|text
-//	protected $inferredDoc = 'index';
 //	protected $isAjax;
-//	protected $isRestful;
 	
 	/**
 	 * Since the dispatcher passes copies of this to each controller (to insulate
@@ -39,58 +41,24 @@ class ccRequest implements ArrayAccess, IteratorAggregate
 	 * The constructor parses the "relative path" to the "resource". 
 	 * 
 	 * @param string $URI Create a request object 
-	 * @param string $defaultDocName If path ends with '/' then this doc name 
-	 *        is assumed. If NULL or '', then the doc name is left as ''. 
-	 *        Otherwise the docname is set AND in any event the extension is
-	 *        stripped from the docname. 
-	 * @see getUrlDocument()
-	 *
 	 * @todo Fix: Set other values for this object, here based on $URI rather 
 	 *       than referring to late binding to globals. 
 	 */
-	function __construct($URI=NULL,$defaultDocName='index')
+	function __construct($URI=NULL)
 	{
-		$path = $URI ? $URI : isset($_SERVER['REDIRECT_URL']) 
-			? $_SERVER['REDIRECT_URL']
-			: $_SERVER['SCRIPT_URL'];
-		$path = substr($path, strlen(ccApp::getApp()->getUrlOffset()));
-		$this->components = explode('/',$path);
-		$this->document = array_pop($this->components);
-		if ($defaultDocName)	// If doc specified, use default
-		{
-			$this->inferred = ($this->document === '');
-			if ($this->inferred)
-				$this->document = $defaultDocName;
-		}
-		else
-			$this->inferred = FALSE;
-								// Determine format requested
-//		$path_info = @pathinfo($temp_filename);
-//		if (array_key_exists("extension", $path_info) &&
-		$path = explode('.',$this->document);
-		if (count($path) > 1)
-			$this->format = strtolower(array_pop($path));
-			
-		switch ($this->format)	// Normalize document format request type
-		{
-		case 'text':
-		case 'json':
-		case 'xml':
-			break;				// Nothing to do, already set.
-		case 'txt':				// txt == text
-			$this->format = 'text';
-			break;
-		default:				// All others default to HTML
-			$this->format = 'html';
-		}
-		
-		if ($defaultDocName)	// If we are auto-handling doc name
-		{						// Reassemble doc name w/o extension (i.e., type)
-			$this->document = implode('.',$path);
-		}
-								// Set client properties based on UserAgent string
+		// Set client properties based on UserAgent string
 		$this->userAgentInfo = $this->parseUserAgent();
+		// Set values based on path.
+		$url = $URI ? $URI : isset($_SERVER['REDIRECT_SCRIPT_URI']) 
+			? $_SERVER['REDIRECT_SCRIPT_URI']
+			: $_SERVER['SCRIPT_URI'];
+		$this->parseUrl($url);
 	} // __construct()
+	
+	function getDefaultDocument()
+	{
+		return $this->defaultDoc;
+	}
 	
 	/**
 	 * @returns string 'get'|'post'|'put'|'delete'
@@ -111,15 +79,24 @@ class ccRequest implements ArrayAccess, IteratorAggregate
 			   : $_SERVER['SCRIPT_URL'];
 	} // getRelativeUrl()
 	
+	/**
+	 * @returns Type of data to return (based on request), e.g., HTML, JSON, etc.
+	 */
 	function getType()
 	{
 		return $this->format;
 	}
 
-	function getUrlDocument() 
-	{	
-		return $this->document;
-	} // getUrlDocument()
+	/**
+	 * @returns Full original request URL
+	 * @todo Rebuild full scheme:server/path?querystring
+	 */
+	function getUrl()
+	{
+		return isset($_SERVER['REDIRECT_SCRIPT_URI']) 
+			? $_SERVER['REDIRECT_SCRIPT_URI']
+			: $_SERVER['SCRIPT_URI'];
+	} // getUrl()
 	
 	function getUrlPort() 
 	{	
@@ -129,6 +106,15 @@ class ccRequest implements ArrayAccess, IteratorAggregate
 	function getQueryString()
 	{
 		return $_SERVER['QUERY_STRING'];
+	}
+	
+	/**
+	 * @returns The full filename (including extension) of the last path
+	 *          component.
+	 */
+	function getTrueFilename()
+	{
+		return $this->truename;
 	}
 	
 	/**
@@ -246,6 +232,89 @@ class ccRequest implements ArrayAccess, IteratorAggregate
 	} // parseUserAgent()
 	
 	/**
+	 * Overridable callback to parse the URL and set the components
+	 * and format values.
+	 * @todo Remove successive '/'s (remove blank entries in component array)
+	 */
+	function parseUrl($url)
+	{
+		$this->inferred = FALSE;					// Assume concrete path spec
+	
+		$components = parse_url($url);				// High level parse
+		
+		// We want to preserve the full path (if explicitly specified) and
+		// assume that a "bare" path is really a path. But, pathinfo() does not
+		// distinguish between paths trailing '/' or not, so a bit of hacking is
+		// required:
+/*		if (substr($components['path'],-1) == '/')	// This is an explicit path
+		{											// So, force pathinfo()
+			$components['path'] .= $this->defaultDoc;// to preserve path by adding
+			$pathinfo = pathinfo($components['path']);// a document component.
+			$this->inferred = TRUE;					// Flag as "doc assumed"
+		}
+		else										// Dunno if it's a path:
+		{
+			$pathinfo = pathinfo($components['path']);
+			if (!isset($pathinfo['extension']))		// If no extension is spec'd
+			{										// Assume default doc.
+				$components['path'] .= '/' . $this->defaultDoc;
+				$this->inferred = TRUE;				// Flag as "doc assumed"
+			}
+			$pathinfo = pathinfo($components['path']);
+		}
+*/
+		$pathinfo = pathinfo($components['path']);
+// echo '<pre>';
+// echo 'parse_url:  ';
+// var_dump($components);
+// echo 'pathinfo:  ';
+// var_dump($pathinfo);
+		$path = $pathinfo['dirname'].'/'.$pathinfo['filename'];
+		$this->truename = $pathinfo['basename'];
+// var_dump($path);
+		$path = substr($path, strlen(ccApp::getApp()->getUrlOffset()));
+
+		$this->components = explode('/',$path);
+// var_dump($path);
+// echo '$this->components:  ';
+// var_dump($this->components);
+
+								// Determine format requested
+		if (isset($pathinfo['extension'])) 
+			$this->format = strtolower($pathinfo['extension']);
+//		elseif (isset($_SERVER['CONTENT_TYPE']))
+		elseif (isset($_SERVER['HTTP_ACCEPT']))
+		{
+			$accepting = explode(',',$_SERVER['HTTP_ACCEPT']);
+// echo '$accepting:  ';
+// var_dump($accepting);
+			$accepting = explode('/',$accepting[0]);
+			$this->format = end($accepting);
+// var_dump($accepting);
+		}
+		else
+			$this->format = '';
+// var_dump($_SERVER);
+// echo '</pre>';
+		switch ($this->format)	// Normalize document format request type
+		{
+		case 'xhtml+xml':			// txt == text
+			$this->format = 'xhtml';
+			break;
+		case 'xhtml':			// txt == text
+		case 'text':
+		case 'json':
+		case 'xml':
+			break;				// Nothing to do, already set.
+		case 'txt':				// txt == text
+			$this->format = 'text';
+			break;
+		default:				// All others default to HTML
+			$this->format = 'html';
+		}
+	} // parseUrl()
+	
+	/**
 	 * "Serialize" to an array. This is particluarly useful for passing to 
 	 * template processors.
 	 * @returns Array array of values representing current state.
@@ -253,6 +322,7 @@ class ccRequest implements ArrayAccess, IteratorAggregate
 	protected $properties = Array();
 	protected function initProperties()
 	{
+		$this->properties['defaultDocument'] = $this->getDefaultDocument();
 		$this->properties['isSecure'] = $this->isSecure() ? 1 : 0;
 		$this->properties['isiPhone'] = $this->isiPhone() ? 1 : 0;
 		$this->properties['isiPad'] = $this->isiPad() ? 1 : 0;
@@ -263,7 +333,7 @@ class ccRequest implements ArrayAccess, IteratorAggregate
 		$this->properties['port'] = $this->getUrlPort();
 		$this->properties['relativeUrl'] = $this->getRelativeUrl();
 		$this->properties['queryString'] = $this->getQueryString();
-		$this->properties['docName'] = $this->getUrlDocument();
+		$this->properties['truename'] = $this->getTrueFilename();
 		$this->properties['type'] = $this->getType();
 		$this->properties['method'] = $this->getHttpMethod();
 		$this->properties['SCRIPT_URI'] = $_SERVER['SCRIPT_URI'];
@@ -295,5 +365,4 @@ class ccRequest implements ArrayAccess, IteratorAggregate
 			$this->initProperties();
         return new ArrayIterator($this->properties+$this->userAgentInfo);
     }
-
 } // class ccRequest

@@ -20,7 +20,7 @@ abstract class ccController implements ccPageInterface
 		$action = $request->getUrlComponents();		// Base method on first part
 													//   of path.
 		if (!isset($action[0]) || !$action[0])		// If no path portion
-			$action = $request->getUrlDocument();	//   use document as method
+			$action = $request->getDefaultDocument();	//   use "default" name
 		else
 			$action = $action[0];					// Just keep the 1st component
 													// Check that method exists

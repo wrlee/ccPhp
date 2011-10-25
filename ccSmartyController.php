@@ -5,59 +5,55 @@
  */
 class ccSmartyController extends ccSimpleController
 {
-	public $ext='.tpl';				// Template extension
 	protected $smarty;
-//	protected $vars; 				// Common variables to be passed in.
 	
 	function __construct()
 	{
 		$this->smarty=new ccSmarty();	// Smarty wrapper
 	} // __construct()
 	
+	/**
+	 * @todo Consider, rather than pathing deeper to look for template, passing
+	 *       remaining path components as a 'params' argument to the template.
+	 */
+	// 2011-10-24 Call begin() only if method or template will be rendered.
 	function render(ccRequest $request)
 	{
-// echo '<pre>';
-// echo implode(',',$request->getUrlComponents()).PHP_EOL;
+		// Check to see if method exists based and run it. 
+		$rv = parent::render($request);
+		if ( $rv !== NULL )				// If method found and executed,
+			return $rv;					//    return method's return value
 
-		// Check to see if method exists based on first component of URL if no
-		// first component exists, use "index".
-		$rv = parent::render($request);	// Note, this invokes begin()
-// echo __METHOD__.'#'.__LINE__.' '.'"'.$methodName.'"'.PHP_EOL;
-		if ( $rv !== NULL )			// If method found and run,
-			return $rv;				//    return its return value
-		// If no method exists, based on first component of the URL, look for 
-		// a Smarty template based on the full component path. 
-		else
+		// If no method exists, attempt to load a Smarty template.
+		elseif ( $this->smarty )		// Smarty object, try to render template
 		{
 			$template = $request->shiftUrlComponents();
-			if (!$template || $template == '')
-				$template = $request->getUrlDocument();
-//			trigger_error('Method '.get_class($this).'::'.$template.' does not exist. Looking for template.',E_USER_NOTICE);
-// echo __METHOD__.'#'.__LINE__.' '.$template.'<br/>';
-			$path = implode('/',$request->getUrlComponents());
-			if ($path !== '')
-				$template =  $path . '/' . $template;
-			$template .= $this->ext;
-			return $this->display($template,Array('_request' => $request)); 
-		}
+			if (!$template)
+				$template = $request->getDefaultDocument();
+			{							// Use fullpath to find template
+				$path = implode('/',$request->getUrlComponents());
+				if ($path)
+					$template .=  '/' . $path;
+			}
+//			{
+//				$this->smarty->assign('_params', $request->getUrlComponents());
+//			}
+			if ($this->smarty->templateExists($template))
+			{
+				if (method_exists($this,'begin'))	// See parent
+					if (!call_user_func(array($this,'begin'), $request))
+						return FALSE;
+
+				if ( $this->display($request,$template) )
+					return TRUE;			// Template found, return
+			}
+		}		
+		return FALSE;					// No method and no template
 	} // render()
 	
-	protected function display($template, $args=NULL)
+	protected function display(ccRequest $request, $template, $args=NULL)
 	{
-//		echo '<pre>';
-//		echo __METHOD__.'()#'.__LINE__.' "'.$template.'"<br/>'.PHP_EOL;
-		return  $this->smarty->render($template, (Array)$args);
+		$this->smarty->assign('_request', $request);
+		return $this->smarty->render(($this->base ? $this->base.'/' : '').$template, (Array)$args);
 	} // display()
-	
-	function setDebug($debug)
-	{
-		$this->smarty->debugging = $debug;
-		return $this;
-	}
-	
-	function setExt($ext)
-	{
-		$this->ext = $ext;
-		return $this;
-	}
 } // class ccSmartyController

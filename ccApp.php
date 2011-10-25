@@ -8,6 +8,11 @@
  * @todo Add session handling.
  * @todo Need a way to set "debug" setting that will cascade thru components.
  * @todo Move error handling ccError class and refer through ccApp
+ *
+ */
+/*
+ * 2010-10-22 404 uses exceptions
+ *          - Extend classpath interpretation to enter specific class specs.
  */
 
 error_reporting(E_ALL|E_STRICT);
@@ -47,7 +52,7 @@ class ccApp
 
 	protected $_UrlOffset=NULL;			// Path to site's root
 	protected $devMode = self::MODE_DEVELOPMENT; 
-	protected $pluginpath=NULL;			// Path to include
+	protected $pluginpath=NULL;			// Path to include @deprecated
 	protected $sitepath=NULL;			// Path to site specific files.
 	protected $page=NULL; 				// Main page for site
 	protected $error404 = NULL;			// External ccPageInterface to render errors.
@@ -71,8 +76,6 @@ class ccApp
 	public static function _autoload($className)
 	{
 		$classFilename = str_replace('_', DIRECTORY_SEPARATOR, $className).'.php';
-// echo basename(__FILE__).'#'.__LINE__.' '.__METHOD__.'(<b>'.$className.'</b>)<br/>'.PHP_EOL;
-// echo __METHOD__.'(<b>'.$className.'</b>)#'.__LINE__ .' '.self::$_fwpath.$classFilename.'<br/>'.PHP_EOL;
 											// Check instance specific autoload
 		if (self::$_me && method_exists(self::$_me,'autoload'))
 		{
@@ -82,12 +85,10 @@ class ccApp
 		{
 			if (file_exists(self::$_fwpath . 'core' . DIRECTORY_SEPARATOR .$classFilename)) 
 			{
-// echo __METHOD__.'(<b>'.$className.'</b>)#'.__LINE__.' '.self::$_fwpath. 'core'.'<br/>'.PHP_EOL;
 				include(self::$_fwpath . 'core' . DIRECTORY_SEPARATOR .$classFilename);
 			}
 			elseif (file_exists(self::$_fwpath . $classFilename)) 
 			{
-// echo __METHOD__.'(<b>'.$className.'</b>)#'.__LINE__ .self::$_fwpath.'<br/>'.PHP_EOL;
 				include(self::$_fwpath . $classFilename);
 			}
 		}
@@ -96,13 +97,36 @@ class ccApp
 	/**
 	 * Add a relative path to the list of site-secific paths to search when 
 	 * loading site-specific classes. 
+	 * @param string $path Is the path to be included in the search
+	 *        or, if $classname is specified, then the full fliepath. If the first
+	 *        char is not '/' (or '\', as appropriate) then the site dir is
+	 *        assumed.
+	 * @param string $classname is an optional class name that, when sought, will
+	 *        load the specified file specified by $path. 
+	 * @example
+	 *    define('DS',DIRECTORY_SEPARATOR);
+	 *	  $app->addClassPath('classes')		// Search app's directory
+	 *	      ->addClassPath('..'.DS.'smarty'.DS.'Smarty.php','Smarty')
+	 *	  	  ->addClassPath('..'.DS.'RedBeanPHP'.DS.'rb.php','R')
+	 *	  	  ->addClassPath('..'.DS.'Facebook'.DS.'facebook.php','Facebook');
 	 * @todo Allow array of directories to be passed in.
 	 */
-	function addClassPath($path)
+	function addClassPath($path,$classname=NULL)
 	{
-		if (substr($path,-1) != DIRECTORY_SEPARATOR)
-			$path .= DIRECTORY_SEPARATOR;
-		$this->classpath[] = $this->sitepath.$path;
+		if ($classname)
+		{
+			if ($path[0] != DIRECTORY_SEPARATOR)
+				$this->classpath[$classname] = $this->sitepath.$path;
+			else
+				$this->classpath[$classname] = $path;
+		}
+		else
+		{
+			if (substr($path,-1) != DIRECTORY_SEPARATOR)
+				$path .= DIRECTORY_SEPARATOR;
+			$this->classpath[] = $this->sitepath.$path;
+		}
+		return $this;
 	} // addClassPath()
 
 	/**
@@ -122,6 +146,8 @@ class ccApp
 	} // addPhpPath()
 	
 	/**
+	 * @deprecated
+	 *
 	 * This is a convenience method that "installs" external modules from a 
 	 * single directory without having to fully spec the path. This assumes that
 	 * the external modules will be organized in a single directory and set via
@@ -151,9 +177,8 @@ class ccApp
 		$pluginpath = ($this->pluginpath)	// If base-path set for plugins
 			? $this->pluginpath				//    use it.
 			: dirname(self::$_fwpath) . DIRECTORY_SEPARATOR;
-		if (substr($pluginFilepath,0,1) != DIRECTORY_SEPARATOR)
+		if ($pluginFilepath[0] != DIRECTORY_SEPARATOR)
 			$pluginFilepath = $pluginpath . $pluginFilepath;
-// echo __METHOD__.'#'.__LINE__.' '. $pluginFilepath.'<br/>'.PHP_EOL;
 		require($pluginFilepath);
 		return $this;
 	} // includePlugin()
@@ -164,16 +189,22 @@ class ccApp
 	public function autoload($className)
 	{
 		$classFilename = str_replace('_', DIRECTORY_SEPARATOR, $className).'.php';
-// echo __METHOD__.'(<b>'.$className.'</b>)#'.__LINE__.' '.$this->sitepath.$classFilename.'<br/>'.PHP_EOL;
 
 		// Check app paths, first
 		if ($this->sitepath && file_exists($this->sitepath . $classFilename)) 
 		{
 			include($this->sitepath . $classFilename);
 		}
-		else foreach ($this->classpath as $path)
+		else foreach ($this->classpath as $class => $path)
 		{
-			if (file_exists($path . $classFilename)) 
+			if ($class == $className)
+			{
+				if (!file_exists($path))
+					throw new Exception($path . " does not exist in ".getcwd());
+				include($path);
+				return;
+			}
+			else if (file_exists($path . $classFilename)) 
 			{
 				include($path . $classFilename);
 				return;
@@ -203,8 +234,24 @@ class ccApp
 	 */
 	function dispatch(ccRequest $request)
 	{
-		if (!$this->page->render($request))
-			$this->show404($request);
+		try
+		{
+			if (!$this->page->render($request))
+				throw new ccHttpStatusException(404);
+		}	
+		catch (ccHttpStatusException $e)
+		{
+			switch ($e->getStatus())
+			{
+				case 404: $this->show404($request);
+					break;
+				default:				// No other stati supported right now.
+//					http_response_code($e->getStatus());
+					if (!headers_sent())
+						header($_SERVER['SERVER_PROTOCOL'].' '.$e->getStatus().' '.$e->getMessage());
+					throw $e;
+			}
+		}
 	} // dispatch()
 
 	/**
@@ -273,7 +320,7 @@ class ccApp
 	{
 		if ($path === NULL)
 			$path = $this->getUrlOffset();
-		elseif (substr($path,0,1) != '/')
+		elseif ($path[0] != '/')
 			$path = $this->getUrlOffset() . $path;
 		if ($expire === 0 && ($value === NULL || $value == ''))
 			$expire = time()-3600;		// Delete cookie
@@ -356,10 +403,16 @@ class ccApp
 	} // setMainPage()
 
 
+	/**
+	 * @deprecated
+	 */
 	public function getPluginPath()
 	{
 		return $this->pluginpath;
 	}
+	/**
+	 * @deprecated
+	 */
 	public function setPluginPath($path)
 	{
 		if (substr($path,-1) != DIRECTORY_SEPARATOR)
@@ -493,10 +546,11 @@ class ccApp
 	 * @todo Forward qstring, post  variables, and cookies. 
 	 * @todo Allow "internal" redirect that does not return to the client.
 	 */
-	function redirect($url)
+	function redirect($url,$status = 302)
 	{
 		if (!headers_sent())
 		{
+			header($_SERVER['SERVER_PROTOCOL'].' '.$status.' Redirect');
 			header('Location: '.$url);
 			echo "Redirecting to {$url} via header&hellip;";
 		}
@@ -647,10 +701,11 @@ EOD;
 	static function tr($msg)
 	{
 		$trace = debug_backtrace();		// Get whole stack list
-		echo ccApp::getApp()->showTraceLine($trace[0]).PHP_EOL;		// Display stack.
-		echo $msg.'<br/>'.PHP_EOL;
-		echo '<br/>'.PHP_EOL;
-		self::showTrace($trace);
+		error_log( decode_quotes(strip_tags(ccApp::getApp()->showTraceLine($trace[0]))) );
+//		echo ccApp::getApp()->showTraceLine($trace[0]).'<br/>'.PHP_EOL;		// Display stack.
+		// echo $msg.'<br/>'.PHP_EOL;
+		// echo '<br/>'.PHP_EOL;
+		// self::showTrace($trace);
 		// echo '<pre>';
 		// debug_print_backtrace();
 		// echo '</pre>';
@@ -659,3 +714,7 @@ EOD;
 
 } // class ccApp
 
+function decode_quotes($str)
+{
+	return str_replace(array("&ldquo;", "&rdquo;", '&lsquo;', '&rsquo;'), array('"','"','\'','\''), $str);
+}
