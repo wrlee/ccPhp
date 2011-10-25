@@ -17,7 +17,7 @@ abstract class ccController implements ccPageInterface
 	 */
 	protected function getMethodFromRequest(ccRequest $request)
 	{
-		$action = $request->getUrlComponents();		// Base method on first part
+		$action = $request->getUrlPath();			// Base method on first part
 													//   of path.
 		if (!isset($action[0]) || !$action[0])		// If no path portion
 			$action = $request->getDefaultDocument();	//   use "default" name
@@ -29,7 +29,7 @@ abstract class ccController implements ccPageInterface
 			$refl = new ReflectionMethod($this, $action);
 			if ($refl->isPublic()) 					// Handlers must be public
 			{
-				$request->shiftUrlComponents();		// Swallow parsed component
+				$request->shiftUrlPath();			// Swallow parsed component
 				return $action;						// Rtn name of public handler
 			}
 			else

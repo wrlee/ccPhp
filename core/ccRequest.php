@@ -12,8 +12,8 @@
  * on behalf of the request.
  *
  * The URL components are parsed into an array that can be retrieved via
- * getUrlComponents(). The first element can be pulled out of the list via 
- * shiftUrlComponents(). 
+ * getUrlPath(). The first element can be pulled out of the list via 
+ * shiftUrlPath(). 
  *
  * @todo Rather than rely on globals,use constructor's $URI value.
  */
@@ -130,11 +130,11 @@ class ccRequest implements ArrayAccess, IteratorAggregate
 	/**
 	 * @returns array URL components; each component, the part delimited by '/'
 	 */
-	function getUrlComponents()
+	function getUrlPath()
 	{
 		return $this->components;
 	}
-	function popUrlComponents()
+	function popUrlPath()
 	{
 		if ($this->components)				// If array not empty
 		{
@@ -143,13 +143,13 @@ class ccRequest implements ArrayAccess, IteratorAggregate
 		else
 			$rval = NULL;
 		return $rval;
-	} // popUrlComponents()
+	} // popUrlPath()
 	/**
 	 * Shift the component list "left", deleting the first component and 
 	 * returning that component.
 	 * @returns string The first component of the URL.
 	 */
-	function shiftUrlComponents()
+	function shiftUrlPath()
 	{
 		if ($this->components)				// If array not empty
 		{
@@ -158,7 +158,7 @@ class ccRequest implements ArrayAccess, IteratorAggregate
 		else
 			$rval = NULL;
 		return $rval;
-	} // shiftUrlComponents()
+	} // shiftUrlPath()
 	
 	function getUserAgent()
 	{

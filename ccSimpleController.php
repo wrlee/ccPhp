@@ -22,14 +22,14 @@ class ccSimpleController extends ccController
 	{
 		if ($this->base)	// If a "base" for this controller is set,
 		{					//    then assume it's an offset and "eat" it.
-			$action = $request->shiftUrlComponents();
+			$action = $request->shiftUrlPath();
 			if (!$action || strtolower($action) != $this->base)
 				return FALSE;	// Path doesn't reflect the offset so, "no match"
 		}
 		// If default page is to be used, then this should look/act like a path
 		// with a trailing '/', so redirect to proper page so client treats 
 		// relative hrefs properly. 
-		if ( count($request->getUrlComponents()) == 0 	// Maps to default page?
+		if ( count($request->getUrlPath()) == 0 		// Maps to default page?
 			 && substr($request->getUrl(),-1) != '/' )	// So ensure '/' suffix
 			ccApp::getApp()->redirect($request->getUrl().'/',301);
 

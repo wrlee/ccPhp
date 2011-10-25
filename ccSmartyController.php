@@ -27,16 +27,16 @@ class ccSmartyController extends ccSimpleController
 		// If no method exists, attempt to load a Smarty template.
 		elseif ( $this->smarty )		// Smarty object, try to render template
 		{
-			$template = $request->shiftUrlComponents();
+			$template = $request->shiftUrlPath();
 			if (!$template)
 				$template = $request->getDefaultDocument();
 			{							// Use fullpath to find template
-				$path = implode('/',$request->getUrlComponents());
+				$path = implode('/',$request->getUrlPath());
 				if ($path)
 					$template .=  '/' . $path;
 			}
 //			{
-//				$this->smarty->assign('_params', $request->getUrlComponents());
+//				$this->smarty->assign('_params', $request->getUrlPath());
 //			}
 			if ($this->smarty->templateExists($template))
 			{

@@ -52,7 +52,6 @@ class ccApp
 
 	protected $_UrlOffset=NULL;			// Path to site's root
 	protected $devMode = self::MODE_DEVELOPMENT; 
-	protected $pluginpath=NULL;			// Path to include @deprecated
 	protected $sitepath=NULL;			// Path to site specific files.
 	protected $page=NULL; 				// Main page for site
 	protected $error404 = NULL;			// External ccPageInterface to render errors.
@@ -146,44 +145,6 @@ class ccApp
 	} // addPhpPath()
 	
 	/**
-	 * @deprecated
-	 *
-	 * This is a convenience method that "installs" external modules from a 
-	 * single directory without having to fully spec the path. This assumes that
-	 * the external modules will be organized in a single directory and set via
-	 * setPluginPath(); otherwise explicit include() or require() can be used.
-	 * 
-	 * @note It is best not to call this within the modules being uses so that 
-	 * they are not loaded when they are not used. 
-	 *
-	 * @param string $pluginFilepath is the path/filename of the file to be 
-	 *        included.
-	 *
-	 * @example
-	 *    define('DS',DIRECTORY_SEPARATOR);
-	 *	  $app->setPluginPath($app->getFrameworkPath(). DS . 'plugins');
-	 *	  $app->includePlugin('smarty'.DS.'Smarty.php')
-	 *	  	  ->includePlugin('RedBeanPHP'.DS.'rb.php');
-	 *
-	 * @see include()
-	 * @see get/setPluginPath()
-	 * @todo Check for colon and '\' for Windows paths
-	 * @todo This should not be necessary... and is inefficient because it should
-	 *       only be called when it is necessary to be used. Perhaps we should 
-	 *       add searching/loading to the autoload handling. 
-	 */
-	public function includePlugin($pluginFilepath)
-	{
-		$pluginpath = ($this->pluginpath)	// If base-path set for plugins
-			? $this->pluginpath				//    use it.
-			: dirname(self::$_fwpath) . DIRECTORY_SEPARATOR;
-		if ($pluginFilepath[0] != DIRECTORY_SEPARATOR)
-			$pluginFilepath = $pluginpath . $pluginFilepath;
-		require($pluginFilepath);
-		return $this;
-	} // includePlugin()
-	
-	/**
 	 * Instance specific autoload() searches site specific paths.
 	 */
 	public function autoload($className)
@@ -243,6 +204,10 @@ class ccApp
 		{
 			switch ($e->getStatus())
 			{
+				case 300: case 301: case 302: case 303: 
+				case 304: case 305: case 306: case 307: 
+					$this->redirect($e->getLocation(), $e->getStatus(), $e->getMessage());
+					break;
 				case 404: $this->show404($request);
 					break;
 				default:				// No other stati supported right now.
@@ -402,25 +367,6 @@ class ccApp
 		return $this;
 	} // setMainPage()
 
-
-	/**
-	 * @deprecated
-	 */
-	public function getPluginPath()
-	{
-		return $this->pluginpath;
-	}
-	/**
-	 * @deprecated
-	 */
-	public function setPluginPath($path)
-	{
-		if (substr($path,-1) != DIRECTORY_SEPARATOR)
-			$path .= DIRECTORY_SEPARATOR;
-		$this->pluginpath = $path;
-		return $this;
-	}
-	
 	/**
 	 * Get/set server path to site's files (not the URL)
 	 * @param string $path Full, absolute path (e.g., dirname(__FILE__) 
@@ -546,11 +492,11 @@ class ccApp
 	 * @todo Forward qstring, post  variables, and cookies. 
 	 * @todo Allow "internal" redirect that does not return to the client.
 	 */
-	function redirect($url,$status = 302)
+	function redirect($url,$status = 302,$message='Redirect')
 	{
 		if (!headers_sent())
 		{
-			header($_SERVER['SERVER_PROTOCOL'].' '.$status.' Redirect');
+			header($_SERVER['SERVER_PROTOCOL'].' '.$status.' '.$message);
 			header('Location: '.$url);
 			echo "Redirecting to {$url} via header&hellip;";
 		}
