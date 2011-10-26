@@ -11,15 +11,23 @@ class ccHttpStatusException extends Exception
 		// http://www.w3schools.com/tags/ref_httpmessages.asp
 		switch ($status) 
 		{
-			case 100: $message = 'Continue';	// Only a part of the request has been received by the server, but as long as it has not been rejected, the client should continue with the request
+			// Only a part of the request has been received by the server, but
+			// as long as it has not been rejected, the client should continue
+			// with the request
+			case 100: $message = 'Continue';	
 				break;
-			case 101: $message = 'Switching Protocols';	// The server switches protocol
+			// The server switches protocol
+			case 101: $message = 'Switching Protocols';	
 				break;
-			case 200: $message = 'OK';	// The request is OK
+			// The request is OK
+			case 200: $message = 'OK';	
 				break;
-			case 201: $message = 'Created';	// The request is complete, and a new resource is created 
+			// The request is complete, and a new resource is created 
+			case 201: $message = 'Created';	
 				break;
-			case 202: $message = 'Accepted';	// The request is accepted for processing, but the processing is not complete
+			// The request is accepted for processing, but the processing is not
+			// complete
+			case 202: $message = 'Accepted';	
 				break;
 			case 203: $message = 'Non-authoritative Information';	 
 				break;
@@ -37,71 +45,106 @@ class ccHttpStatusException extends Exception
 				$this->location = $message;
 				switch ($status)
 				{
-					case 300: $message = 'Multiple Choices';	// A link list. The user can select a link and go to that location. Maximum five addresses  
+					// A link list. The user can select a link and go to that
+					// location. Maximum five addresses  
+					case 300: $message = 'Multiple Choices';
 						break;
-					case 301: $message = 'Moved Permanently';	// The requested page has moved to a new url 
+					// The requested page has moved to a new url 
+					case 301: $message = 'Moved Permanently';
 						break;
-					case 302: $message = 'Found';	// The requested page has moved temporarily to a new url 
+					// The requested page has moved temporarily to a new url 
+					case 302: $message = 'Found';			
 						break;
-					case 303: $message = 'See Other';	// The requested page can be found under a different url 
+					// The requested page can be found under a different url 
+					case 303: $message = 'See Other';		
 						break;
 					case 304: $message = 'Not Modified';	 
 						break;
 					case 305: $message = 'Use Proxy';	 
 						break;
-					case 306: $message = 'Unused';	// This code was used in a previous version. It is no longer used, but the code is reserved
-						break;
+//					case 306: $message = 'Unused'; // This code was used in a previous version. It is no longer used, but the code is reserved
+//						break;
 					case 307: $message = 'Temporary Redirect';
 						break;
 				}
 				break;
-			case 400: $message = 'Bad Request';	// The server did not understand the request
+			// The server did not understand the request
+			case 400: $message = 'Bad Request';		
 				break;
-			case 401: $message = 'Unauthorized';	// The requested page needs a username and a password
+			// The requested page needs a username and a password
+			case 401: $message = 'Unauthorized';	
 				break;
-			case 402: $message = 'Payment Required';	// You can not use this code yet
+			// You can not use this code yet
+			case 402: $message = 'Payment Required';
 				break;
-			case 403: $message = 'Forbidden';	// Access is forbidden to the requested page
+			// Access is forbidden to the requested page
+			case 403: $message = 'Forbidden';	
 				break;
-			case 404: $message = 'Not Found';	// The server can not find the requested page
+			// The server can not find the requested page
+			case 404: $message = 'Not Found';	
 				break;
-			case 405: $message = 'Method Not Allowed';	// The method specified in the request is not allowed
+			// The method specified in the request is not allowed
+			case 405: $message = 'Method Not Allowed';	
 				break;
-			case 406: $message = 'Not Acceptable';	// The server can only generate a response that is not accepted by the client
+			// The server can only generate a response that is not accepted by
+			// the client
+			case 406: $message = 'Not Acceptable';		
 				break;
-			case 407: $message = 'Proxy Authentication Required';	// You must authenticate with a proxy server before this request can be served
+			// You must authenticate with a proxy server before this request can be served
+			case 407: $message = 'Proxy Authentication Required';	
 				break;
-			case 408: $message = 'Request Timeout';	// The request took longer than the server was prepared to wait
+			// The request took longer than the server was prepared to wait
+			case 408: $message = 'Request Timeout';	
 				break;
-			case 409: $message = 'Conflict';	// The request could not be completed because of a conflict
+			// The request could not be completed because of a conflict
+			case 409: $message = 'Conflict';		
 				break;
-			case 410: $message = 'Gone';	// The requested page is no longer available 
+			// The requested page is no longer available 
+			case 410: $message = 'Gone';			
 				break;
-			case 411: $message = 'Length Required';	// The "Content-Length" is not defined. The server will not accept the request without it 
+			// The "Content-Length" is not defined. The server will not accept
+			// the request without it 
+			case 411: $message = 'Length Required';	
 				break;
-			case 412: $message = 'Precondition Failed';	// The precondition given in the request evaluated to false by the server
+			// The precondition given in the request evaluated to false by the server
+			case 412: $message = 'Precondition Failed';	
 				break;
-			case 413: $message = 'Request Entity Too Large';	// The server will not accept the request, because the request entity is too large
+			// The server will not accept the request, because the request
+			// entity is too large
+			case 413: $message = 'Request Entity Too Large';	
 				break;
-			case 414: $message = 'Request-url Too Long';	// The server will not accept the request, because the url is too long. Occurs when you convert a "post" request to a "get" request with a long query information 
+			// The server will not accept the request, because the url is too
+			// long. Occurs when you convert a "post" request to a "get" request
+			// with a long query information 
+			case 414: $message = 'Request-url Too Long';	
 				break;
-			case 415: $message = 'Unsupported Media Type';	// The server will not accept the request, because the media type is not supported 
+			// The server will not accept the request, because the media type is
+			// not supported 
+			case 415: $message = 'Unsupported Media Type';	
 				break;
-//				case 416: $message = '';	 
-//					break;
+//			case 416: $message = '';	 
+//				break;
 			case 417: $message = 'Expectation Failed';
 				break;
-			case 500: $message = 'Internal Server Error';	// The request was not completed. The server met an unexpected condition
+			// The request was not completed. The server met an unexpected condition
+			case 500: $message = 'Internal Server Error';
 				break;
-			case 501: $message = 'Not Implemented';	// The request was not completed. The server did not support the functionality required
+			// The request was not completed. The server did not support the functionality required
+			case 501: $message = 'Not Implemented';	
 				break;
-			case 502: $message = 'Bad Gateway';	// The request was not completed. The server received an invalid response from the upstream server
+			// The request was not completed. The server received an invalid
+			// response from the upstream server
+			case 502: $message = 'Bad Gateway';	
 				break;
-			case 503: $message = 'Service Unavailable';	// The request was not completed. The server is temporarily overloading or down
+			// The request was not completed. The server is temporarily
+			// overloading or down
+			case 503: $message = 'Service Unavailable';	
 				break;
-			case 504: $message = 'Gateway Timeout';	// The gateway has timed out
+			// The gateway has timed out
+			case 504: $message = 'Gateway Timeout';	
 				break;
-			case 505: $message = 'HTTP Version Not Supported';	// The server does not support the "http protocol" version
+			// The server does not support the "http protocol" version
+			case 505: $message = 'HTTP Version Not Supported';
 				break;
 			default:
 				$message = $status.': HTTP Status Exception';

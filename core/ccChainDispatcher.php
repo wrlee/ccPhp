@@ -7,7 +7,7 @@
  * can be any sort of page renderer).
  *
  * Each page renderer (implementing ccPageInterface) is added via the 
- * addPageRenderer() method (by name or as an object). When this dispatcher is 
+ * addPage() method (by name or as an object). When this dispatcher is 
  * invoked via its render() method, walks down the pages added, invoking each
  * one in turn until one returns TRUE. If none of the added controllers returns
  * true, then this render() returns FALSE (causing ccApp's dispatch() method to 
@@ -16,7 +16,7 @@
  * @todo Move error handling ccError class and refer through ccApp
  * @todo Eliminate filter handling--not sure that it is needed.
  */
-class ccDispatch implements ccPageInterface
+class ccChainDispatcher implements ccPageInterface
 {
 	protected $filterChainPrefix = Array();		// List of filters
 	protected $controllerChain = Array();		// List of controllers
@@ -27,13 +27,13 @@ class ccDispatch implements ccPageInterface
 	 * @param ccPageInterface|string $controller Page object or name of one.
 	 *        If string, it is instantiated if needed. 
 	 */
-	function addPageRenderer($controller)
+	function addPage($controller)
 	{
 		$this->controllerChain[] = $controller;
 		if (!is_string($controller) && !($controller instanceof ccPageInterface))
 			throw ErrrorException(get_class($controller).' rendering object needs to implement ccPageInterface.');
 		return $this;			// Allow property chaining
-	} // function addPageRenderer()
+	} // function addPage()
 	
 	/**
 	 * Add filter to modify request object.
@@ -83,4 +83,4 @@ class ccDispatch implements ccPageInterface
 		// return ccApp::getApp()->getDevMode() & ccApp::MODE_DEVELOPMENT;
 	// }
 	
-} // class ccDispatch
+} // class ccChainDispatcher

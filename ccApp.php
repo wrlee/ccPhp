@@ -40,10 +40,10 @@ ccApp::setFrameworkPath(dirname(__FILE__));	// Function probably not needed
  */
 class ccApp
 {
-	const MODE_DEVELOPMENT = 1;
-	const MODE_TESTING = 2;
-	const MODE_STAGING = 4;
-	const MODE_PRODUCTION = 8;
+	const MODE_DEVELOPMENT	= 1;
+	const MODE_TESTING		= 2;
+	const MODE_STAGING		= 4;
+	const MODE_PRODUCTION	= 8;
 
 	protected static $_me=NULL;			// Singlton ref to $this
 	protected static $_fwpath=NULL;		// Path to framework files.
@@ -129,7 +129,7 @@ class ccApp
 	} // addClassPath()
 
 	/**
-	 * Add to PHP search path
+	 * Convenience method to prefix or suffix the PHP search path.
 	 * @param string $path Path component to add to search path.
 	 * @param bool $prefix Prefix the search path with the new path. Default:
 	 *        false, append new path to the end of the search path.
@@ -198,7 +198,9 @@ class ccApp
 		try
 		{
 			if (!$this->page->render($request))
+			{
 				throw new ccHttpStatusException(404);
+			}
 		}	
 		catch (ccHttpStatusException $e)
 		{
@@ -249,8 +251,9 @@ class ccApp
 	
 	/**
 	 * Handle 404 (page not found errors).
-	 * @param ccPageInterface|string $error404page The object or classname that would
-	 *              render a 404 page.
+	 * @param ccPageInterface|string $error404page The object or classname that
+	 *        would render a 404 page.
+	 * @see show404() on404()
 	 * @todo Add support for string name of class. 
 	 */
 	function set404Page(ccPageInterface $error404page)
@@ -307,8 +310,8 @@ class ccApp
 	
 	/**
 	 * Set the error handler; a convenience method for stylistic consistency.
-	 * @param callback $function The name of the callback function or array, when
-	 *                           the callback is a class or object method.
+	 * @param callback $function The name of the callback function or array,
+	 *        when the callback is a class or object method.
 	 * The callback function should look like: 
 	 *   handler ( int $errno , string $errstr [, 
 	 *             string $errfile [, int $errline [, array $errcontext ]]] )
@@ -323,8 +326,8 @@ class ccApp
 	
 	/**
 	 * Set the exception handler; a convenience method for stylistic consistency.
-	 * @param callback $function The name of the callback function or array, when
-	 *                           the callback is a class or object method.
+	 * @param callback $function The name of the callback function or array,
+	 *        when the callback is a class or object method.
 	 * The callback function should look like: 
 	 *   handler ( Exception $e )
 	 * @see http://www.php.net/manual/en/function.set-error-handler.php
@@ -427,7 +430,7 @@ class ccApp
 		{
 			$trace = debug_backtrace();		// Get whole stack list
 			array_shift($trace);			// Ignore this function
-			ccApp::getApp()->showTrace($trace);		// Display stack.
+			ccTrace::showTrace($trace);		// Display stack.
 		}
 //		exit();
 	} // on404()
@@ -457,7 +460,7 @@ class ccApp
 //			echo '</pre>';
 			$trace = debug_backtrace();		// Get whole stack list
 			array_shift($trace);			// Ignore this function
-			self::showTrace($trace);		// Display stack.
+			ccTrace::showTrace($trace);		// Display stack.
 //			die();
 			return TRUE;
 		}
@@ -475,7 +478,7 @@ class ccApp
 		try
 		{
 			print get_class($exception).' '.$exception->getMessage().' in '.$exception->getFile().'#'.$exception->getLine().'<br/>'.PHP_EOL;
-			self::showTrace($exception->getTrace());
+			ccTrace::showTrace($exception->getTrace());
 //			echo '<pre>';
 //			print $exception->getTraceAsString();
 //			echo '</pre>';
@@ -531,136 +534,30 @@ EOD;
 	} // show404()
 	
 	/**
-	 * @todo Consider moving to separate Trace class
-	 */
-	static function showTrace(Array $trace)
-	{
-//		array_shift($trace);	// Ignore this method.
-// echo '<pre>';
-// echo __METHOD__.' ';
-// var_dump($trace);
-		$entry = 1;
-		foreach ($trace as $key => $line)
-		{
-			if (isset($line['file']) && isset($line['line']))
-			{
-				echo ($entry++).'. '.self::showTraceline($line).'<br/>';
-				if (   $line['function'] == 'call_user_func'
-					 || $line['function'] == 'call_user_func_array')
-				{
-					echo '&nbsp;&nbsp;&nbsp;&nbsp;'.self::showTraceline($trace[$key-1]).'<br/>';
-				}
-			}
-		}
-// echo '</pre>';
-	} // showTrace()
-	
-	/**
-	 * Format a line of the trace stack. 
-	 *
-	 * @see debug_traceback() http://us.php.net/manual/en/function.debug-backtrace.php
-	 * @see Exception::getTrace() http://us.php.net/manual/en/exception.gettrace.php
-	 * @todo Consider moving to separate Trace class
-	 */
-	protected static function showTraceLine($line)
-	{
-// echo __METHOD__.' ';
-// var_dump($line);
-// if (is_string($line))
-	// return $line.'<br/>';
-		$out = '';
-		if (isset($line['class']))
-			$out .= '<b>'.$line['class'].'</b>';
-		if (isset($line['object']) 
-			&& get_class($line['object']) != $line['class'])
-			$out .= '<i>('.get_class($line['object']).')</i>';
-		if (isset($line['type']))
-			$out .= ($line['type'] == '->' ? '&rarr;' : $line['type']);
-		$out .= '<b>'.$line['function'].'</b>(';
-		$first = true;
-		foreach ($line['args'] as $arg)
-		{
-			if (!$first)
-				$out .= ',';
-			else
-				$first = false;
-			$out .= '<tt>';
-			if ($arg === NULL)
-				$out .= 'null';
-			elseif (is_object($arg))
-				$out .= get_class($arg);
-			elseif (is_string($arg))
-				$out .= '</tt>&ldquo;<i>'.$arg.'</i>&rdquo;<tt>';
-			elseif (is_array($arg))
-			{
-				if ((   $line['function'] == 'call_user_func'
-					 || $line['function'] == 'call_user_func_array')
-					&& count($arg) == 2)
-				{
-					$out .= get_class($arg[0]);
-					if (is_object($arg[0]))
-						$out .= '&rarr;';
-					else 
-						$out .= '::';
-					$out .= $arg[1].'()</tt>,&hellip;';
-					break;
-				}
-				else
-				{
-				$out .= 'Array(';
-				$firstarg = true;
-				foreach ($arg as $argkey => $argval)
-				{
-					if (!$firstarg)
-						$out .= ',';
-					else
-						$firstarg = false;
-					$out .= $argkey.'&rArr;';
-					if ($argval === NULL)
-						$out .= 'null';
-					elseif (is_object($argval))
-						$out .= get_class($argval);
-					elseif (is_string($argval))
-						$out .= '</tt>&ldquo;<i>'.$argval.'</i>&rdquo;<tt>';
-					else
-						$out .= $argval;
-				}
-				$out .= ')';
-				}
-			}
-			else
-				$out .= $arg;
-			$out .= '</tt>';
-		}
-		$out .= ')';
-		if (isset($line['file']))
-			$out .= ' in <tt>'.dirname($line['file']).'/</tt><b>'.basename($line['file']).'</b>#'.$line['line'];
-		// echo ') in <tt>'.dirname($line['file']).'/<b>'.basename($line['file']).'</b>#</tt>'.$line['line'].'<br/>';
-// var_dump($line['args']);
-		// echo '&nbsp;&nbsp;&nbsp;'.implode(',',$line['args']).'<br/>';
-		return $out;
-	} // showTraceLine()
-	
-	/**
 	 * options: HTML, log, stderr, stdout, formatted, timestamp
 	 */
 	static function tr($msg)
 	{
-		$trace = debug_backtrace();		// Get whole stack list
-		error_log( decode_quotes(strip_tags(ccApp::getApp()->showTraceLine($trace[0]))) );
-//		echo ccApp::getApp()->showTraceLine($trace[0]).'<br/>'.PHP_EOL;		// Display stack.
+		$trace = debug_backtrace(
+				// DEBUG_BACKTRACE_IGNORE_ARGS
+				// | 
+				// DEBUG_BACKTRACE_PROVIDE_OBJECT
+				// ,2);
+				// TRUE
+				);
+// echo '<pre>';
+// echo __METHOD__.' ';
+// var_dump($trace);
+//		error_log( ccTrace::showTraceLine($trace[0],TRUE) );
+//echo $trace[0]['file'].'#'.$trace[0]['line'].' '.$trace[1]['class'].'::'.$trace[1]['function'].'<br/>';
+echo $trace[1]['class'].'::'.$trace[1]['function'].'#'.$trace[0]['line'].' '.$msg.'<br/>';
+//		echo ccTrace::showTraceLine($trace[0]).'<br/>'.PHP_EOL;		// Display stack.
 		// echo $msg.'<br/>'.PHP_EOL;
 		// echo '<br/>'.PHP_EOL;
-		// self::showTrace($trace);
+//		ccTrace::showTrace($trace);
 		// echo '<pre>';
 		// debug_print_backtrace();
 		// echo '</pre>';
-		
 	}
 
 } // class ccApp
-
-function decode_quotes($str)
-{
-	return str_replace(array("&ldquo;", "&rdquo;", '&lsquo;', '&rsquo;'), array('"','"','\'','\''), $str);
-}
