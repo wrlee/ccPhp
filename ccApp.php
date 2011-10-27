@@ -63,9 +63,9 @@ class ccApp
 	{
 //		echo __METHOD__ . PHP_EOL;
 	} // __construct()
-	
+
 	/**
-	 * Search for class definition from framework folder. If there is an  
+	 * Search for class definition from framework folder. If there is an
 	 * instance of the app, call its autoload first where site specific searches
 	 * will take precedence. 
 	 *
@@ -92,7 +92,7 @@ class ccApp
 			}
 		}
 	} // _autoload()
-	
+
 	/**
 	 * Add a relative path to the list of site-secific paths to search when 
 	 * loading site-specific classes. 
@@ -143,13 +143,15 @@ class ccApp
 			set_include_path(get_include_path() . PATH_SEPARATOR . $path);
 		return $this;
 	} // addPhpPath()
-	
+
 	/**
 	 * Instance specific autoload() searches site specific paths.
 	 */
 	public function autoload($className)
 	{
 		$classFilename = str_replace('_', DIRECTORY_SEPARATOR, $className).'.php';
+// self::tr($className.'&rarr;'.$classFilename);
+// self::tr('&nbsp;&nbsp;&nbsp;'.$this->sitepath.$classFilename);
 
 		// Check app paths, first
 		if ($this->sitepath && file_exists($this->sitepath . $classFilename)) 
@@ -171,8 +173,9 @@ class ccApp
 				return;
 			}
 		}
+		// IF WE GET HERE, WE COULD NOT RESOLVE THE CLASS
 	} // autoload()
-	
+
 	/**
 	 * Create singleton instance of the app. 
 	 * 
@@ -186,7 +189,7 @@ class ccApp
 	{
 		return self::$_me = ($className ? new $className : new self);
 	} // createApp()
-	
+
 	/**
 	 * This method is called to render pages for the web site. It invokes the 
 	 * "main page" (which is usually a dispatcher or controller) to render 
@@ -201,7 +204,7 @@ class ccApp
 			{
 				throw new ccHttpStatusException(404);
 			}
-		}	
+		}
 		catch (ccHttpStatusException $e)
 		{
 			switch ($e->getStatus())
@@ -248,7 +251,7 @@ class ccApp
 		$this->config[$name] = $value;
 		return $this;
 	} // set()
-	
+
 	/**
 	 * Handle 404 (page not found errors).
 	 * @param ccPageInterface|string $error404page The object or classname that
@@ -261,7 +264,7 @@ class ccApp
 		$this->error404 = $error404page;
 		return $this;
 	} // set404handler()
-	
+
 	/**
 	 * @return object App singleton instance
 	 */
@@ -294,7 +297,7 @@ class ccApp
 			$expire = time()-3600;		// Delete cookie
 		setcookie($name, $value, $expire, $path, $domain, $secure, $httponly);
 	} // setCookie()
-	
+
 	/**
 	 * Get/set app's disposition mask.
 	 */
@@ -307,7 +310,7 @@ class ccApp
 		$this->devMode = $mode;
 		return $this;
 	}
-	
+
 	/**
 	 * Set the error handler; a convenience method for stylistic consistency.
 	 * @param callback $function The name of the callback function or array,
@@ -323,7 +326,7 @@ class ccApp
 		set_error_handler($function);
 		return $this;
 	} // setErrorHandler()
-	
+
 	/**
 	 * Set the exception handler; a convenience method for stylistic consistency.
 	 * @param callback $function The name of the callback function or array,
@@ -337,7 +340,7 @@ class ccApp
 		set_error_handler($function);
 		return $this;
 	} // setErrorHandler()
-	
+
 	/**
 	 * Set server path to site's files (not the URL)
 	 * @param string $path Full, absolute path (e.g., dirname(__FILE__) of
@@ -356,7 +359,7 @@ class ccApp
 		self::$_fwpath = $path;
 // echo __METHOD__.'#'.__LINE__.' path: '	. self::$_fwpath.'<br/>'.PHP_EOL;
 	} // setFrameworkPath()
-	
+
 	/**
 	 * @return object app's main page (e.g., dispatcher or controller)
 	 */
@@ -387,7 +390,7 @@ class ccApp
 		$this->sitepath = $path;
 		return $this;
 	} // setSitePath()
-	
+
 	/**
 	 * The URI offset is the part of the URL that spans from the server name
 	 * (and port, if any) to the controller name.  This is the URL for the
@@ -467,7 +470,7 @@ class ccApp
 		else
 			return FALSE; 	// chain to normal error handler
 	} // onError()
-	
+
 	/**
 	 * @todo Add distinction between dev and production modes of output.
 	 * @todo See php.net on tips for proper handling of this handler.
@@ -489,7 +492,7 @@ class ccApp
 			print get_class($e)." thrown within the exception handler. Message: ".$e->getMessage()." on line ".$e->getLine();
 		}
 	} // onException()
-	
+
 	/**
 	 * @param string $url Send rediret to browser
 	 * @todo Forward qstring, post  variables, and cookies. 
@@ -512,7 +515,7 @@ EOD;
 		}
 		exit();
 	} // redirect()
-	
+
 	/**
 	 * For whatever reason, display 404 page response.
 	 */
@@ -532,12 +535,14 @@ EOD;
 		else 
 			$this->on404($request);
 	} // show404()
-	
+
 	/**
 	 * options: HTML, log, stderr, stdout, formatted, timestamp
 	 */
-	static function tr($msg)
+	static function tr($msg='')
 	{
+		if (!(ccApp::$_me->devMode & ccApp::MODE_DEVELOPMENT))
+			return;
 		$trace = debug_backtrace(
 				// DEBUG_BACKTRACE_IGNORE_ARGS
 				// | 
@@ -550,14 +555,45 @@ EOD;
 // var_dump($trace);
 //		error_log( ccTrace::showTraceLine($trace[0],TRUE) );
 //echo $trace[0]['file'].'#'.$trace[0]['line'].' '.$trace[1]['class'].'::'.$trace[1]['function'].'<br/>';
-echo $trace[1]['class'].'::'.$trace[1]['function'].'#'.$trace[0]['line'].' '.$msg.'<br/>';
-//		echo ccTrace::showTraceLine($trace[0]).'<br/>'.PHP_EOL;		// Display stack.
+		if (FALSE)
+		{
+			$bb = $eb = 
+			$bi = $ei = 
+			$btt = $ett = '';
+			list ($rarr,$ldquo,$rdquo,$hellip,$nl) = 
+			array('->', '"',   '"',   '...',  PHP_EOL);
+		}
+		else
+		{
+			list ($bb,  $eb,   $bi,  $ei,   $btt,  $ett,   $rarr,   $ldquo,$rdquo,   $hellip,   $nl) =
+			array('<b>','</b>','<i>','</i>','<tt>','</tt>','&rarr;','&ldquo;','&rdquo;','&hellip;','<br/>'.PHP_EOL);
+		}
+		$out = '';
+		if (isset($trace[1]['class']))
+			$out .= $bb.$trace[1]['class'].$eb;
+		if (isset($trace[1]['object']) 
+			&& get_class($trace[1]['object']) != $trace[1]['class'])
+			$out .= $bi.'('.get_class($trace[1]['object']).')'.$ei;
+		if (isset($trace[1]['type']))
+			$out .= ($trace[1]['type'] == '->' ? $rarr : $trace[1]['type']);
+		$out .= $bb.$trace[1]['function'].$eb.'()#'.$trace[0]['line'];
+
+		if ($msg === '' || $msg === NULL || is_string($msg))
+			echo $out.' '.$msg.$nl;
+		else
+		{
+echo '<pre>';
+			echo $out.' ';
+			print_r($msg);
+			echo PHP_EOL;
+echo '</pre>';
+		}
 		// echo $msg.'<br/>'.PHP_EOL;
 		// echo '<br/>'.PHP_EOL;
 //		ccTrace::showTrace($trace);
 		// echo '<pre>';
 		// debug_print_backtrace();
 		// echo '</pre>';
-	}
+	} // tr()
 
 } // class ccApp

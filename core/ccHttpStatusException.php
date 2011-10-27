@@ -4,7 +4,7 @@ class ccHttpStatusException extends Exception
 {
 	protected $status;
 	protected $location;	// For 30x exceptions
-	
+
 	function __construct( $status, $message=NULL, Exception $previous = NULL )
 	{
 		$this->status = $status;
@@ -14,20 +14,20 @@ class ccHttpStatusException extends Exception
 			// Only a part of the request has been received by the server, but
 			// as long as it has not been rejected, the client should continue
 			// with the request
-			case 100: $message = 'Continue';	
+			case 100: $message = 'Continue';
 				break;
 			// The server switches protocol
-			case 101: $message = 'Switching Protocols';	
+			case 101: $message = 'Switching Protocols';
 				break;
 			// The request is OK
-			case 200: $message = 'OK';	
+			case 200: $message = 'OK';
 				break;
 			// The request is complete, and a new resource is created 
-			case 201: $message = 'Created';	
+			case 201: $message = 'Created';
 				break;
 			// The request is accepted for processing, but the processing is not
 			// complete
-			case 202: $message = 'Accepted';	
+			case 202: $message = 'Accepted';
 				break;
 			case 203: $message = 'Non-authoritative Information';	 
 				break;
@@ -53,10 +53,10 @@ class ccHttpStatusException extends Exception
 					case 301: $message = 'Moved Permanently';
 						break;
 					// The requested page has moved temporarily to a new url 
-					case 302: $message = 'Found';			
+					case 302: $message = 'Found';
 						break;
 					// The requested page can be found under a different url 
-					case 303: $message = 'See Other';		
+					case 303: $message = 'See Other';
 						break;
 					case 304: $message = 'Not Modified';	 
 						break;
@@ -69,58 +69,58 @@ class ccHttpStatusException extends Exception
 				}
 				break;
 			// The server did not understand the request
-			case 400: $message = 'Bad Request';		
+			case 400: $message = 'Bad Request';
 				break;
 			// The requested page needs a username and a password
-			case 401: $message = 'Unauthorized';	
+			case 401: $message = 'Unauthorized';
 				break;
 			// You can not use this code yet
 			case 402: $message = 'Payment Required';
 				break;
 			// Access is forbidden to the requested page
-			case 403: $message = 'Forbidden';	
+			case 403: $message = 'Forbidden';
 				break;
 			// The server can not find the requested page
-			case 404: $message = 'Not Found';	
+			case 404: $message = 'Not Found';
 				break;
 			// The method specified in the request is not allowed
-			case 405: $message = 'Method Not Allowed';	
+			case 405: $message = 'Method Not Allowed';
 				break;
 			// The server can only generate a response that is not accepted by
 			// the client
-			case 406: $message = 'Not Acceptable';		
+			case 406: $message = 'Not Acceptable';
 				break;
 			// You must authenticate with a proxy server before this request can be served
-			case 407: $message = 'Proxy Authentication Required';	
+			case 407: $message = 'Proxy Authentication Required';
 				break;
 			// The request took longer than the server was prepared to wait
-			case 408: $message = 'Request Timeout';	
+			case 408: $message = 'Request Timeout';
 				break;
 			// The request could not be completed because of a conflict
-			case 409: $message = 'Conflict';		
+			case 409: $message = 'Conflict';
 				break;
 			// The requested page is no longer available 
-			case 410: $message = 'Gone';			
+			case 410: $message = 'Gone';
 				break;
 			// The "Content-Length" is not defined. The server will not accept
 			// the request without it 
-			case 411: $message = 'Length Required';	
+			case 411: $message = 'Length Required';
 				break;
 			// The precondition given in the request evaluated to false by the server
-			case 412: $message = 'Precondition Failed';	
+			case 412: $message = 'Precondition Failed';
 				break;
 			// The server will not accept the request, because the request
 			// entity is too large
-			case 413: $message = 'Request Entity Too Large';	
+			case 413: $message = 'Request Entity Too Large';
 				break;
 			// The server will not accept the request, because the url is too
 			// long. Occurs when you convert a "post" request to a "get" request
 			// with a long query information 
-			case 414: $message = 'Request-url Too Long';	
+			case 414: $message = 'Request-url Too Long';
 				break;
 			// The server will not accept the request, because the media type is
 			// not supported 
-			case 415: $message = 'Unsupported Media Type';	
+			case 415: $message = 'Unsupported Media Type';
 				break;
 //			case 416: $message = '';	 
 //				break;
@@ -130,18 +130,18 @@ class ccHttpStatusException extends Exception
 			case 500: $message = 'Internal Server Error';
 				break;
 			// The request was not completed. The server did not support the functionality required
-			case 501: $message = 'Not Implemented';	
+			case 501: $message = 'Not Implemented';
 				break;
 			// The request was not completed. The server received an invalid
 			// response from the upstream server
-			case 502: $message = 'Bad Gateway';	
+			case 502: $message = 'Bad Gateway';
 				break;
 			// The request was not completed. The server is temporarily
 			// overloading or down
-			case 503: $message = 'Service Unavailable';	
+			case 503: $message = 'Service Unavailable';
 				break;
 			// The gateway has timed out
-			case 504: $message = 'Gateway Timeout';	
+			case 504: $message = 'Gateway Timeout';
 				break;
 			// The server does not support the "http protocol" version
 			case 505: $message = 'HTTP Version Not Supported';
@@ -151,12 +151,12 @@ class ccHttpStatusException extends Exception
 		}
 		parent::__construct($message, 0, $previous);
 	} // __construct()
-	
+
 	function getLocation()
 	{
 		return $this->location;
 	}
-	
+
 	function getStatus()
 	{
 		return $this->status;

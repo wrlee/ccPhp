@@ -7,10 +7,10 @@ class ccSmartyController extends ccSimpleController
 {
 	protected $smarty;
 	
-	function __construct()
+	protected function initSmarty()
 	{
-		$this->smarty=new ccSmarty();	// Smarty wrapper
-	} // __construct()
+		return $this->smarty ? $this->smarty : $this->smarty = new ccSmarty();
+	}
 	
 	/**
 	 * @todo Consider, rather than pathing deeper to look for template, passing
@@ -48,11 +48,13 @@ class ccSmartyController extends ccSimpleController
 					return TRUE;			// Template found, return
 			}
 		}		
-		return FALSE;					// No method and no template
+		return FALSE;						// No method and no template
 	} // render()
 	
 	protected function display(ccRequest $request, $template, $args=NULL)
 	{
+		if (!$this->smarty)
+			$this->initSmarty();			// Make sure Smarty is init'd
 		$this->smarty->assign('_request', $request);
 		return $this->smarty->render(($this->base ? $this->base.'/' : '').$template, (Array)$args);
 	} // display()

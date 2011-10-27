@@ -206,17 +206,61 @@ EOD;
 	/**
 	 * options: HTML, log, stderr, stdout, formatted, timestamp
 	 */
-	static function tr($msg)
+	static function tr($msg='')
 	{
-		$trace = debug_backtrace();		// Get whole stack list
-		error_log( ccApp::getApp()->showTraceLine($trace[0],TRUE) );
-//		echo ccApp::getApp()->showTraceLine($trace[0]).'<br/>'.PHP_EOL;		// Display stack.
+		if (!(ccApp::$_me->devMode & ccApp::MODE_DEVELOPMENT))
+			return;
+		$trace = debug_backtrace(
+				// DEBUG_BACKTRACE_IGNORE_ARGS
+				// | 
+				// DEBUG_BACKTRACE_PROVIDE_OBJECT
+				// ,2);
+				// TRUE
+				);
+// echo '<pre>';
+// echo __METHOD__.' ';
+// var_dump($trace);
+//		error_log( ccTrace::showTraceLine($trace[0],TRUE) );
+//echo $trace[0]['file'].'#'.$trace[0]['line'].' '.$trace[1]['class'].'::'.$trace[1]['function'].'<br/>';
+		if (FALSE)
+		{
+			$bb = $eb = 
+			$bi = $ei = 
+			$btt = $ett = '';
+			list ($rarr,$ldquo,$rdquo,$hellip,$nl) = 
+			array('->', '"',   '"',   '...',  PHP_EOL);
+		}
+		else
+		{
+			list ($bb,  $eb,   $bi,  $ei,   $btt,  $ett,   $rarr,   $ldquo,$rdquo,   $hellip,   $nl) =
+			array('<b>','</b>','<i>','</i>','<tt>','</tt>','&rarr;','&ldquo;','&rdquo;','&hellip;','<br/>'.PHP_EOL);
+		}
+		$out = '';
+		if (isset($trace[1]['class']))
+			$out .= $bb.$trace[1]['class'].$eb;
+		if (isset($trace[1]['object']) 
+			&& get_class($trace[1]['object']) != $trace[1]['class'])
+			$out .= $bi.'('.get_class($trace[1]['object']).')'.$ei;
+		if (isset($trace[1]['type']))
+			$out .= ($trace[1]['type'] == '->' ? $rarr : $trace[1]['type']);
+		$out .= $bb.$trace[1]['function'].$eb.'()#'.$trace[0]['line'];
+
+		if ($msg === '' || $msg === NULL || is_string($msg))
+			echo $out.' '.$msg.$nl;
+		else
+		{
+echo '<pre>';
+			echo $out.' ';
+			print_r($msg);
+			echo PHP_EOL;
+echo '</pre>';
+		}
 		// echo $msg.'<br/>'.PHP_EOL;
 		// echo '<br/>'.PHP_EOL;
-		// self::showTrace($trace);
+//		ccTrace::showTrace($trace);
 		// echo '<pre>';
 		// debug_print_backtrace();
 		// echo '</pre>';
-	}
+	} // tr()
 		
 } // class ccTrace

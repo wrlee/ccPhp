@@ -25,7 +25,7 @@ class ccRequest implements ArrayAccess, IteratorAggregate
 	protected $truename = NULL;			// Full document name (potentially)
 	protected $format; 					// Data request type: html|json|xml|text
 //	protected $isAjax;
-	
+
 	/**
 	 * Since the dispatcher passes copies of this to each controller (to insulate
 	 * the request object from any changes made by any controller from another),
@@ -54,12 +54,12 @@ class ccRequest implements ArrayAccess, IteratorAggregate
 			: $_SERVER['SCRIPT_URI'];
 		$this->parseUrl($url);
 	} // __construct()
-	
+
 	function getDefaultDocument()
 	{
 		return $this->defaultDoc;
 	}
-	
+
 	/**
 	 * @returns string 'get'|'post'|'put'|'delete'
 	 */
@@ -67,7 +67,7 @@ class ccRequest implements ArrayAccess, IteratorAggregate
 	{
 		return strtolower($_SERVER['REQUEST_METHOD']);
 	}
-	
+
 	/**
 	 * @todo Use REDIRECT_URL
 	 * @todo Check that prefix of path matches UrlOffset before truncating it.
@@ -78,7 +78,7 @@ class ccRequest implements ArrayAccess, IteratorAggregate
 		       ? substr($_SERVER['SCRIPT_URL'], strlen(ccApp::getApp()->getUrlOffset()))
 			   : $_SERVER['SCRIPT_URL'];
 	} // getRelativeUrl()
-	
+
 	/**
 	 * @returns Type of data to return (based on request), e.g., HTML, JSON, etc.
 	 */
@@ -97,17 +97,17 @@ class ccRequest implements ArrayAccess, IteratorAggregate
 			? $_SERVER['REDIRECT_SCRIPT_URI']
 			: $_SERVER['SCRIPT_URI'];
 	} // getUrl()
-	
+
 	function getUrlPort() 
-	{	
+	{
 		return $_SERVER['SERVER_PORT'];
 	} // getUrlPort()
-	
+
 	function getQueryString()
 	{
 		return $_SERVER['QUERY_STRING'];
 	}
-	
+
 	/**
 	 * @returns The full filename (including extension) of the last path
 	 *          component.
@@ -116,7 +116,7 @@ class ccRequest implements ArrayAccess, IteratorAggregate
 	{
 		return $this->truename;
 	}
-	
+
 	/**
 	 * @returns string 'http'|'https' (and, in theory, a bunch of other schemes)
 	 */
@@ -126,7 +126,7 @@ class ccRequest implements ArrayAccess, IteratorAggregate
 //		$scheme = strstr($_SERVER['SCRIPT_URI'],':',true); // PHP 5.3+
 		return $scheme;
 	} // getUrlScheme()
-	
+
 	/**
 	 * @returns array URL components; each component, the part delimited by '/'
 	 */
@@ -159,7 +159,7 @@ class ccRequest implements ArrayAccess, IteratorAggregate
 			$rval = NULL;
 		return $rval;
 	} // shiftUrlPath()
-	
+
 	function getUserAgent()
 	{
 		return $_SERVER['HTTP_USER_AGENT'];
@@ -168,12 +168,12 @@ class ccRequest implements ArrayAccess, IteratorAggregate
 	{
 		return $this->userAgentInfo;
 	}
-	
+
 	function isIE()
 	{
 		return $this->userAgentInfo['Browser'] == 'IE';
 	}
-	
+
 	function isMobile()
 	{
 		return $this->userAgentInfo['isMobileDevice'];
@@ -197,7 +197,7 @@ class ccRequest implements ArrayAccess, IteratorAggregate
 		return (isset($_SERVER['HTTPS']) &&  $_SERVER['HTTPS'] == 'on');
 //		return $this->getUrlScheme() == 'https';
 	}
-	
+
 	/**
 	 * Mimics browscap and get_browser() functionality when get_browser() is not
 	 * supported. 
@@ -230,7 +230,7 @@ class ccRequest implements ArrayAccess, IteratorAggregate
 			}
 		}
 	} // parseUserAgent()
-	
+
 	/**
 	 * Overridable callback to parse the URL and set the components
 	 * and format values.
@@ -239,9 +239,9 @@ class ccRequest implements ArrayAccess, IteratorAggregate
 	function parseUrl($url)
 	{
 		$this->inferred = FALSE;					// Assume concrete path spec
-	
+
 		$components = parse_url($url);				// High level parse
-		
+
 		// We want to preserve the full path (if explicitly specified) and
 		// assume that a "bare" path is really a path. But, pathinfo() does not
 		// distinguish between paths trailing '/' or not, so a bit of hacking is
@@ -313,7 +313,7 @@ class ccRequest implements ArrayAccess, IteratorAggregate
 			$this->format = 'html';
 		}
 	} // parseUrl()
-	
+
 	/**
 	 * "Serialize" to an array. This is particluarly useful for passing to 
 	 * template processors.
