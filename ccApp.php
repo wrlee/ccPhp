@@ -134,6 +134,7 @@ class ccApp
 	 * @param bool $prefix Prefix the search path with the new path. Default:
 	 *        false, append new path to the end of the search path.
 	 * @see set_include_path()
+	 * @todo If not absolute path, prefix with site path.
 	 */
 	public function addPhpPath($path,$prefix=FALSE)
 	{
@@ -150,6 +151,7 @@ class ccApp
 	public function autoload($className)
 	{
 		$classFilename = str_replace('_', DIRECTORY_SEPARATOR, $className).'.php';
+// echo $className.'&rarr;'.$classFilename.'<br/>';
 // self::tr($className.'&rarr;'.$classFilename);
 // self::tr('&nbsp;&nbsp;&nbsp;'.$this->sitepath.$classFilename);
 
@@ -160,7 +162,8 @@ class ccApp
 		}
 		else foreach ($this->classpath as $class => $path)
 		{
-			if ($class == $className)
+// echo '*'.$class.'*'.$className.'*'.(($class === $className)).'*'.$path.'<br/>';
+			if ($class === $className)
 			{
 				if (!file_exists($path))
 					throw new Exception($path . " does not exist in ".getcwd());
@@ -380,6 +383,8 @@ class ccApp
 	 */
 	public function getSitePath()
 	{
+		if (!$this->sitepath)
+			$this->sitepath = getcwd();
 		return $this->sitepath;
 	} // getSitePath()
 	public function setSitePath($path)
@@ -570,13 +575,19 @@ EOD;
 		}
 		$out = '';
 		if (isset($trace[1]['class']))
+		{
 			$out .= $bb.$trace[1]['class'].$eb;
-		if (isset($trace[1]['object']) 
-			&& get_class($trace[1]['object']) != $trace[1]['class'])
-			$out .= $bi.'('.get_class($trace[1]['object']).')'.$ei;
-		if (isset($trace[1]['type']))
-			$out .= ($trace[1]['type'] == '->' ? $rarr : $trace[1]['type']);
-		$out .= $bb.$trace[1]['function'].$eb.'()#'.$trace[0]['line'];
+			if (isset($trace[1]['object']) 
+				&& get_class($trace[1]['object']) != $trace[1]['class'])
+				$out .= $bi.'('.get_class($trace[1]['object']).')'.$ei;
+			if (isset($trace[1]['type']))
+				$out .= ($trace[1]['type'] == '->' ? $rarr : $trace[1]['type']);
+			$out .= $bb.$trace[1]['function'].$eb.'()#'.$trace[0]['line'];
+		}
+		else
+		{
+			$out .= $bb.basename($trace[0]['file']).$eb.'()#'.$trace[0]['line'];
+		}
 
 		if ($msg === '' || $msg === NULL || is_string($msg))
 			echo $out.' '.$msg.$nl;
