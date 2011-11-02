@@ -35,9 +35,6 @@ class ccSmartyController extends ccSimpleController
 				if ($path)
 					$template .=  '/' . $path;
 			}
-//			{
-//				$this->smarty->assign('_params', $request->getUrlPath());
-//			}
 			if ($this->smarty->templateExists($template))
 			{
 				if (method_exists($this,'begin'))	// See parent

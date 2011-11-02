@@ -107,4 +107,11 @@ class ccSmarty extends Smarty
 		else
 			return parent::addTemplateDir($this->_createDir($dirs));
 	}
+	
+	function templateExists($template)
+	{
+		if (substr($template,-strlen($this->ext)) != $this->ext)
+			$template .= $this->ext;
+		return parent::templateExists($template);
+	}
 } // class ccSmarty
