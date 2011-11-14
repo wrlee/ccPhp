@@ -237,12 +237,14 @@ class ccRequest implements ArrayAccess, IteratorAggregate
 	 * Overridable callback to parse the URL and set the components
 	 * and format values.
 	 * @todo Remove successive '/'s (remove blank entries in component array)
+	 * @todo Untangle REDIRECT_URL hack. This accommodates .htaccess UrlRewrites
 	 */
 	protected function parseUrl($url)
 	{
 		$this->inferred = FALSE;					// Assume concrete path spec
 
 		$components = parse_url($url);				// High level parse
+// ccApp::tr($components);
 
 		// We want to preserve the full path (if explicitly specified) and
 		// assume that a "bare" path is really a path. But, pathinfo() does not
@@ -265,7 +267,9 @@ class ccRequest implements ArrayAccess, IteratorAggregate
 			$pathinfo = pathinfo($components['path']);
 		}
 */
-		$pathinfo = pathinfo($components['path']);
+		$pathinfo = pathinfo(isset($_SERVER['REDIRECT_URL'])	// WRL HACK! Circumvents 
+			? $_SERVER['REDIRECT_URL'] 							// $url setting
+			: $components['path']);
 // echo '<pre>';
 // echo 'parse_url:  ';
 // var_dump($components);

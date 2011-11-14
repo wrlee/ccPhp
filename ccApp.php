@@ -567,26 +567,35 @@ EOD;
 			$this->on404($request);	// Perform local 404 rendering
 	} // show404()
 
+	
+	static function out($string)
+	{
+		// if (!(ccApp::$_me->devMode & ccApp::MODE_DEVELOPMENT))
+			// return;
+		error_log($string,3,'/home/wrlee/htd.log');
+	}
+	
 	/**
 	 * options: HTML, log, stderr, stdout, formatted, timestamp
 	 */
 	static function tr($msg='')
 	{
-		if (!(ccApp::$_me->devMode & ccApp::MODE_DEVELOPMENT))
-			return;
-		$trace = debug_backtrace(
-				// DEBUG_BACKTRACE_IGNORE_ARGS
-				// | 
-				// DEBUG_BACKTRACE_PROVIDE_OBJECT
-				// ,2);
-				// TRUE
+		if (PHP_VERSION_ID >= 50400)
+			$trace = debug_backtrace(
+					DEBUG_BACKTRACE_IGNORE_ARGS
+					|DEBUG_BACKTRACE_PROVIDE_OBJECT
+					,2);
+		elseif (PHP_VERSION_ID >= 50306)
+			$trace = debug_backtrace(
+					DEBUG_BACKTRACE_IGNORE_ARGS
+					|DEBUG_BACKTRACE_PROVIDE_OBJECT
 				);
-// echo '<pre>';
-// echo __METHOD__.' ';
-// var_dump($trace);
-//		error_log( ccTrace::showTraceLine($trace[0],TRUE) );
-//echo $trace[0]['file'].'#'.$trace[0]['line'].' '.$trace[1]['class'].'::'.$trace[1]['function'].'<br/>';
-		if (FALSE)
+		else
+			$trace = debug_backtrace(TRUE);
+			
+		$bTextOnly = TRUE;
+
+		if ($bTextOnly)			// text output?
 		{
 			$bb = $eb = 
 			$bi = $ei = 
@@ -594,7 +603,7 @@ EOD;
 			list ($rarr,$ldquo,$rdquo,$hellip,$nl) = 
 			array('->', '"',   '"',   '...',  PHP_EOL);
 		}
-		else
+		else					// HTML output
 		{
 			list ($bb,  $eb,   $bi,  $ei,   $btt,  $ett,   $rarr,   $ldquo,$rdquo,   $hellip,   $nl) =
 			array('<b>','</b>','<i>','</i>','<tt>','</tt>','&rarr;','&ldquo;','&rdquo;','&hellip;','<br/>'.PHP_EOL);
@@ -616,21 +625,14 @@ EOD;
 		}
 
 		if ($msg === '' || $msg === NULL || is_string($msg))
-			echo $out.' '.$msg.$nl;
+			self::out($out.' '.$msg.$nl);
 		else
 		{
-echo '<pre>';
-			echo $out.' ';
-			print_r($msg);
-			echo PHP_EOL;
-echo '</pre>';
+			if (!$bTextOnly) self::out('<pre>');
+			self::out($out.' ');
+			self::out(print_r($msg,TRUE));
+			self::out(PHP_EOL);
+			if (!$bTextOnly) self::out('</pre>');
 		}
-		// echo $msg.'<br/>'.PHP_EOL;
-		// echo '<br/>'.PHP_EOL;
-//		ccTrace::showTrace($trace);
-		// echo '<pre>';
-		// debug_print_backtrace();
-		// echo '</pre>';
 	} // tr()
-
 } // class ccApp
