@@ -570,9 +570,10 @@ EOD;
 	
 	static function out($string)
 	{
-		// if (!(ccApp::$_me->devMode & ccApp::MODE_DEVELOPMENT))
-			// return;
-		error_log($string,3,'/home/wrlee/htd.log');
+		if (!(ccApp::$_me->devMode & ccApp::MODE_DEVELOPMENT))
+			return;
+//		error_log($string,3,'/home/wrlee/htd.log');
+		echo $string;
 	}
 	
 	/**
@@ -593,7 +594,7 @@ EOD;
 		else
 			$trace = debug_backtrace(TRUE);
 			
-		$bTextOnly = TRUE;
+		$bTextOnly = FALSE;
 
 		if ($bTextOnly)			// text output?
 		{
