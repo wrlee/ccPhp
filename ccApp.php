@@ -15,6 +15,29 @@
  *          - Extend classpath interpretation to enter specific class specs.
  */
 
+//******************************************************************************
+// [BEGIN] Portability settings
+// @see http://www.php.net/manual/en/function.phpversion.php 
+// @see http://www.php.net/manual/en/reserved.constants.php#reserved.constants.core
+if (!defined('PHP_VERSION_ID')) 
+{
+    $_version = explode('.', PHP_VERSION);
+
+    define('PHP_VERSION_ID', ($_version[0] * 10000 + $_version[1] * 100 + $_version[2]));
+}
+//echo PHP_VERSION_ID.'<br/>';
+if (PHP_VERSION_ID < 50207) {
+    define('PHP_MAJOR_VERSION', $_version[0]);
+    define('PHP_MINOR_VERSION', $_version[1]);
+	
+	$_version = explode('-', $_version[2]);
+	define('PHP_EXTRA_VERSION', $_version[0]);
+	define('PHP_RELEASE_VERSION', isset($_version[1]) ? $_version[1] : '');
+}
+unset($_version);	// Not needed any longer
+// [END] Portability settings
+//******************************************************************************
+
 error_reporting(E_ALL|E_STRICT);
 // error_reporting(E_STRICT);
 // error_reporting(ini_get('error_reporting')|E_STRICT);
@@ -37,6 +60,7 @@ ccApp::setFrameworkPath(dirname(__FILE__));	// Function probably not needed
  * you are not allowed to instantiate it directly, use ccApp::createApp().
  *
  * @todo Consider consolidating createApp() with getApp()
+ * @todo Support instance specific error and exception handlers
  */
 class ccApp
 {
@@ -45,7 +69,7 @@ class ccApp
 	const MODE_STAGING		= 4;
 	const MODE_PRODUCTION	= 8;
 
-	protected static $_me=NULL;			// Singlton ref to $this
+	protected static $_me=NULL;			// Singleton ref to $this
 	protected static $_fwpath=NULL;		// Path to framework files.
 
 	protected $config=Array();			// Configuration array
@@ -53,7 +77,7 @@ class ccApp
 	protected $_UrlOffset=NULL;			// Path to site's root
 	protected $devMode = self::MODE_DEVELOPMENT; 
 	protected $sitepath=NULL;			// Path to site specific files.
-	protected $page=NULL; 				// Main page for site
+	protected $page=NULL; 				// Main page object for app
 	protected $error404 = NULL;			// External ccPageInterface to render errors.
 										// The following are rel to sitepath:
 	protected $classpath=array();		// List of site paths to search for classes
@@ -163,15 +187,15 @@ class ccApp
 		else foreach ($this->classpath as $class => $path)
 		{
 // echo '*'.$class.'*'.$className.'*'.(($class === $className)).'*'.$path.'<br/>';
-			if ($class === $className)
-			{
+			if ($class === $className)	// If specific class mapping
+			{							// then load associated file
 				if (!file_exists($path))
 					throw new Exception($path . " does not exist in ".getcwd());
 				include($path);
 				return;
 			}
 			else if (file_exists($path . $classFilename)) 
-			{
+			{							// Else if assumed name exists...
 				include($path . $classFilename);
 				return;
 			}
@@ -459,8 +483,10 @@ class ccApp
 			$errortype[E_USER_WARNING] = 'User Warning';
 			$errortype[E_USER_NOTICE] = 'User Notice';
 			$errortype[E_STRICT] = 'Strict';
-			$errortype[E_RECOVERABLE_ERROR] = 'Recoverable Error';
-			$errortype[E_USER_DEPRECATED] = 'User Deprecated';
+			if (PHP_VERSION_ID >= 50200)
+				$errortype[E_RECOVERABLE_ERROR] = 'Recoverable Error';
+			if (PHP_VERSION_ID >= 50300)
+				$errortype[E_USER_DEPRECATED] = 'User Deprecated';
 			error_log("$errortype[$errno]: $errstr in $errfile#$errline",0);
 			print "<br/><b><font color='red'>$errortype[$errno]</font>: $errstr</b>\n        in $errfile#$errline<br/>".PHP_EOL;
 //			echo '<pre>';
@@ -526,7 +552,7 @@ EOD;
 	 */
 	protected function show404(ccRequest $request)
 	{
-		if ($this->error404)
+		if ($this->error404)	// If 404 page defined
 		{
 			if (is_string($this->error404))
 				$this->error404 = new $this->error404;
@@ -537,8 +563,8 @@ EOD;
 			}
 			call_user_func(array($this->error404,'render'), $request);
 		}
-		else 
-			$this->on404($request);
+		else 						// No app specific page
+			$this->on404($request);	// Perform local 404 rendering
 	} // show404()
 
 	/**

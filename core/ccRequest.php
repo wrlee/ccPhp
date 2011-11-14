@@ -206,12 +206,14 @@ class ccRequest implements ArrayAccess, IteratorAggregate
 	 * @todo Pass .ini file in as a parameter.
 	 * @todo Look for .ini in site path instead of framework path.
 	 */
-	function parseUserAgent()
+	protected function parseUserAgent()
 	{
 // 		ini_set('browscap',$app->getFrameworkPath().'lite_php_browscap.ini');
 // 		return get_browser();
-
-		$browsedb = (parse_ini_file(ccApp::getApp()->getFrameworkPath().'lite_php_browscap.ini',TRUE,INI_SCANNER_RAW));
+		if (defined('INI_SCANNER_RAW'))
+			$browsedb = (parse_ini_file(ccApp::getApp()->getFrameworkPath().'lite_php_browscap.ini',TRUE,INI_SCANNER_RAW));
+		else
+			$browsedb = (parse_ini_file(ccApp::getApp()->getFrameworkPath().'lite_php_browscap.ini',TRUE));
 		foreach ($browsedb as $template => $prop)
 		{
 // echo $template.PHP_EOL;
@@ -236,7 +238,7 @@ class ccRequest implements ArrayAccess, IteratorAggregate
 	 * and format values.
 	 * @todo Remove successive '/'s (remove blank entries in component array)
 	 */
-	function parseUrl($url)
+	protected function parseUrl($url)
 	{
 		$this->inferred = FALSE;					// Assume concrete path spec
 

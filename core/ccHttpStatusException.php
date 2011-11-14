@@ -149,7 +149,10 @@ class ccHttpStatusException extends Exception
 			default:
 				$message = $status.': HTTP Status Exception';
 		}
-		parent::__construct($message, 0, $previous);
+		if (PHP_VERSION_ID >= 50300)
+			parent::__construct($message, 0, $previous);
+		else
+			parent::__construct($message, 0);
 	} // __construct()
 
 	function getLocation()
