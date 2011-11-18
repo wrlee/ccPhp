@@ -23,6 +23,16 @@ abstract class ccController implements ccPageInterface
 			$action = $request->getDefaultDocument();	//   use "default" name
 		else
 			$action = $action[0];					// Just keep the 1st component
+
+		$valid_count = strspn($action,'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890');		
+// ccApp::tr($action);
+		if ($valid_count < strlen($action))
+		{
+			$request->extra = substr($action,$valid_count);	// WRL HACK!!
+			$action = substr($action,0,$valid_count);
+// ccApp::tr($request);
+		}
+// ccApp::tr($action);
 													// Check that method exists
 		if (method_exists( $this, $action ))		// If method exists
 		{											//   check that it's public

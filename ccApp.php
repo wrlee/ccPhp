@@ -1,11 +1,10 @@
 <?php
-/**
- * File: ccApp.php
+/** File: ccApp.php
  * 
- * The ccApp class represents the application. It is a singlton
+ * The ccApp class represents the application. It is a singleton
  *
  * @todo Look into using AutoLoad package (by the Doctrine and Symfony folks)
- * @todo Add session handling.
+ * @todo Add session handling?
  * @todo Need a way to set "debug" setting that will cascade thru components.
  * @todo Move error handling ccError class and refer through ccApp
  *
@@ -64,19 +63,23 @@ ccApp::setFrameworkPath(dirname(__FILE__));	// Function probably not needed
  */
 class ccApp
 {
-	const MODE_DEVELOPMENT	= 1;
-	const MODE_TESTING		= 2;
-	const MODE_STAGING		= 4;
-	const MODE_PRODUCTION	= 8;
+	const MODE_DEVELOPMENT	= 1;	// Obsolete
+	const MODE_TESTING		= 2;	// Obsolete
+	const MODE_STAGING		= 4;	// Obsolete
+	const MODE_PRODUCTION	= 8;	// Obsolete
 
 	protected static $_me=NULL;			// Singleton ref to $this
 	protected static $_fwpath=NULL;		// Path to framework files.
 
 	protected $config=Array();			// Configuration array
 
-	protected $_UrlOffset=NULL;			// Path to site's root
-	protected $devMode = self::MODE_DEVELOPMENT; 
+	protected $_UrlOffset=NULL;			// Path from domain root for the site
+	protected $devMode = self::MODE_DEVELOPMENT; 	// Obsolete
+	protected $bDebug = FALSE; 			// Central place to hold debug status
+	
 	protected $sitepath=NULL;			// Path to site specific files.
+	protected $temppath=NULL;			// Path to working directory (for cache, etc)
+	
 	protected $page=NULL; 				// Main page object for app
 	protected $error404 = NULL;			// External ccPageInterface to render errors.
 										// The following are rel to sitepath:
@@ -245,7 +248,7 @@ class ccApp
 				default:				// No other stati supported right now.
 //					http_response_code($e->getStatus());
 					if (!headers_sent())
-						header($_SERVER['SERVER_PROTOCOL'].' '.$e->getStatus().' '.$e->getMessage());
+						header($_SERVER['SERVER_PROTOCOL'].' '.$e->getStatus().' '.$e->getMessage(), TRUE, $e->getStatus());
 					throw $e;
 			}
 		}
@@ -326,6 +329,20 @@ class ccApp
 	} // setCookie()
 
 	/**
+	 * Set debug setting
+	 */
+	public function getDebug()
+	{
+		return $this->bDebug;
+	}
+	public function setDebug($bDebug=TRUE)
+	{
+		$this->bDebug = $bDebug;
+		return $this;
+	}
+	
+	/**
+	 * @obsolete
 	 * Get/set app's disposition mask.
 	 */
 	public function getDevMode()
@@ -451,7 +468,7 @@ class ccApp
 	{
 //		http_response_code(404);
 		if (!headers_sent())
-			header($_SERVER['SERVER_PROTOCOL'].' 404 Not Found');
+			header($_SERVER['SERVER_PROTOCOL'].' 404 Not Found', TRUE, 404);
 		?>
 		<hr/>
 		<?php print $_SERVER['SCRIPT_URI'] ?>
@@ -533,7 +550,7 @@ class ccApp
 	{
 		if (!headers_sent())
 		{
-			header($_SERVER['SERVER_PROTOCOL'].' '.$status.' '.$message);
+			header($_SERVER['SERVER_PROTOCOL'].' '.$status.' '.$message, TRUE, $status);
 			header('Location: '.$url);
 			echo "Redirecting to {$url} via header&hellip;";
 		}
@@ -568,72 +585,19 @@ EOD;
 	} // show404()
 
 	
-	static function out($string)
-	{
-		if (!(ccApp::$_me->devMode & ccApp::MODE_DEVELOPMENT))
-			return;
-//		error_log($string,3,'/home/wrlee/htd.log');
-		echo $string;
-	}
+	// static function out($string)
+	// {
+		// if (!(ccApp::$_me->devMode & ccApp::MODE_DEVELOPMENT))
+			// return;
+//		//error_log($string,3,'/home/wrlee/htd.log');
+		// echo $string;
+	// }
 	
 	/**
 	 * options: HTML, log, stderr, stdout, formatted, timestamp
 	 */
-	static function tr($msg='')
+	static function tr()
 	{
-		if (PHP_VERSION_ID >= 50400)
-			$trace = debug_backtrace(
-					DEBUG_BACKTRACE_IGNORE_ARGS
-					|DEBUG_BACKTRACE_PROVIDE_OBJECT
-					,2);
-		elseif (PHP_VERSION_ID >= 50306)
-			$trace = debug_backtrace(
-					DEBUG_BACKTRACE_IGNORE_ARGS
-					|DEBUG_BACKTRACE_PROVIDE_OBJECT
-				);
-		else
-			$trace = debug_backtrace(TRUE);
-			
-		$bTextOnly = FALSE;
-
-		if ($bTextOnly)			// text output?
-		{
-			$bb = $eb = 
-			$bi = $ei = 
-			$btt = $ett = '';
-			list ($rarr,$ldquo,$rdquo,$hellip,$nl) = 
-			array('->', '"',   '"',   '...',  PHP_EOL);
-		}
-		else					// HTML output
-		{
-			list ($bb,  $eb,   $bi,  $ei,   $btt,  $ett,   $rarr,   $ldquo,$rdquo,   $hellip,   $nl) =
-			array('<b>','</b>','<i>','</i>','<tt>','</tt>','&rarr;','&ldquo;','&rdquo;','&hellip;','<br/>'.PHP_EOL);
-		}
-		$out = '';
-		if (isset($trace[1]['class']))
-		{
-			$out .= $bb.$trace[1]['class'].$eb;
-			if (isset($trace[1]['object']) 
-				&& get_class($trace[1]['object']) != $trace[1]['class'])
-				$out .= $bi.'('.get_class($trace[1]['object']).')'.$ei;
-			if (isset($trace[1]['type']))
-				$out .= ($trace[1]['type'] == '->' ? $rarr : $trace[1]['type']);
-			$out .= $bb.$trace[1]['function'].$eb.'()#'.$trace[0]['line'];
-		}
-		else
-		{
-			$out .= $bb.basename($trace[0]['file']).$eb.'()#'.$trace[0]['line'];
-		}
-
-		if ($msg === '' || $msg === NULL || is_string($msg))
-			self::out($out.' '.$msg.$nl);
-		else
-		{
-			if (!$bTextOnly) self::out('<pre>');
-			self::out($out.' ');
-			self::out(print_r($msg,TRUE));
-			self::out(PHP_EOL);
-			if (!$bTextOnly) self::out('</pre>');
-		}
+		return call_user_func_array(array('ccTrace','tr'),func_get_args());
 	} // tr()
 } // class ccApp

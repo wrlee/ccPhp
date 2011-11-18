@@ -1,11 +1,12 @@
 <?php 
 
-/**
+/** File: ccSimpleController
  * Simply dispatches to a method based on the first component of the URL...
  * no sub-path checking, etc., but if there is no component, it assumes a default
  * method called index.
  */
 // 2011-10-24 Call begin() only if method will be rendered.
+// 2011-11-15 Call notfound() if no matching methods are found.
 class ccSimpleController extends ccController
 {
 	protected $base;
@@ -31,7 +32,7 @@ class ccSimpleController extends ccController
 		// relative hrefs properly. 
 		if ( count($request->getUrlPath()) == 0 		// Maps to default page?
 			 && substr($request->getUrl(),-1) != '/' )	// So ensure '/' suffix
-			ccApp::getApp()->redirect($request->getUrl().'/',301);
+			ccApp::getApp()->redirect($request->getUrl().'/'.($request->getQueryString() ? '?'.$request->getQueryString() : ''),301);
 
 		$method = $this->getMethodFromRequest($request);
 		if ( $method )
@@ -41,6 +42,14 @@ class ccSimpleController extends ccController
 					return FALSE;
 					
 			return call_user_func(array($this,$method),$request);
+		}
+		elseif (method_exists($this,'notfound'))
+		{
+			if (method_exists($this,'begin'))
+				if (!call_user_func(array($this,'begin'), $request))
+					return FALSE;
+					
+			return call_user_func(array($this,'notfound'), $request);
 		}
 		else
 			return NULL;		// Method not found.

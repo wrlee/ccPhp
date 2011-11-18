@@ -152,7 +152,10 @@ EOD;
 			elseif (is_object($arg))
 				$out .= get_class($arg);
 			elseif (is_string($arg))
-				$out .= $ett.$ldquo.$bi.$arg.$ei.$rdquo.$btt;
+				if ($bNoHtml)
+					$out .= $ett.$ldquo.$bi.$arg.$ei.$rdquo.$btt;
+				else
+					$out .= $ett.$ldquo.$bi.htmlentities($arg).$ei.$rdquo.$btt;
 			elseif (is_array($arg))
 			{
 				if ((   $line['function'] == 'call_user_func'
@@ -183,7 +186,10 @@ EOD;
 					elseif (is_object($argval))
 						$out .= get_class($argval);
 					elseif (is_string($argval))
-						$out .= $ett.$ldquo.$bi.$argval.$ei.$rdquo.$btt;
+						if ($bNoHtml)
+							$out .= $ett.$ldquo.$bi.$argval.$ei.$rdquo.$btt;
+						else
+							$out .= $ett.$ldquo.$bi.htmlentities($argval).$ei.$rdquo.$btt;
 					else
 						$out .= $argval;
 				}
@@ -203,23 +209,32 @@ EOD;
 		return $out;
 	} // showTraceLine()
 	
+	static function s_out($string)
+	{
+		if (!(ccApp::getApp()->getDevMode() & ccApp::MODE_DEVELOPMENT))
+			return;
+//		error_log($string,3,'/home/wrlee/htd.log');
+		echo $string;
+	}
+	
 	/**
 	 * options: HTML, log, stderr, stdout, formatted, timestamp
 	 */
 	static function tr($msg='')
 	{
-		if (!(ccApp::$_me->devMode & ccApp::MODE_DEVELOPMENT))
-			return;
+		$traceOffset = 3;
 		if (PHP_VERSION_ID >= 50400)
 			$trace = debug_backtrace(
 					DEBUG_BACKTRACE_IGNORE_ARGS
-					,2);
+					|DEBUG_BACKTRACE_PROVIDE_OBJECT
+					,$traceOffset+1);
 		elseif (PHP_VERSION_ID >= 50306)
 			$trace = debug_backtrace(
 					DEBUG_BACKTRACE_IGNORE_ARGS
+					|DEBUG_BACKTRACE_PROVIDE_OBJECT
 				);
 		else
-			$trace = debug_backtrace(FALSE);
+			$trace = debug_backtrace(TRUE);
 			
 		$bTextOnly = FALSE;
 
@@ -237,30 +252,30 @@ EOD;
 			array('<b>','</b>','<i>','</i>','<tt>','</tt>','&rarr;','&ldquo;','&rdquo;','&hellip;','<br/>'.PHP_EOL);
 		}
 		$out = '';
-		if (isset($trace[1]['class']))
+		if (isset($trace[$traceOffset]['class']))
 		{
-			$out .= $bb.$trace[1]['class'].$eb;
-			if (isset($trace[1]['object']) 
-				&& get_class($trace[1]['object']) != $trace[1]['class'])
-				$out .= $bi.'('.get_class($trace[1]['object']).')'.$ei;
-			if (isset($trace[1]['type']))
-				$out .= ($trace[1]['type'] == '->' ? $rarr : $trace[1]['type']);
-			$out .= $bb.$trace[1]['function'].$eb.'()#'.$trace[0]['line'];
+			$out .= $bb.$trace[$traceOffset]['class'].$eb;
+			if (isset($trace[$traceOffset]['object']) 
+				&& get_class($trace[$traceOffset]['object']) != $trace[$traceOffset]['class'])
+				$out .= $bi.'('.get_class($trace[$traceOffset]['object']).')'.$ei;
+			if (isset($trace[$traceOffset]['type']))
+				$out .= ($trace[$traceOffset]['type'] == '->' ? $rarr : $trace[$traceOffset]['type']);
+			$out .= $bb.$trace[$traceOffset]['function'].$eb.'()#'.$trace[$traceOffset-1]['line'];
 		}
 		else
 		{
-			$out .= $bb.basename($trace[0]['file']).$eb.'()#'.$trace[0]['line'];
+			$out .= $bb.basename($trace[$traceOffset-1]['file']).$eb.'()#'.$trace[$traceOffset-1]['line'];
 		}
 
 		if ($msg === '' || $msg === NULL || is_string($msg))
-			echo $out.' '.$msg.$nl;
+			self::s_out($out.' '.$msg.$nl);
 		else
 		{
-			if (!$bTextOnly) echo '<pre>';
-			echo $out.' ';
-			echo print_r($msg,TRUE);
-			echo PHP_EOL;
-			if (!$bTextOnly) echo '</pre>';
+			if (!$bTextOnly) self::s_out('<pre>');
+			self::s_out($out.' ');
+			self::s_out(var_export($msg,TRUE));
+			self::s_out(PHP_EOL);
+			if (!$bTextOnly) self::s_out('</pre>');
 		}
 	} // tr()
 } // class ccTrace

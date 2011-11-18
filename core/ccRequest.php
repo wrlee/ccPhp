@@ -270,20 +270,11 @@ class ccRequest implements ArrayAccess, IteratorAggregate
 		$pathinfo = pathinfo(isset($_SERVER['REDIRECT_URL'])	// WRL HACK! Circumvents 
 			? $_SERVER['REDIRECT_URL'] 							// $url setting
 			: $components['path']);
-// echo '<pre>';
-// echo 'parse_url:  ';
-// var_dump($components);
-// echo 'pathinfo:  ';
-// var_dump($pathinfo);
 		$path = $pathinfo['dirname'].'/'.$pathinfo['filename'];
 		$this->truename = $pathinfo['basename'];
-// var_dump($path);
 		$path = substr($path, strlen(ccApp::getApp()->getUrlOffset()));
 
 		$this->components = explode('/',$path);
-// var_dump($path);
-// echo '$this->components:  ';
-// var_dump($this->components);
 
 								// Determine format requested
 		if (isset($pathinfo['extension'])) 
@@ -292,16 +283,11 @@ class ccRequest implements ArrayAccess, IteratorAggregate
 		elseif (isset($_SERVER['HTTP_ACCEPT']))
 		{
 			$accepting = explode(',',$_SERVER['HTTP_ACCEPT']);
-// echo '$accepting:  ';
-// var_dump($accepting);
 			$accepting = explode('/',$accepting[0]);
 			$this->format = end($accepting);
-// var_dump($accepting);
 		}
 		else
 			$this->format = '';
-// var_dump($_SERVER);
-// echo '</pre>';
 		switch ($this->format)	// Normalize document format request type
 		{
 		case 'xhtml+xml':			// txt == text
