@@ -5,14 +5,13 @@
  */
 class ccSmarty extends Smarty
 {
-	protected $ext='.tpl';
+//	protected $ext='.tpl';
 
 	function __construct()
 	{
 		parent::__construct();			// Default Smarty initialization
 		$app = ccApp::getApp();			// Common app reference
 		$smartyTempPath = $app->getSitePath().'.smarty'.DIRECTORY_SEPARATOR;
-// echo __METHOD__.'()#'.__LINE__.$smartyTempPath .'<pre>'.PHP_EOL;
 		
 //		$this->use_sub_dirs = true;
 		
@@ -20,7 +19,10 @@ class ccSmarty extends Smarty
 			->setCompileDir($smartyTempPath . 'compile')
 			->setConfigDir($app->getSitePath() . 'templates');
 		$this->setTemplateDir($this->config_dir);
-// echo __METHOD__.'('.$className.')#'.__LINE__.SMARTY_DIR.$this->plugins_dir .'<br/>'.PHP_EOL;
+		
+		$fwpath = ccApp::getApp()->getFrameworkPath();
+		if (file_exists($fwpath.'smarty'))
+			$this->addPluginsDir($fwpath.'smarty');
 
 		$devmode = $app->getDevMode();
 		$this->debugging_ctrl = ( $devmode & ~ccApp::MODE_PRODUCTION 
@@ -29,7 +31,7 @@ class ccSmarty extends Smarty
 		$this->setCaching($devmode & ccApp::MODE_DEVELOPMENT 
 							? Smarty::CACHING_OFF
 							: Smarty::CACHING_LIFETIME_CURRENT);
-		$this->setCompileCheck( ($devmode & ~ccApp::MODE_PRODUCTION ) );
+		$this->setCompileCheck( ($devmode & ~(ccApp::MODE_PRODUCTION|ccApp::MODE_DEVELOPMENT) ) );
 //		$this->testInstall();
 	} // __construct()
 	
@@ -41,11 +43,9 @@ class ccSmarty extends Smarty
 	 */
 	function render($template, $paramAssocArray=NULL)
 	{
-// var_dump($paramAssocArray);
-// echo '<pre>'.$template.PHP_EOL;
 // ccApp::getApp()->showTrace(debug_backtrace());
-		if (substr($template,-strlen($this->ext)) != $this->ext)
-			$template .= $this->ext;
+//		if (substr($template,-strlen($this->ext)) != $this->ext)
+//			$template .= $this->ext;
 		if ($this->templateExists($template))
 		{
 			$this->assign((Array)$paramAssocArray);
@@ -62,6 +62,10 @@ class ccSmarty extends Smarty
 		return $this;
 	}
 	
+	/**
+	 * Create directory, if it doesn't exist.
+	 * @todo Accept array of directory names (to move common code here)
+	 */
 	protected function _createDir($dir)
 	{
 		if ( substr($dir, -1) != DIRECTORY_SEPARATOR )
@@ -85,6 +89,9 @@ class ccSmarty extends Smarty
 		$this->config_dir = $this->_createDir($dir);
 		return $this;
 	}
+	/**
+	 * Add template dir(s), creating them, if they don't exist.
+	 */
 	function setTemplateDir($dirs)
 	{
 		if (is_array($dirs))
@@ -96,6 +103,9 @@ class ccSmarty extends Smarty
 		else
 			return parent::setTemplateDir($this->_createDir($dirs));
 	}
+	/**
+	 * Add template dir(s), creating them, if they don't exist.
+	 */
 	function addTemplateDir($dirs)
 	{
 		if (is_array($dirs))
@@ -108,10 +118,14 @@ class ccSmarty extends Smarty
 			return parent::addTemplateDir($this->_createDir($dirs));
 	}
 	
-	function templateExists($template)
+	/**
+	 * Check for template existence (appending default extension, if necessary)
+	 */
+/*	function templateExists($template)
 	{
 		if (substr($template,-strlen($this->ext)) != $this->ext)
 			$template .= $this->ext;
 		return parent::templateExists($template);
 	}
+*/
 } // class ccSmarty
