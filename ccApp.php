@@ -13,7 +13,6 @@
  * 2010-10-22 404 uses exceptions
  *          - Extend classpath interpretation to enter specific class specs.
  */
-
 //******************************************************************************
 // [BEGIN] Portability settings
 // @see http://www.php.net/manual/en/function.phpversion.php 
@@ -150,7 +149,10 @@ class ccApp
 		{
 			if (substr($path,-1) != DIRECTORY_SEPARATOR)
 				$path .= DIRECTORY_SEPARATOR;
-			$this->classpath[] = $this->sitepath.$path;
+			if ($path[0] != DIRECTORY_SEPARATOR)
+				$this->classpath[] = $this->sitepath.$path;
+			else
+				$this->classpath[] = $path;
 		}
 		return $this;
 	} // addClassPath()
@@ -177,32 +179,42 @@ class ccApp
 	 */
 	public function autoload($className)
 	{
+
 		$classFilename = str_replace('_', DIRECTORY_SEPARATOR, $className).'.php';
-// echo $className.'&rarr;'.$classFilename.'<br/>';
-// self::tr($className.'&rarr;'.$classFilename);
+// global $bb,$eb, $bi,$ei, $btt,$ett, $rarr,$ldquo,$rdquo,$hellip,$nbsp,$nl;
+// ccTrace::s_out( '#'.__LINE__.' '.ccTrace::getCaller(3,dirname(ccApp::getApp()->getSitePath())).': '.$className." $rarr ".$classFilename.$nl);
+// ccTrace::s_out( '#'.__LINE__.' '.ccTrace::getCaller(3).': '.$className." $rarr ".$classFilename.$nl);
+// echo '#'.__LINE__.' '.$className." $rarr ".$classFilename.$nl;
 // self::tr('&nbsp;&nbsp;&nbsp;'.$this->sitepath.$classFilename);
 
 		// Check app paths, first
 		if ($this->sitepath && file_exists($this->sitepath . $classFilename)) 
 		{
 			include($this->sitepath . $classFilename);
+			return;
 		}
 		else foreach ($this->classpath as $class => $path)
 		{
-// echo '*'.$class.'*'.$className.'*'.(($class === $className)).'*'.$path.'<br/>';
+// ccTrace::s_out( $nbsp.$nbsp.'*'.$class.'*'.$className.'*'.(($class === $className)).'*'.$path.$nl);
+// self::tr( '*'.$class.'*'.$className.'*'.(($class === $className)).'*'.$path);
 			if ($class === $className)	// If specific class mapping
 			{							// then load associated file
-				if (!file_exists($path))
-					throw new Exception($path . " does not exist in ".getcwd());
-				include($path);
-				return;
+//				if (!file_exists($path))
+//					throw new Exception($path . " does not exist in ".getcwd());
+				if (require($path))
+					return;
 			}
-			else if (file_exists($path . $classFilename)) 
+			elseif (file_exists($path . $classFilename)) 
+//			elseif (@include($path . $classFilename)) 
 			{							// Else if assumed name exists...
 				include($path . $classFilename);
 				return;
 			}
 		}
+// echo '#'.__LINE__.' '.$className.$rarr.$classFilename.$nl;
+//		@include($classFilename);		// Finally, check include path.
+// if (class_exists($className))		// Check framework directories
+// echo '#'.__LINE__.$nbsp.$nbsp.$className.$rarr.$classFilename.' LOADED!!!'.$nl;
 		// IF WE GET HERE, WE COULD NOT RESOLVE THE CLASS
 	} // autoload()
 
@@ -237,18 +249,18 @@ class ccApp
 		}
 		catch (ccHttpStatusException $e)
 		{
-			switch ($e->getStatus())
+			switch ($e->getCode())
 			{
 				case 300: case 301: case 302: case 303: 
 				case 304: case 305: case 306: case 307: 
-					$this->redirect($e->getLocation(), $e->getStatus(), $e->getMessage());
+					$this->redirect($e->getLocation(), $e->getCode(), $e->getMessage());
 					break;
 				case 404: $this->show404($request);
 					break;
 				default:				// No other stati supported right now.
-//					http_response_code($e->getStatus());
+//					http_response_code($e->getCode());
 					if (!headers_sent())
-						header($_SERVER['SERVER_PROTOCOL'].' '.$e->getStatus().' '.$e->getMessage(), TRUE, $e->getStatus());
+						header($_SERVER['SERVER_PROTOCOL'].' '.$e->getCode().' '.$e->getMessage(), TRUE, $e->getCode());
 					throw $e;
 			}
 		}
@@ -418,6 +430,31 @@ class ccApp
 	} // setMainPage()
 
 	/**
+	 * @see getUrlOffset()
+	 */
+	function getRootUrl()
+	{
+		$path = isset($_SERVER['REDIRECT_SCRIPT_URI']) 
+			? $_SERVER['REDIRECT_SCRIPT_URI']
+			: $_SERVER['SCRIPT_URI'];
+			
+		$p = strpos($path,'//');
+		if ($p === FALSE)			// Don't know what to do here... bad input.
+		{
+		}
+		else
+		{
+			$p = strpos($path,'/',$p+2);
+			if ($p === FALSE)
+				$path .= '/';
+			else
+				$path = substr($path,0,$p+1);
+		}
+		
+		return $path . $this->getUrlOffset();
+	} // getRootUrl()
+
+	/**
 	 * Get/set server path to site's files (not the URL)
 	 * @param string $path Full, absolute path (e.g., dirname(__FILE__) 
 	 *                     of caller)
@@ -434,6 +471,7 @@ class ccApp
 			$path .= DIRECTORY_SEPARATOR;
 
 		$this->sitepath = $path;
+		chdir($path);
 		return $this;
 	} // setSitePath()
 
@@ -441,6 +479,8 @@ class ccApp
 	 * The URI offset is the part of the URL that spans from the server name
 	 * (and port, if any) to the controller name.  This is the URL for the
 	 * dispatcher, and is usually "/" or "/index.php/".
+	 *
+	 * @see getRootUrl()
 	 */
 	public function getUrlOffset()
 	{
@@ -504,15 +544,18 @@ class ccApp
 				$errortype[E_RECOVERABLE_ERROR] = 'Recoverable Error';
 			if (PHP_VERSION_ID >= 50300)
 				$errortype[E_USER_DEPRECATED] = 'User Deprecated';
+			global $bb,$eb, $bi,$ei, $btt,$ett, $rarr,$ldquo,$rdquo,$hellip,$nbsp,$nl;
 			error_log("$errortype[$errno]: $errstr in $errfile#$errline",0);
-			print "<br/><b><font color='red'>$errortype[$errno]</font>: $errstr</b>\n        in $errfile#$errline<br/>".PHP_EOL;
+			$msg = "$nl$bb<font color='red'>$errortype[$errno]</font>: $errstr$eb$nl"
+				 . "        in $errfile#$errline"; 
+			print $msg.$nl;
+			self::tr($msg);
 //			echo '<pre>';
 //			var_dump($errcontext);
 //			echo '</pre>';
 			$trace = debug_backtrace();		// Get whole stack list
 			array_shift($trace);			// Ignore this function
 			ccTrace::showTrace($trace);		// Display stack.
-//			die();
 			return TRUE;
 		}
 		else
@@ -528,7 +571,10 @@ class ccApp
 	{
 		try
 		{
-			print get_class($exception).' '.$exception->getMessage().' in '.$exception->getFile().'#'.$exception->getLine().'<br/>'.PHP_EOL;
+			global $bb,$eb, $bi,$ei, $btt,$ett, $rarr,$ldquo,$rdquo,$hellip,$nbsp,$nl;
+			$msg = $bb.get_class($exception).'('.$exception->getCode().'):'.$eb.' "'.$exception->getMessage().'" in '.ccTrace::showPath($exception->getFile()).'#'.$exception->getLine();
+			print $msg.$nl;
+			self::tr($msg);
 			ccTrace::showTrace($exception->getTrace());
 //			echo '<pre>';
 //			print $exception->getTraceAsString();

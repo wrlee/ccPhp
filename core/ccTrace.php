@@ -11,12 +11,44 @@
  * @see http://codefury.net/projects/klogger/
  * @see 
  */
+list ($bb,  $eb,   $bi,  $ei,   $btt,  $ett,   $rarr,   $ldquo,   $rdquo,   $hellip,   $nbsp,   $nl) =
+array('<b>','</b>','<i>','</i>','<tt>','</tt>','&rarr;','&ldquo;','&rdquo;','&hellip;','&nbsp;','<br/>'.PHP_EOL);
+
 class ccTrace
 {
 	protected $DefaultLevel = 9;// Default output level of detail
 	protected $ThresholdLevel=5;
-	protected $bHtml=FALSE;		// Format for HTML?
-	protected $Output;			// Destination
+	static protected $bHtml=TRUE;		// Format for HTML?
+	static protected $Output=NULL;		// Destination
+	static protected $bSuppress=FALSE;	// Suppress output?
+	
+	static function setHtml($bEnable=TRUE) 
+	{ 
+		global $bb,$eb, $bi,$ei, $btt,$ett, $rarr,$ldquo,$rdquo,$hellip,$nbsp,$nl;
+		self::$bHtml = $bEnable;
+		if ($bEnable)
+		{
+			list ($bb,  $eb,   $bi,  $ei,   $btt,  $ett,   $rarr,   $ldquo,   $rdquo,   $hellip,   $nbsp,   $nl) =
+			array('<b>','</b>','<i>','</i>','<tt>','</tt>','&rarr;','&ldquo;','&rdquo;','&hellip;','&nbsp;','<br/>'.PHP_EOL);
+		}
+		else
+		{
+			$bb = $eb = 
+			$bi = $ei = 
+			$btt = $ett = '';
+			list ($rarr,$ldquo,$rdquo,$hellip,$nbsp,$nl) = 
+			array('->', '"',   '"',   '...',  ' ',  PHP_EOL);
+		}
+	} // setHtml()
+	static function setOutput($filepath=NULL) 
+	{ 
+		self::$Output = $filepath; 
+		self::setHtml(!self::$Output);
+	}
+	static function setSuppress($bSuppress=TRUE)
+	{
+		self::$bSuppress=$bSuppress;
+	}
 	
 	function out($msg, $bNoNewline=FALSE)
 	{
@@ -79,23 +111,20 @@ EOD;
 	 *        debug_backtrace() and Exception::getTrace().
 	 * @todo Consider moving to separate Trace class
 	 */
-	static function showTrace(Array $trace, $bNoHtml=FALSE)
+	static function showTrace(Array $trace)
 	{
-// array_shift($trace);	// Ignore this method.
-// echo '<pre>';
-// echo __METHOD__.' ';
-// var_dump($trace);
+		global $bb,$eb, $bi,$ei, $btt,$ett, $rarr,$ldquo,$rdquo,$hellip,$nbsp,$nl;
 		$entry = 1;
-		$nl = $bNoHtml ? PHP_EOL : '<br/>'.PHP_EOL;
+
 		foreach ($trace as $key => $line)
 		{
 			if (isset($line['file']) && isset($line['line']))
 			{
-				echo ($entry++).'. '.self::showTraceline($line,$bNoHtml).$nl;
+				self::s_out( ($entry++).'. '.self::showTraceline($line).$nl);
 				if (   $line['function'] == 'call_user_func'
 					 || $line['function'] == 'call_user_func_array')
 				{
-					echo '&nbsp;&nbsp;&nbsp;&nbsp;'.self::showTraceline($trace[$key-1]).$nl;
+					self::s_out( $nbsp.$nbsp.$nbsp.$nbsp.self::showTraceline($trace[$key-1]).$nl);
 				}
 			}
 		}
@@ -110,25 +139,9 @@ EOD;
 	 * @see Exception::getTrace() http://us.php.net/manual/en/exception.gettrace.php
 	 * @todo Consider moving to separate Trace class
 	 */
-	static function showTraceLine($line, $bNoHtml=FALSE)
+	static function showTraceLine($line)
 	{
-// echo __METHOD__.' ';
-// var_dump($line);
-// if (is_string($line))
-	// return $line.'<br/>';
-		if ($bNoHtml)
-		{
-			$bb = $eb = 
-			$bi = $ei = 
-			$btt = $ett = '';
-			list ($rarr,$ldquo,$rdquo,$hellip,$nl) = 
-			array('->', '"',   '"',   '...',  PHP_EOL);
-		}
-		else
-		{
-			list ($bb,  $eb,   $bi,  $ei,   $btt,  $ett,   $rarr,   $ldquo,$rdquo,   $hellip,   $nl) =
-			array('<b>','</b>','<i>','</i>','<tt>','</tt>','&rarr;','&ldquo;','&rdquo;','&hellip;','<br/>'.PHP_EOL);
-		}
+		global $bb,$eb, $bi,$ei, $btt,$ett, $rarr,$ldquo,$rdquo,$hellip,$nbsp,$nl;
 	
 		$out = '';
 		if (isset($line['class']))
@@ -140,89 +153,112 @@ EOD;
 			$out .= ($line['type'] == '->' ? $rarr : $line['type']);
 		$out .= $bb.$line['function'].$eb.'(';
 		$first = true;
-		foreach ($line['args'] as $arg)
-		{
-			if (!$first)
-				$out .= ',';
-			else
-				$first = false;
-			$out .= $btt;
-			if ($arg === NULL)
-				$out .= 'null';
-			elseif (is_object($arg))
-				$out .= get_class($arg);
-			elseif (is_string($arg))
-				if ($bNoHtml)
-					$out .= $ett.$ldquo.$bi.$arg.$ei.$rdquo.$btt;
-				else
-					$out .= $ett.$ldquo.$bi.htmlentities($arg).$ei.$rdquo.$btt;
-			elseif (is_array($arg))
+		if (isset($line['args']))
+			foreach ($line['args'] as $arg)
 			{
-				if ((   $line['function'] == 'call_user_func'
-					 || $line['function'] == 'call_user_func_array')
-					&& count($arg) == 2)
+				if (!$first)
+					$out .= ',';
+				else
+					$first = false;
+				$out .= $btt;
+				if ($arg === NULL)
+					$out .= 'null';
+				elseif (is_object($arg))
+					$out .= get_class($arg);
+				elseif (is_string($arg))
+					if (self::$bHtml)
+						$out .= $ett.$ldquo.$bi.htmlentities($arg).$ei.$rdquo.$btt;
+					else
+						$out .= $ett.$ldquo.$bi.$arg.$ei.$rdquo.$btt;
+				elseif (is_array($arg))
 				{
-					$out .= get_class($arg[0]);
-					if (is_object($arg[0]))
-						$out .= $rarr;
-					else 
-						$out .= '::';
-					$out .= $arg[1].'()'.$ett.','.$hellip;
-					break;
+					if ((   $line['function'] == 'call_user_func'
+						 || $line['function'] == 'call_user_func_array')
+						&& count($arg) == 2)
+					{
+						$out .= get_class($arg[0]);
+						if (is_object($arg[0]))
+							$out .= $rarr;
+						else 
+							$out .= '::';
+						$out .= $arg[1].'()'.$ett.','.$hellip;
+						break;
+					}
+					else
+					{
+					$out .= 'Array(';
+					$firstarg = true;
+					foreach ($arg as $argkey => $argval)
+					{
+						if (!$firstarg)
+							$out .= ',';
+						else
+							$firstarg = false;
+						$out .= $argkey.$rarr;
+						if ($argval === NULL)
+							$out .= 'null';
+						elseif (is_object($argval))
+							$out .= get_class($argval);
+						elseif (is_string($argval))
+							if (self::$bHtml)
+								$out .= $ett.$ldquo.$bi.htmlentities($argval).$ei.$rdquo.$btt;
+							else
+								$out .= $ett.$ldquo.$bi.$argval.$ei.$rdquo.$btt;
+						else
+							$out .= $argval;
+					}
+					$out .= ')';
+					}
 				}
 				else
-				{
-				$out .= 'Array(';
-				$firstarg = true;
-				foreach ($arg as $argkey => $argval)
-				{
-					if (!$firstarg)
-						$out .= ',';
-					else
-						$firstarg = false;
-					$out .= $argkey.$rarr;
-					if ($argval === NULL)
-						$out .= 'null';
-					elseif (is_object($argval))
-						$out .= get_class($argval);
-					elseif (is_string($argval))
-						if ($bNoHtml)
-							$out .= $ett.$ldquo.$bi.$argval.$ei.$rdquo.$btt;
-						else
-							$out .= $ett.$ldquo.$bi.htmlentities($argval).$ei.$rdquo.$btt;
-					else
-						$out .= $argval;
-				}
-				$out .= ')';
-				}
+					$out .= $arg;
+				$out .= $ett;
 			}
-			else
-				$out .= $arg;
-			$out .= $ett;
-		}
 		$out .= ')';
 		if (isset($line['file']))
-			$out .= ' in '.$btt.dirname($line['file']).'/'.$ett.$bb.basename($line['file']).$eb.'#'.$line['line'];
-		// echo ') in '.$btt.dirname($line['file']).'/'.$bb.basename($line['file']).$eb.'#'.$ett.$line['line'].'<br/>';
+			$out .= ' in '.self::showPath($line['file'],$line['line']);
+//			$out .= ' in '.$btt.dirname($line['file']).'/'.$ett.$bb.basename($line['file']).$eb.'#'.$line['line'];
 // var_dump($line['args']);
 		// echo '&nbsp;&nbsp;&nbsp;'.implode(',',$line['args']).'<br/>';
 		return $out;
 	} // showTraceLine()
+
+	/**
+	 * Format filepath for output. (e.g., '/root/part1/.../filename.ext[#line]')
+	 */
+	static function showPath($path, $line=NULL)
+	{
+		global $bb,$eb, $bi,$ei, $btt,$ett, $rarr,$ldquo,$rdquo,$hellip,$nbsp,$nl;
+		$dirname = dirname($path);
+		if ($dirname == '.') $dirname = '';
+		if ($dirname) 
+			$dirname = $btt.$dirname.DIRECTORY_SEPARATOR.$ett;
+		return $dirname.$bb.basename($path).$eb. ($line ? '#'.$line : '');
+	}
 	
 	static function s_out($string)
 	{
-		if (!(ccApp::getApp()->getDevMode() & ccApp::MODE_DEVELOPMENT))
+		if (self::$bSuppress)
 			return;
-//		error_log($string,3,'/home/wrlee/htd.log');
-		echo $string;
+//		ini_set('error_log','/home/wrlee/htd.log');
+		if (self::$Output)
+			error_log($string,3,self::$Output);
+		else
+			echo $string;
 	}
 	
 	/**
-	 * options: HTML, log, stderr, stdout, formatted, timestamp
+	 * Return formated phase of caller.
+	 * @param int $traceOffset How far back in the callback stack to look.
+	 * @param string $path Matching root path to display (ignore stack entries
+	 *        that do not match in order to show only "app" sources).
+	 *
+	 * [filename][ [class{::|->}[{function}()][#{line#}]
 	 */
-	static function tr($msg='')
+	static function getCaller($traceOffset = 1, $path=NULL)
 	{
-		$traceOffset = 3;
+		global $bb,$eb, $bi,$ei, $btt,$ett, $rarr,$ldquo,$rdquo,$hellip,$nbsp,$nl;
+		
 		if (PHP_VERSION_ID >= 50400)
 			$trace = debug_backtrace(
 					DEBUG_BACKTRACE_IGNORE_ARGS
@@ -236,46 +272,144 @@ EOD;
 		else
 			$trace = debug_backtrace(TRUE);
 			
-		$bTextOnly = FALSE;
-
-		if ($bTextOnly)			// text output?
-		{
-			$bb = $eb = 
-			$bi = $ei = 
-			$btt = $ett = '';
-			list ($rarr,$ldquo,$rdquo,$hellip,$nl) = 
-			array('->', '"',   '"',   '...',  PHP_EOL);
-		}
-		else					// HTML output
-		{
-			list ($bb,  $eb,   $bi,  $ei,   $btt,  $ett,   $rarr,   $ldquo,$rdquo,   $hellip,   $nl) =
-			array('<b>','</b>','<i>','</i>','<tt>','</tt>','&rarr;','&ldquo;','&rdquo;','&hellip;','<br/>'.PHP_EOL);
-		}
 		$out = '';
-		if (isset($trace[$traceOffset]['class']))
+/*
+//-----------------------
+// debug_print_backtrace();
+foreach ($trace as $entry => $line)
+	if (1)
+	{
+		echo str_pad('#'.$entry,3)
+			. (isset($line['class'])?' '.$line['class'].$line['type']:' ').$line['function'].'()'
+			. (isset($line['file'])?' called at ['.$line['file'].(isset($line['line'])?':'.$line['line']:'').']':'')
+			. $nl;
+		// var_dump($line);
+		// if ($entry > 5) exit;
+	}
+	else
+	{
+		var_dump($line);
+		exit;
+		$out = 'unknown';
+	}
+//-----------------------
+*/
+//		$traceOffset = min($traceOffset,count($trace)-1);
+
+		if ($path && file_exists($path))	// Search first file in app
 		{
-			$out .= $bb.$trace[$traceOffset]['class'].$eb;
-			if (isset($trace[$traceOffset]['object']) 
-				&& get_class($trace[$traceOffset]['object']) != $trace[$traceOffset]['class'])
-				$out .= $bi.'('.get_class($trace[$traceOffset]['object']).')'.$ei;
-			if (isset($trace[$traceOffset]['type']))
-				$out .= ($trace[$traceOffset]['type'] == '->' ? $rarr : $trace[$traceOffset]['type']);
+			if (substr($path,-1) != DIRECTORY_SEPARATOR)
+				$path .= DIRECTORY_SEPARATOR;
+			// for ($traceOffset=$traceOffset+1;$traceOffset;$traceOffset--)
+				// array_shift($trace);		// Ignore 1st entries & reset offset
+			// Ignore 1st entries & search for entries that start w/path
+			for ($traceOffset; 
+				 isset($trace[$traceOffset]) 
+				 && (!isset($trace[$traceOffset]['file']) 
+					 || strpos($trace[$traceOffset]['file'],$path) !== 0);
+				 $traceOffset++);
+//echo '...'.$traceOffset.'...';
+// var_dump($trace[$traceOffset-1]);
+// var_dump($trace[$traceOffset]);
+// var_dump($trace[$traceOffset+1]);
+// if (isset($trace[$traceOffset]['function']) && $trace[$traceOffset]['function'] === 'findOne')
+// exit;
+				 
+			$out .= (isset($trace[$traceOffset]['file'])
+						? self::showPath(basename($trace[$traceOffset]['file']),isset($trace[$traceOffset]['line'])?$trace[$traceOffset]['line']:NULL).' '
+						: '' )
+				  . (isset($trace[$traceOffset]['class'])?$trace[$traceOffset]['class'].$trace[$traceOffset]['type']:'')
+				  . (isset($trace[$traceOffset]['function'])?$trace[$traceOffset]['function'].'()':'');
+		}
+		elseif (isset($trace[$traceOffset]['function']) && $trace[$traceOffset]['function'] != 'spl_autoload_call')
+		{
+// $out .= '#'.__LINE__.' ';
+//			$out .= (isset($line['file'])?' '.$line['file'].(isset($line['line'])?'#'.$line['line']:''):'');
+			if (isset($trace[$traceOffset]['class']))
+			{
+				$out .= $bb.$trace[$traceOffset]['class'].$eb;
+				if (isset($trace[$traceOffset]['object']) 
+					&& get_class($trace[$traceOffset]['object']) != $trace[$traceOffset]['class'])
+					$out .= $bi.'('.get_class($trace[$traceOffset]['object']).')'.$ei;
+				if (isset($trace[$traceOffset]['type']))
+					$out .= ($trace[$traceOffset]['type'] == '->' ? $rarr : $trace[$traceOffset]['type']);
+			}
 			$out .= $bb.$trace[$traceOffset]['function'].$eb.'()#'.$trace[$traceOffset-1]['line'];
 		}
+		elseif (   isset($trace[$traceOffset]['function'])
+				&& !isset($trace[$traceOffset]['file'])
+				&& $trace[$traceOffset]['function'] == 'spl_autoload_call')
+		{
+// $out .= '#'.__LINE__.' ';
+// var_dump($trace[$traceOffset-1]);
+// var_dump($trace[$traceOffset]);
+// var_dump($trace[$traceOffset+1]);
+			$traceOffset++;
+			if (isset($trace[$traceOffset]['class']))
+			{
+				$out .= $bb.$trace[$traceOffset]['class'].$eb;
+				if (isset($trace[$traceOffset]['object']) 
+					&& get_class($trace[$traceOffset]['object']) != $trace[$traceOffset]['class'])
+					$out .= $bi.'('.get_class($trace[$traceOffset]['object']).')'.$ei;
+				if (isset($trace[$traceOffset]['type']))
+					$out .= ($trace[$traceOffset]['type'] == '->' ? $rarr : $trace[$traceOffset]['type']);
+				$out .= $bb.$trace[$traceOffset]['function'].$eb.'()#'.$trace[$traceOffset]['line'];
+			}
+			else // file
+			{
+				$out .= self::showPath(basename($trace[$traceOffset]['file']),$trace[$traceOffset]['line'])
+					  . ' '.$bb.$trace[$traceOffset]['function'].$eb.'()';
+			}
+		}
+		elseif (isset($trace[$traceOffset]['file']))
+		{
+// $out .= '#'.__LINE__.' ';
+// var_dump($trace[$traceOffset]);
+// var_dump($trace[$traceOffset+1]);
+			$out .= self::showPath(basename($trace[$traceOffset]['file']),$trace[$traceOffset]['line']);
+		}
+				
 		else
 		{
-			$out .= $bb.basename($trace[$traceOffset-1]['file']).$eb.'()#'.$trace[$traceOffset-1]['line'];
+			$traceOffset = min($traceOffset,count($trace)-1);
+// echo '...'.$traceOffset.PHP_EOL;
+// debug_print_backtrace();
+// var_dump($trace);
+// var_dump($trace[$traceOffset-1]);
+// var_dump($trace[$traceOffset]);
+// var_dump($trace[$traceOffset+1]);
+			if (isset($trace[$traceOffset]['file']))
+				$out .= self::showPath(basename($trace[$traceOffset]['file']),
+									   isset($trace[$traceOffset]['function']) 
+									   ? NULL : $trace[$traceOffset]['line']).' ';
+			$out .= (isset($trace[$traceOffset]['class'])?$bb.$trace[$traceOffset]['class'].$eb.$trace[$traceOffset]['type']:'');
+			if (isset($trace[$traceOffset]['function']))
+				$out .= $bb.$trace[$traceOffset]['function'].$eb.'()'
+					  . (isset($trace[$traceOffset]['line'])?'#'.$trace[$traceOffset]['line']:'');
 		}
-
+		return $out;
+	} // getCaller()
+	
+	/**
+	 * options: HTML, log, stderr, stdout, formatted, timestamp
+	 */
+	static function tr($msg='')
+	{
+		global $bb,$eb, $bi,$ei, $btt,$ett, $rarr,$ldquo,$rdquo,$hellip,$nbsp,$nl;
+		$traceOffset = 4;
+		
+		$out = self::getCaller($traceOffset);
+		
 		if ($msg === '' || $msg === NULL || is_string($msg))
 			self::s_out($out.' '.$msg.$nl);
 		else
 		{
-			if (!$bTextOnly) self::s_out('<pre>');
+			if (self::$bHtml) self::s_out('<span style="display:run-in;">');
 			self::s_out($out.' ');
-			self::s_out(var_export($msg,TRUE));
+			if (self::$bHtml) self::s_out('</span><pre>');
+			self::s_out(print_r($msg,TRUE));
 			self::s_out(PHP_EOL);
-			if (!$bTextOnly) self::s_out('</pre>');
+			if (self::$bHtml) self::s_out('</pre>');
 		}
 	} // tr()
 } // class ccTrace

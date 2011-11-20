@@ -78,7 +78,7 @@ class ccRequest implements ArrayAccess, IteratorAggregate
 		       ? substr($_SERVER['SCRIPT_URL'], strlen(ccApp::getApp()->getUrlOffset()))
 			   : $_SERVER['SCRIPT_URL'];
 	} // getRelativeUrl()
-
+	
 	/**
 	 * @returns Type of data to return (based on request), e.g., HTML, JSON, etc.
 	 */
@@ -331,6 +331,8 @@ class ccRequest implements ArrayAccess, IteratorAggregate
 		$this->properties['SCRIPT_URI'] = $_SERVER['SCRIPT_URI'];
 		$this->properties['QUERY_STRING'] = $_SERVER['QUERY_STRING'];
 	}
+	
+	
 	public function offsetExists( $offset )
 	{
 		if (!$this->properties)

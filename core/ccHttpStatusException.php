@@ -150,9 +150,9 @@ class ccHttpStatusException extends Exception
 				$message = $status.': HTTP Status Exception';
 		}
 		if (PHP_VERSION_ID >= 50300)
-			parent::__construct($message, 0, $previous);
+			parent::__construct($message, $status, $previous);
 		else
-			parent::__construct($message, 0);
+			parent::__construct($message, $status);
 	} // __construct()
 
 	function getLocation()
@@ -160,8 +160,9 @@ class ccHttpStatusException extends Exception
 		return $this->location;
 	}
 
-	function getStatus()
+/*	function getStatus()
 	{
 		return $this->status;
 	}
+*/
 } // class ccHttpStatusException
