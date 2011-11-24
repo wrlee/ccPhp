@@ -24,7 +24,8 @@ if (!defined('PHP_VERSION_ID'))
     define('PHP_VERSION_ID', ($_version[0] * 10000 + $_version[1] * 100 + $_version[2]));
 }
 //echo PHP_VERSION_ID.'<br/>';
-if (PHP_VERSION_ID < 50207) {
+if (PHP_VERSION_ID < 50207) 
+{
     define('PHP_MAJOR_VERSION', $_version[0]);
     define('PHP_MINOR_VERSION', $_version[1]);
 	
@@ -36,9 +37,6 @@ unset($_version);	// Not needed any longer
 // [END] Portability settings
 //******************************************************************************
 
-error_reporting(E_ALL|E_STRICT);
-// error_reporting(E_STRICT);
-// error_reporting(ini_get('error_reporting')|E_STRICT);
 set_error_handler(Array('ccApp','onError'));
 set_exception_handler(Array('ccApp','onException'));
 
@@ -51,7 +49,8 @@ if (function_exists('__autoload'))
 }
 spl_autoload_register(array('ccApp','_autoload'), true);
 
-ccApp::setFrameworkPath(dirname(__FILE__));	// Function probably not needed
+//ccApp::setFrameworkPath(dirname(__FILE__));	// Function probably not needed
+ccApp::$_fwpath = dirname(__FILE__).DIRECTORY_SEPARATOR;
 
 /**
  * Framework class reprsenting the "application". You can derive this class, but
@@ -62,32 +61,31 @@ ccApp::setFrameworkPath(dirname(__FILE__));	// Function probably not needed
  */
 class ccApp
 {
-	const MODE_DEVELOPMENT	= 1;	// Obsolete
-	const MODE_TESTING		= 2;	// Obsolete
-	const MODE_STAGING		= 4;	// Obsolete
-	const MODE_PRODUCTION	= 8;	// Obsolete
+	const MODE_DEVELOPMENT	= 1;	// Obsolete?
+	const MODE_TESTING		= 2;	// Obsolete?
+	const MODE_STAGING		= 4;	// Obsolete?
+	const MODE_PRODUCTION	= 8;	// Obsolete?
 
 	protected static $_me=NULL;			// Singleton ref to $this
-	protected static $_fwpath=NULL;		// Path to framework files.
+	/*protected*/ static $_fwpath=NULL;		// Path to framework files.
 
 	protected $config=Array();			// Configuration array
 
-	protected $_UrlOffset=NULL;			// Path from domain root for the site
+	protected $UrlOffset=NULL;			// Path from domain root for the site
 	protected $devMode = self::MODE_DEVELOPMENT; 	// Obsolete
 	protected $bDebug = FALSE; 			// Central place to hold debug status
 	
 	protected $sitepath=NULL;			// Path to site specific files.
-	protected $temppath=NULL;			// Path to working directory (for cache, etc)
+	protected $temppath='working';		// Path to working directory (for cache, etc)
 	
 	protected $page=NULL; 				// Main page object for app
 	protected $error404 = NULL;			// External ccPageInterface to render errors.
 										// The following are rel to sitepath:
 	protected $classpath=array();		// List of site paths to search for classes
-	protected $_wwwpath='public';		// Path to web visible files
+//	protected $wwwpath='public';		// Path to web visible files
 
-	protected function __construct()
+	protected function __construct()	// As a singleton: block public allocation
 	{
-//		echo __METHOD__ . PHP_EOL;
 	} // __construct()
 
 	/**
@@ -135,6 +133,7 @@ class ccApp
 	 *	  	  ->addClassPath('..'.DS.'RedBeanPHP'.DS.'rb.php','R')
 	 *	  	  ->addClassPath('..'.DS.'Facebook'.DS.'facebook.php','Facebook');
 	 * @todo Allow array of directories to be passed in.
+	 * @todo Test for path's existence.
 	 */
 	function addClassPath($path,$classname=NULL)
 	{
@@ -182,10 +181,11 @@ class ccApp
 
 		$classFilename = str_replace('_', DIRECTORY_SEPARATOR, $className).'.php';
 // global $bb,$eb, $bi,$ei, $btt,$ett, $rarr,$ldquo,$rdquo,$hellip,$nbsp,$nl;
-// ccTrace::s_out( '#'.__LINE__.' '.ccTrace::getCaller(3,dirname(ccApp::getApp()->getSitePath())).': '.$className." $rarr ".$classFilename.$nl);
+// ccTrace::s_out( '#'.__LINE__.' '.ccTrace::getCaller(0,dirname(ccApp::getApp()->getSitePath())).': '.$className." $rarr ".$classFilename.$nl);
 // ccTrace::s_out( '#'.__LINE__.' '.ccTrace::getCaller(3).': '.$className." $rarr ".$classFilename.$nl);
 // echo '#'.__LINE__.' '.$className." $rarr ".$classFilename.$nl;
 // self::tr('&nbsp;&nbsp;&nbsp;'.$this->sitepath.$classFilename);
+// ccTrace::tr('&nbsp;&nbsp;&nbsp;'.$this->sitepath.$classFilename);
 
 		// Check app paths, first
 		if ($this->sitepath && file_exists($this->sitepath . $classFilename)) 
@@ -231,6 +231,27 @@ class ccApp
 	{
 		return self::$_me = ($className ? new $className : new self);
 	} // createApp()
+		
+	/**
+	 * Create site-specific directory, if it doesn't exist. 
+	 *
+	 * @param string $dir Directory name (relative to site-path), if not an 
+	 *		  absolute path.
+	 *
+	 * @returns string Semi-normalized path name (suffixed with '/' prefixed w/
+	 *			site-path.
+	 * @todo Accept array of directory names (to move common code here)
+	 */
+	public function createSiteDir($dir)
+	{
+		if ( substr($dir, -1) != DIRECTORY_SEPARATOR )	// Ensure suffixed w/'/'
+			$dir .= DIRECTORY_SEPARATOR;
+		if ( $dir[0] != DIRECTORY_SEPARATOR )			// Not absolute path?
+			$dir = $this->sitepath . $dir;				// Prefix with site's path
+		if (!is_dir($dir))								// Path does not exist?
+			mkdir($dir,0777,TRUE);						// Create path
+		return $dir;									// Return modified path
+	} // createSiteDir()
 
 	/**
 	 * This method is called to render pages for the web site. It invokes the 
@@ -238,7 +259,7 @@ class ccApp
 	 * content. If no content is rendered (i.e., the page's render() method
 	 * returns FALSE, then 404 handling is invoked. 
 	 */
-	function dispatch(ccRequest $request)
+	public function dispatch(ccRequest $request)
 	{
 		try
 		{
@@ -404,16 +425,17 @@ class ccApp
 	 */
 	public function getFrameworkPath()
 	{
-// echo __METHOD__.'#'.__LINE__.' path: '	. self::$_fwpath.'<br/>'.PHP_EOL;
 		return self::$_fwpath;
 	} // getFrameworkPath()
-	public static function setFrameworkPath($path)
+	/**
+	 * @todo This method is probably not necessary
+	 */
+	private static function setFrameworkPath($path)
 	{
 		if (substr($path,-1) != DIRECTORY_SEPARATOR)
 			$path .= DIRECTORY_SEPARATOR;
 
 		self::$_fwpath = $path;
-// echo __METHOD__.'#'.__LINE__.' path: '	. self::$_fwpath.'<br/>'.PHP_EOL;
 	} // setFrameworkPath()
 
 	/**
@@ -455,40 +477,48 @@ class ccApp
 	} // getRootUrl()
 
 	/**
-	 * Get/set server path to site's files (not the URL)
+	 * Get path to site's files (not the URL)
 	 * @param string $path Full, absolute path (e.g., dirname(__FILE__) 
-	 *                     of caller)
+	 *        of caller)
 	 */
 	public function getSitePath()
 	{
-		if (!$this->sitepath)
-			$this->sitepath = getcwd();
 		return $this->sitepath;
 	} // getSitePath()
+	/**
+	 * Get/set server path to site's files (not the URL). This method also sets
+	 * this path as the current directory so that all subsequent relative
+	 * paths are from a normalized location. 
+	 * @param string $path Full, absolute path (e.g., dirname(__FILE__) 
+	 *        of caller)
+	 */
 	public function setSitePath($path)
 	{
-		if (substr($path,-1) != DIRECTORY_SEPARATOR)
-			$path .= DIRECTORY_SEPARATOR;
+		if (substr($path,-1) != DIRECTORY_SEPARATOR)	// Ensure path-spec
+			$path .= DIRECTORY_SEPARATOR;				// suffixed w/'/'
 
-		$this->sitepath = $path;
-		chdir($path);
+		$this->sitepath = $path;						// Save path
+		chdir($path);									// Set cd to "known" place
 		return $this;
 	} // setSitePath()
 
 	/**
-	 * The URI offset is the part of the URL that spans from the server name
-	 * (and port, if any) to the controller name.  This is the URL for the
-	 * dispatcher, and is usually "/" or "/index.php/".
+	 * The URL offset is the part of the URL that spans from the server name
+	 * (and port, if any) to the app's "root"; usually "/" or "/index.php/".
 	 *
 	 * @see getRootUrl()
+	 * @todo Consider moving to ccRequest?
 	 */
 	public function getUrlOffset()
 	{
-		if (!$this->_UrlOffset)				// If not set, 
+		if (!$this->UrlOffset)				// If not set, 
 			$this->setUrlOffset(); 			//    Ensure init'd 
-		return $this->_UrlOffset;
+		return $this->UrlOffset;
 	} // setUrlOffset()
-	public function setUrlOffset($component=NULL)
+	/**
+	 * @todo This value is inferred from env settings, so shouldn't be public. 
+	 */
+	private function setUrlOffset($component=NULL)
 	{
 		if (!$component)
 		{
@@ -496,9 +526,27 @@ class ccApp
 			if ($component != '/') 
 				$component .= '/';
 		}
-		$this->_UrlOffset = $component;
+		$this->UrlOffset = $component;
 		return $this;
 	} // setUrlOffset()
+		
+	/**
+	 * Set the application's working directory 
+	 * @param string $path Directory name, relative to site path (unless an 
+	 *        absolute path-spec).
+	 * @see setSitePath();
+	 */
+	public function setWorkingDir($path)
+	{
+		$this->temppath = $this->createSiteDir($path);
+		return $this;
+	} // setWorkingDir()
+	public function getWorkingPath()
+	{
+		if ($this->temppath[0] != DIRECTORY_SEPARATOR)	// setWorkingDir() not 
+			$this->setWorkingDir($this->temppath);		// called yet.
+		return $this->temppath;
+	} // setWorkingDir()
 
 	/**
 	 * Default 404 handler.
@@ -510,8 +558,8 @@ class ccApp
 		if (!headers_sent())
 			header($_SERVER['SERVER_PROTOCOL'].' 404 Not Found', TRUE, 404);
 		?>
-		<hr/>
-		<?php print $_SERVER['SCRIPT_URI'] ?>
+		<html><body><hr/>
+		<?php //print $_SERVER['SCRIPT_URI'] ?>
 		<h1>404 Not Found</h1>
 		This is not the page you are looking for.<hr/>
 		<?php 
@@ -521,6 +569,9 @@ class ccApp
 			array_shift($trace);			// Ignore this function
 			ccTrace::showTrace($trace);		// Display stack.
 		}
+		?>
+		</body></html>
+		<?php
 //		exit();
 	} // on404()
 
@@ -531,7 +582,6 @@ class ccApp
 	 */
 	static function onError($errno, $errstr, $errfile, $errline, $errcontext)
 	{
-//		throw new ErrorException($errstr, $errno,0,$errfile,$errline);
 		if (ini_get('error_reporting') & $errno)
 		{
 			$errortype[E_WARNING] = 'Warning';
@@ -544,15 +594,16 @@ class ccApp
 				$errortype[E_RECOVERABLE_ERROR] = 'Recoverable Error';
 			if (PHP_VERSION_ID >= 50300)
 				$errortype[E_USER_DEPRECATED] = 'User Deprecated';
-			global $bb,$eb, $bi,$ei, $btt,$ett, $rarr,$ldquo,$rdquo,$hellip,$nbsp,$nl;
+			global $bred,$ered,$bb,$eb, $bi,$ei, $btt,$ett, $rarr,$ldquo,$rdquo,$hellip,$nbsp,$nl;
+// self::tr(func_get_args());
 			error_log("$errortype[$errno]: $errstr in $errfile#$errline",0);
-			$msg = "$nl$bb<font color='red'>$errortype[$errno]</font>: $errstr$eb$nl"
+			$msg = "$bb$bred$errortype[$errno]$ered: $errstr$eb$nl"
 				 . "        in $errfile#$errline"; 
-			print $msg.$nl;
-			self::tr($msg);
-//			echo '<pre>';
-//			var_dump($errcontext);
-//			echo '</pre>';
+// echo '<pre>';
+//var_dump($errcontext);
+// echo '</pre>';
+			print $nl.$msg.$nl;
+			self::log($msg);
 			$trace = debug_backtrace();		// Get whole stack list
 			array_shift($trace);			// Ignore this function
 			ccTrace::showTrace($trace);		// Display stack.
@@ -571,10 +622,10 @@ class ccApp
 	{
 		try
 		{
-			global $bb,$eb, $bi,$ei, $btt,$ett, $rarr,$ldquo,$rdquo,$hellip,$nbsp,$nl;
-			$msg = $bb.get_class($exception).'('.$exception->getCode().'):'.$eb.' "'.$exception->getMessage().'" in '.ccTrace::showPath($exception->getFile()).'#'.$exception->getLine();
+			global $bred,$ered,$bb,$eb, $bi,$ei, $btt,$ett, $rarr,$ldquo,$rdquo,$hellip,$nbsp,$nl;
+			$msg = $bb.get_class($exception).'('.$exception->getCode().'):'.$eb.' "'.$exception->getMessage().'" in '.ccTrace::fmtPath($exception->getFile()).'#'.$exception->getLine();
 			print $msg.$nl;
-			self::tr($msg);
+			self::log($msg);
 			ccTrace::showTrace($exception->getTrace());
 //			echo '<pre>';
 //			print $exception->getTraceAsString();
@@ -639,6 +690,13 @@ EOD;
 		// echo $string;
 	// }
 	
+	/**
+	 * options: HTML, log, stderr, stdout, formatted, timestamp
+	 */
+	static function log()
+	{
+		return call_user_func_array(array('ccTrace','log'),func_get_args());
+	} // tr()
 	/**
 	 * options: HTML, log, stderr, stdout, formatted, timestamp
 	 */

@@ -5,13 +5,11 @@
  */
 class ccSmarty extends Smarty
 {
-//	protected $ext='.tpl';
-
 	function __construct()
 	{
 		parent::__construct();			// Default Smarty initialization
 		$app = ccApp::getApp();			// Common app reference
-		$smartyTempPath = $app->getSitePath().'.smarty'.DIRECTORY_SEPARATOR;
+		$smartyTempPath = $app->getWorkingPath().'smarty'.DIRECTORY_SEPARATOR;
 		
 //		$this->use_sub_dirs = true;
 		
@@ -31,7 +29,8 @@ class ccSmarty extends Smarty
 		$this->setCaching($devmode & ccApp::MODE_DEVELOPMENT 
 							? Smarty::CACHING_OFF
 							: Smarty::CACHING_LIFETIME_CURRENT);
-		$this->setCompileCheck( ($devmode & ~(ccApp::MODE_PRODUCTION|ccApp::MODE_DEVELOPMENT) ) );
+		$this->setCompileCheck( ($devmode & ~(ccApp::MODE_PRODUCTION) ) );
+//		$this->setCompileCheck( TRUE );
 //		$this->testInstall();
 	} // __construct()
 	

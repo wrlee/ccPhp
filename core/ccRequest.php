@@ -162,7 +162,7 @@ class ccRequest implements ArrayAccess, IteratorAggregate
 
 	function getUserAgent()
 	{
-		return $_SERVER['HTTP_USER_AGENT'];
+		return isset($_SERVER['HTTP_USER_AGENT']) ? $_SERVER['HTTP_USER_AGENT'] : '';
 	}
 	function getUserAgentInfo()
 	{
@@ -328,8 +328,6 @@ class ccRequest implements ArrayAccess, IteratorAggregate
 		$this->properties['truename'] = $this->getTrueFilename();
 		$this->properties['type'] = $this->getType();
 		$this->properties['method'] = $this->getHttpMethod();
-		$this->properties['SCRIPT_URI'] = $_SERVER['SCRIPT_URI'];
-		$this->properties['QUERY_STRING'] = $_SERVER['QUERY_STRING'];
 	}
 	
 	

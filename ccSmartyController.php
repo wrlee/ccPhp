@@ -94,6 +94,10 @@ if ( isset($smarty->parent->smarty->base))
 		return FALSE;						// No method and no template
 	} // render()
 	
+	/**
+	 * Convenience method to call ccSmarty's display function. This adds 
+	 * the current request block and assumes an extension on othe file. 
+	 */
 	protected function display(ccRequest $request, $template, $args=NULL)
 	{
 		if (!$this->smarty)
