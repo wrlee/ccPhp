@@ -36,12 +36,6 @@ class ccSmartyController extends ccSimpleController
 		// ccApp::tr($modified);
 		// echo '<pre>'; var_dump($smarty);
 
-if ( isset($smarty->parent->smarty->base))
-{
-	$s = $smarty->parent->smarty;
-	ccApp::tr($s->template_dir);
-  ccApp::tr('Try1: "'.$s->base.DIRECTORY_SEPARATOR.$name.'"');
-}
 		if ($type == 'file' 
 			&& isset($smarty->parent->smarty->base)
 			// && call_user_func(array( $smarty->parent->smarty, 'parent::templateExists'),$smarty->parent->smarty->base.DIRECTORY_SEPARATOR.$name) ) 
