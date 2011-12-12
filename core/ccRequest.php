@@ -321,9 +321,10 @@ class ccRequest implements ArrayAccess, IteratorAggregate
 		$this->properties['isiOS'] = $this->isiOS() ? 1 : 0;
 		$this->properties['isIE'] = $this->isIE() ? 1 : 0;
 		$this->properties['userAgent'] = $this->getUserAgent();
+		$this->properties['root'] = ccApp::getApp()->getUrlOffset();
 		$this->properties['scheme'] = $this->getUrlScheme();
 		$this->properties['port'] = $this->getUrlPort();
-		$this->properties['relativeUrl'] = $this->getRelativeUrl();
+//		$this->properties['relativeUrl'] = $this->getRelativeUrl();
 		$this->properties['queryString'] = $this->getQueryString();
 		$this->properties['truename'] = $this->getTrueFilename();
 		$this->properties['type'] = $this->getType();

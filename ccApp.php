@@ -559,7 +559,7 @@ class ccApp
 			header($_SERVER['SERVER_PROTOCOL'].' 404 Not Found', TRUE, 404);
 		?>
 		<html><body><hr/>
-		<?php //print $_SERVER['SCRIPT_URI'] ?>
+		<?php print $_SERVER['SCRIPT_URI'] ?>
 		<h1>404 Not Found</h1>
 		This is not the page you are looking for.<hr/>
 		<?php 
