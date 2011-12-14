@@ -16,19 +16,23 @@ class ccCssController
 //	extends ccSimpleController
 {
 	protected $bMinify = FALSE;
-	protected $cachePath;
+	protected $cachePath;			// Cache of working files
 	protected $bCache  = FALSE;
 	protected $bCheckNewerSource = TRUE;
+	protected $dirs;
 
 	function __construct()
 	{
+		$app = ccApp::getApp();
 		$this->base = 'css';
-	}
+		$this->dirs[] = $app->getSitePath().$this->base.DIRECTORY_SEPARATOR;
+		$this->cachePath = $app->createSiteDir($app->getWorkingPath().$this->base);
+	} // __construct()
 	
 	/**
 	 * @todo Eliminate $request parameter
 	 */
-	static function loadCss($filepath,ccRequest $request)
+	static protected function loadCss($filepath,ccRequest $request)
 	{
 		$file = file_get_contents($filepath);	// Load file content
 		
@@ -59,7 +63,7 @@ class ccCssController
 		return $file;
 	} // loadCss()
 	
-	function minifyCss($string)
+	protected function minifyCss($string)
 	{
 		return $string;
 	}
@@ -69,49 +73,58 @@ class ccCssController
 		$this->bMinify = $bMinify;
 		return $this;
 	}
+
+	/**
+	 * Search for $file in list of paths
+	 */
+	protected function search($file)
+	{
+		foreach ($this->dirs as $path)
+		{
+			if (file_exists($path.$file))
+				return $path.$file;
+		}
+		return NULL;
+	}
 	
+	/**
+	 * Based on the requested CSS or JS file name, load, concat (and optionally 
+	 * minify) files. 
+	 */
 	function render(ccRequest $request)
 	{
 		if ($request->shiftUrlPath() != $this->base)
 			return FALSE;
 			
 		$filename = $request->getTrueFilename();
-		$filepath = ccApp::getApp()->getSitePath().$this->base.DIRECTORY_SEPARATOR.$filename;
 		
-//		header('Content-type: text/css');
-//		header('Content-Disposition: inline; filename="'.$filename.'"');
+		header('Content-type: text/css');
+		header('Content-Disposition: inline');
 		
-		if (strpos($filename, ',') !== FALSE)	// Compact 
+		$files = explode(',',$filename);
+		
+		$rc = TRUE;
+		foreach ($files as $file)
 		{
-			// 1.Iterate thru list of files.
-			// 2. Look in std public/css first.
-			//    - If exist, simply append
-		}
-		elseif (file_exists($filepath))
-		{
-			$file = $this->loadCss($filepath,$request);
-			if ($this->bMinify)
-				$file = $this->minifyCss($file);
-//			header('Content-Length: '.strlen($file));
-			echo $file;
-		}
-		elseif (ccApp::getApp()->getDevMode() & ccApp::MODE_DEVELOPMENT)
-		{
-//			throw new Exception($filepath.' does not exist.');
-			?>
-			body:before {
-				content: '<?php echo $filepath.' does not exist.' ?>';
-				color:red;
-				font-weight: bold;
+			if (!file_exists($file))
+			{
+				if ($file[0] != '/')		// WRL!!! Use strpos() instead?
+					$file = $this->search($file);
 			}
-			<?php
-//			throw new ccHttpStatusException(404);
+			if (file_exists($file))
+			{
+				$out = $this->loadCss($file,$request);
+				if ($this->bMinify)
+					$out = $this->minifyCss($out);
+				echo $out;
+			}
+			else 
+				$rc = FALSE;
 		}
-		else
-			return FALSE;
 		
+//		header('Content-Length: '.strlen($file));
 		// foreach ($request as $key => $value)
 			// ccApp::out("$key = $value<br/>");
-		return TRUE;
+		return $rc;
 	}
 } // class ccCssController

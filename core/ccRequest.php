@@ -290,10 +290,11 @@ class ccRequest implements ArrayAccess, IteratorAggregate
 			$this->format = '';
 		switch ($this->format)	// Normalize document format request type
 		{
-		case 'xhtml+xml':			// txt == text
+		case 'xhtml+xml':
 			$this->format = 'xhtml';
 			break;
-		case 'xhtml':			// txt == text
+		case 'csv':
+		case 'xhtml':
 		case 'text':
 		case 'json':
 		case 'xml':
@@ -329,9 +330,11 @@ class ccRequest implements ArrayAccess, IteratorAggregate
 		$this->properties['truename'] = $this->getTrueFilename();
 		$this->properties['type'] = $this->getType();
 		$this->properties['method'] = $this->getHttpMethod();
-	}
+	} // initProperties()
 	
-	
+	/***************************************************************************
+	 * ArrayAccess, IteratorAggregate 
+	 */
 	public function offsetExists( $offset )
 	{
 		if (!$this->properties)

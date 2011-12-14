@@ -13,14 +13,19 @@ class ccSmartyController extends ccSimpleController
 		if (!$this->smarty)
 		{
 			$this->smarty = new ccSmarty();
-			if (isset($this->base))
+			
+			if (!isset($this->templateBase))
+				$this->templateBase = isset($this->base) ? $this->base : '';
+				
+			if (isset($this->templateBase))
 			{
 //				$this->smarty->base = $this->base;
 				$dirs = $this->smarty->getTemplateDir();
 				$dir = end($dirs);		// WRL HACK: This could break since we dont really know if the last entry is the "base" entry.
-				array_unshift($dirs, $dir . $this->base);
+				array_unshift($dirs, $dir . $this->templateBase);
 				$this->smarty->setTemplateDir( $dirs );
 			}
+			
 // ccApp::tr($this->smarty->getPluginsDir());
 //			$this->smarty->default_template_handler_func = 'ccSmartyController::onNotFound';
 		}
@@ -99,6 +104,6 @@ class ccSmartyController extends ccSimpleController
 		$this->smarty->assign('_request', $request);
 		if (substr($template,-strlen($this->ext)) != $this->ext)
 			$template .= $this->ext;
-		return $this->smarty->render(($this->base ? $this->base.'/' : '').$template, (Array)$args);
+		return $this->smarty->render(($this->templateBase ? $this->templateBase.DIRECTORY_SEPARATOR : '').$template, (Array)$args);
 	} // display()
 } // class ccSmartyController

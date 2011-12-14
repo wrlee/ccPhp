@@ -11,8 +11,8 @@
  * @see http://codefury.net/projects/klogger/
  * @see 
  */
-list ($bb,  $eb,   $bi,  $ei,   $btt,  $ett,   $rarr,   $ldquo,   $rdquo,   $hellip,   $nbsp,   $nl,    $bred,               $ered) =
-array('<b>','</b>','<i>','</i>','<tt>','</tt>','&rarr;','&ldquo;','&rdquo;','&hellip;','&nbsp;','<br/>','<font color="red">','</font>'.PHP_EOL);
+list ($bb,  $eb,   $bi,  $ei,   $btt,  $ett,   $rarr,   $ldquo,   $rdquo,   $hellip,   $nbsp,   $nl,            $bred,               $ered) =
+array('<b>','</b>','<i>','</i>','<tt>','</tt>','&rarr;','&ldquo;','&rdquo;','&hellip;','&nbsp;','<br/>'.PHP_EOL,'<font color="red">','</font>');
 
 /*
 interface ccDebugSourceInterface					// Class supports developer 
@@ -51,7 +51,7 @@ class ccTrace
 	
 	static function setHtml($bEnable=TRUE) 
 	{ 
-		global $bb,$eb, $bi,$ei, $btt,$ett, $rarr,$ldquo,$rdquo,$hellip,$nbsp,$nl;
+		global $bb,$eb, $bi,$ei, $btt,$ett, $rarr,$ldquo,$rdquo,$hellip,$nbsp,$bred,$ered,$nl;
 		self::$bHtml = $bEnable;
 		if ($bEnable)
 		{

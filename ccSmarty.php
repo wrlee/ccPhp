@@ -73,7 +73,7 @@ class ccSmarty extends Smarty
 			mkdir($dir,0777,TRUE);
 		return $dir;
 	}
-	function setCacheDir($dir)
+/*	function setCacheDir($dir)
 	{
 		$this->cache_dir = $this->_createDir($dir);
 		return $this;
@@ -88,6 +88,7 @@ class ccSmarty extends Smarty
 		$this->config_dir = $this->_createDir($dir);
 		return $this;
 	}
+*/
 	/**
 	 * Add template dir(s), creating them, if they don't exist.
 	 */
@@ -105,13 +106,13 @@ class ccSmarty extends Smarty
 	/**
 	 * Add template dir(s), creating them, if they don't exist.
 	 */
-	function addTemplateDir($dirs)
+	function addTemplateDir($dirs,$key=null)
 	{
 		if (is_array($dirs))
 		{
-			foreach ($dirs as $key => $dir)
-				$dirs[$key] = $this->_createDir($dir);
-			return parent::addTemplateDir($dirs);
+			foreach ($dirs as $idx => $dir)
+				$dirs[$idx] = $this->_createDir($dir);
+			return parent::addTemplateDir($dirs,$key);
 		}
 		else
 			return parent::addTemplateDir($this->_createDir($dirs));

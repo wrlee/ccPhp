@@ -39,6 +39,40 @@ unset($_version);	// Not needed any longer
 
 set_error_handler(Array('ccApp','onError'));
 set_exception_handler(Array('ccApp','onException'));
+/*public function errorHandlerCallback($code, $string, $file, $line, $context) 
+{
+	$e = new Excpetion($string, $code);
+	$e->line = $line;
+	$e->file = $file;
+	throw $e;
+}
+*/
+/**
+ * Capture last error to report errors that are not normally trapped by error-
+ * handling functions, e.g., fatal and parsing errors.
+ */
+function cc_shutdown()
+{
+    $err=error_get_last();
+	switch ($err['type'])
+	{
+		case E_WARNING:
+		case E_NOTICE:
+		case E_USER_ERROR:
+		case E_USER_WARNING:
+		case E_USER_NOTICE:
+			return FALSE;
+		break;
+		
+		case E_COMPILE_ERROR:
+		case E_PARSE:
+		default:
+			return ccApp::onError($err['type'], $err['message'], $err['file'], $err['line'], $GLOBALS);
+	}
+//	trigger_error($err['message'],$err['type']);
+}
+register_shutdown_function('cc_shutdown');
+
 
 // We are using spl_autoload_* features to simplify search for class files. If
 // the app has defined an __autoload() of their own without chaining it with
@@ -83,6 +117,8 @@ class ccApp
 										// The following are rel to sitepath:
 	protected $classpath=array();		// List of site paths to search for classes
 //	protected $wwwpath='public';		// Path to web visible files
+		
+	protected $current_request; 		// Remember current request
 
 	protected function __construct()	// As a singleton: block public allocation
 	{
@@ -263,6 +299,7 @@ class ccApp
 	{
 		try
 		{
+			$this->current_request = &$request;
 			if (!$this->page->render($request))
 			{
 				throw new ccHttpStatusException(404);
@@ -452,6 +489,14 @@ class ccApp
 	} // setMainPage()
 
 	/**
+	 * Current request (set via dispatch())
+	 */
+	function getRequest()
+	{
+		return $this->current_request;
+	} // getRequest()
+		
+	/**
 	 * @see getUrlOffset()
 	 */
 	function getRootUrl()
@@ -556,7 +601,10 @@ class ccApp
 	{
 //		http_response_code(404);
 		if (!headers_sent())
+		{
 			header($_SERVER['SERVER_PROTOCOL'].' 404 Not Found', TRUE, 404);
+			header('Content-type: text/html');
+		}
 		?>
 		<html><body><hr/>
 		<?php print $_SERVER['SCRIPT_URI'] ?>
@@ -584,26 +632,37 @@ class ccApp
 	{
 		if (ini_get('error_reporting') & $errno)
 		{
-			$errortype[E_WARNING] = 'Warning';
-			$errortype[E_NOTICE] = 'Notice';
-			$errortype[E_USER_ERROR] = 'User Error';
-			$errortype[E_USER_WARNING] = 'User Warning';
-			$errortype[E_USER_NOTICE] = 'User Notice';
-			$errortype[E_STRICT] = 'Strict';
+			$errortype = Array(
+//				E_ERROR			=> 'Error',
+				E_PARSE			=> 'Parsing Error', // 4
+//				E_CORE_ERROR	=> 'Core Error',
+//				E_CORE_WARNING	=> 'Core Warning',
+				E_COMPILE_ERROR	=> 'Compile Error',	// 64
+//				E_COMPILE_WARNING => 'Compile Warning',
+				E_WARNING		=> 'Warning',
+				E_NOTICE		=> 'Notice',
+				E_USER_ERROR	=> 'User Error',
+				E_USER_WARNING	=> 'User Warning',
+				E_USER_NOTICE	=> 'User Notice',
+				E_STRICT		=> 'Strict'
+			);
 			if (PHP_VERSION_ID >= 50200)
 				$errortype[E_RECOVERABLE_ERROR] = 'Recoverable Error';
 			if (PHP_VERSION_ID >= 50300)
+			{
+//				$errortype[E_DEPRECATED] = 'Deprecated';
 				$errortype[E_USER_DEPRECATED] = 'User Deprecated';
+			}			
+			if (!isset($errortype[$errno]))
+				$errortype[$errno] = "Error($errno)";
+
 			global $bred,$ered,$bb,$eb, $bi,$ei, $btt,$ett, $rarr,$ldquo,$rdquo,$hellip,$nbsp,$nl;
-// self::tr(func_get_args());
 			error_log("$errortype[$errno]: $errstr in $errfile#$errline",0);
 			$msg = "$bb$bred$errortype[$errno]$ered: $errstr$eb$nl"
-				 . "        in $errfile#$errline"; 
-// echo '<pre>';
-//var_dump($errcontext);
-// echo '</pre>';
-			print $nl.$msg.$nl;
-			self::log($msg);
+				 // . "        in $errfile#$errline"; 
+				 . "        in ".ccTrace::fmtPath($errfile,$errline); 
+			print $msg.$nl;
+//			self::log($msg);
 			$trace = debug_backtrace();		// Get whole stack list
 			array_shift($trace);			// Ignore this function
 			ccTrace::showTrace($trace);		// Display stack.
@@ -627,14 +686,12 @@ class ccApp
 			print $msg.$nl;
 			self::log($msg);
 			ccTrace::showTrace($exception->getTrace());
-//			echo '<pre>';
-//			print $exception->getTraceAsString();
-//			echo '</pre>';
-///			die();
+//			die();
 		}
 		catch (Exception $e)
 		{
-			print get_class($e)." thrown within the exception handler. Message: ".$e->getMessage()." on line ".$e->getLine();
+			self::log(get_class($e)." thrown within the exception handler. Message: ".$e->getMessage()." on line ".$e->getLine());
+//			die();
 		}
 	} // onException()
 
