@@ -633,7 +633,7 @@ class ccApp
 		if (ini_get('error_reporting') & $errno)
 		{
 			$errortype = Array(
-//				E_ERROR			=> 'Error',
+				E_ERROR			=> 'Error',			// 1
 				E_PARSE			=> 'Parsing Error', // 4
 //				E_CORE_ERROR	=> 'Core Error',
 //				E_CORE_WARNING	=> 'Core Warning',

@@ -59,7 +59,7 @@ class ccSmarty extends Smarty
 	{
 		$this->debugging = $debug;
 		return $this;
-	}
+	} // setDebug()
 	
 	/**
 	 * Create directory, if it doesn't exist.
@@ -72,23 +72,8 @@ class ccSmarty extends Smarty
 		if (!is_dir($dir))
 			mkdir($dir,0777,TRUE);
 		return $dir;
-	}
-/*	function setCacheDir($dir)
-	{
-		$this->cache_dir = $this->_createDir($dir);
-		return $this;
-	}
-	function setCompileDir($dir)
-	{
-		$this->compile_dir = $this->_createDir($dir);
-		return $this;
-	}
-	function setConfigDir($dir)
-	{
-		$this->config_dir = $this->_createDir($dir);
-		return $this;
-	}
-*/
+	} // _createDir()
+
 	/**
 	 * Add template dir(s), creating them, if they don't exist.
 	 */
@@ -102,7 +87,8 @@ class ccSmarty extends Smarty
 		}
 		else
 			return parent::setTemplateDir($this->_createDir($dirs));
-	}
+	} // setTemplateDir()
+		
 	/**
 	 * Add template dir(s), creating them, if they don't exist.
 	 */
@@ -116,7 +102,7 @@ class ccSmarty extends Smarty
 		}
 		else
 			return parent::addTemplateDir($this->_createDir($dirs));
-	}
+	} // addTemplateDir()
 	
 	/**
 	 * Check for template existence (appending default extension, if necessary)
