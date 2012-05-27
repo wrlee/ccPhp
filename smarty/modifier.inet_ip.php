@@ -1,5 +1,7 @@
 <?php
-
+/**
+ * @package Smarty
+ */
 /**
  * Convert int --> xxx.xxx.xxx.xxx
  */

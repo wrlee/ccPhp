@@ -1,7 +1,11 @@
 <?php 
-
+/**
+ *
+ * @package ccPhp\PageController
+ */
 /**
  * This controller processes page requests that map to Smarty templates. 
+ * @package ccPhp\PageController
  */
 class ccSmartyController extends ccSimpleController
 {

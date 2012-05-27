@@ -1,6 +1,5 @@
 <?php
 
-
 /**
  * This is an example (and default case) for a class that performs logging. It 
  * is attached to, but loosely coupled from the ccApp class. 
@@ -9,7 +8,8 @@
  *
  * @see http://logging.apache.org/log4php/docs
  * @see http://codefury.net/projects/klogger/
- * @see 
+ *
+ * @package ccPhp
  */
 list ($bb,  $eb,   $bi,  $ei,   $btt,  $ett,   $rarr,   $ldquo,   $rdquo,   $hellip,   $nbsp,   $nl,            $bred,               $ered) =
 array('<b>','</b>','<i>','</i>','<tt>','</tt>','&rarr;','&ldquo;','&rdquo;','&hellip;','&nbsp;','<br/>'.PHP_EOL,'<font color="red">','</font>');
@@ -39,6 +39,10 @@ interface ccLoggerInterface							// Class implements log output
 } // interface ccLoggerInterface
 */
 
+/** 
+ * Trace output class.
+ * @package ccPhp
+ */
 class ccTrace
 //	implements ccTraceInterface, ccLoggerInterface, ccDebugSourceInterface
 {

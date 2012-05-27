@@ -8,6 +8,7 @@
  * @todo Need a way to set "debug" setting that will cascade thru components.
  * @todo Move error handling ccError class and refer through ccApp
  *
+ * @package ccPhp
  */
 /*
  * 2010-10-22 404 uses exceptions
@@ -90,6 +91,7 @@ ccApp::$_fwpath = dirname(__FILE__).DIRECTORY_SEPARATOR;
  * Framework class reprsenting the "application". You can derive this class, but
  * you are not allowed to instantiate it directly, use ccApp::createApp().
  *
+ * @package ccPhp
  * @todo Consider consolidating createApp() with getApp()
  * @todo Support instance specific error and exception handlers
  */
@@ -116,7 +118,6 @@ class ccApp
 	protected $error404 = NULL;			// External ccPageInterface to render errors.
 										// The following are rel to sitepath:
 	protected $classpath=array();		// List of site paths to search for classes
-//	protected $wwwpath='public';		// Path to web visible files
 		
 	protected $current_request; 		// Remember current request
 

@@ -1,4 +1,8 @@
 <?php 
+/**
+ *
+ * @package ccPhp\PageController
+ */
 
 /**
  * This controller dynamically serves CSS files upon request, preprocessing the 
@@ -10,6 +14,7 @@
  * 1. If the file exists in site/public/css, then this module is never called and 
  *    that file is processed, RAW. 
  * 2. If file exists in site/css, then it is processed and served by this module.
+ * @package ccPhp\PageController
  */
 class ccCssController 
 	implements ccPageInterface

@@ -1,6 +1,7 @@
-			
 <?php
-
+/**
+ * @package Smarty
+ */
 /**
  * type=css files=file1,file2,... minify= mime= media= 
  * type=js files=file1,file2,... minify= mime= 

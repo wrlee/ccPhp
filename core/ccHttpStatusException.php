@@ -1,4 +1,7 @@
 <?php
+/**
+ * @package ccPhp
+ */ 
 
 class ccHttpStatusException extends Exception
 {

@@ -1,10 +1,14 @@
 <?php 
-
+/**
+ * @package ccPhp
+ */
 /**
  * This interface represents an object that can render a page, callable by the 
  * framework's dispatcher. Likely controllers will implement this interface and 
  * dispatch processing to their own methods or even other objects that implement
  * this interface. 
+ *
+ * @package ccPhp
  */
 interface ccPageInterface
 {

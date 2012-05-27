@@ -1,4 +1,8 @@
 <?php 
+/**
+ *
+ * @package ccPhp
+ */
 /*
  * 2010-10-23 Better handling of path parsing into components and document values
  *          - Easier to override by implementing parseUrl()
@@ -15,6 +19,7 @@
  * getUrlPath(). The first element can be pulled out of the list via 
  * shiftUrlPath(). 
  *
+ * @package ccPhp
  * @todo Rather than rely on globals,use constructor's $URI value.
  */
 class ccRequest implements ArrayAccess, IteratorAggregate 

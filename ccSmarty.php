@@ -1,7 +1,12 @@
 <?php 
+/**
+ *
+ * @package ccPhp\extras
+ */
 
 /**
  * ccSmarty encapsulates the Smarty templates. 
+ * @package ccPhp\extras
  */
 class ccSmarty extends Smarty
 {
