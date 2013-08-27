@@ -3,6 +3,7 @@
  * @package Smarty
  */
 /**
+ * Decorate include spec with proper path info. 
  * type=css files=file1,file2,... minify= mime= media= 
  * type=js files=file1,file2,... minify= mime= 
  */

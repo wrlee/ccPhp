@@ -1,14 +1,12 @@
 <?php
 /** File: ccApp.php
  * 
- * The ccApp class represents the application. It is a singleton
+ * The ccApp class represents the application. It is a singleton.
  *
  * @todo Look into using AutoLoad package (by the Doctrine and Symfony folks)
  * @todo Add session handling?
  * @todo Need a way to set "debug" setting that will cascade thru components.
  * @todo Move error handling ccError class and refer through ccApp
- *
- * @package ccPhp
  */
 /*
  * 2010-10-22 404 uses exceptions
@@ -49,10 +47,12 @@ set_exception_handler(Array('ccApp','onException'));
 }
 */
 /**
+ * Shutdown handler.
  * Capture last error to report errors that are not normally trapped by error-
  * handling functions, e.g., fatal and parsing errors.
+ * @todo Activate only for debug mode.
  */
-function cc_shutdown()
+function cc_onShutdown()
 {
     $err=error_get_last();
 	switch ($err['type'])
@@ -72,7 +72,7 @@ function cc_shutdown()
 	}
 //	trigger_error($err['message'],$err['type']);
 }
-register_shutdown_function('cc_shutdown');
+register_shutdown_function('cc_onShutdown');
 
 
 // We are using spl_autoload_* features to simplify search for class files. If
@@ -126,7 +126,8 @@ class ccApp
 	} // __construct()
 
 	/**
-	 * Search for class definition from framework folder. If there is an
+	 * Search for class definition from framework folder. 
+	 * If there is an
 	 * instance of the app, call its autoload first where site specific searches
 	 * will take precedence. 
 	 *
@@ -286,7 +287,7 @@ class ccApp
 		if ( $dir[0] != DIRECTORY_SEPARATOR )			// Not absolute path?
 			$dir = $this->sitepath . $dir;				// Prefix with site's path
 		if (!is_dir($dir))								// Path does not exist?
-			mkdir($dir,0777,TRUE);						// Create path
+			mkdir($dir,0744,TRUE);						// Create path
 		return $dir;									// Return modified path
 	} // createSiteDir()
 

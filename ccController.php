@@ -20,7 +20,8 @@ abstract class ccController
 	implements ccPageInterface
 {
 	/**
-	 * Map request to method name. If a public method matching the next URL 
+	 * Map request to method name. 
+	 * If a public method matching the next URL 
 	 * component, exists in this object, then its name (the method's name) is 
 	 * returned. 
 	 *

@@ -1,15 +1,19 @@
 <?php 
 /**
- *
- * @package ccPhp\extras
+ * ccPhp Support for Smarty integration.
+ * @package Smarty
  */
 
 /**
- * ccSmarty encapsulates the Smarty templates. 
- * @package ccPhp\extras
+ * ccSmarty derives the base Smarty class to add features for integration with ccPhp.
+ * @used-by ccSmartyController
+ * @package Smarty
  */
 class ccSmarty extends Smarty
 {
+	/**
+	 * @ignore
+	 */ 
 	function __construct()
 	{
 		parent::__construct();			// Default Smarty initialization
@@ -42,7 +46,7 @@ class ccSmarty extends Smarty
 	/**
 	 * Process and display template from the templates directory.
 	 * @param string $template Template file name.
-	 * #param array  $paramAssocArray Associative array of parameters for the template.
+	 * @param array  $paramAssocArray Associative array of parameters for the template.
 	 * @returns bool TRUE displayed; FALSE template not found.
 	 */
 	function render($template, $paramAssocArray=NULL)
@@ -60,6 +64,10 @@ class ccSmarty extends Smarty
 			return FALSE;
 	} // render()
 	
+	/**
+	 * Set the debug mode for Smarty.
+	 * @param boolean $debug on or off.
+	 */
 	function setDebug($debug)
 	{
 		$this->debugging = $debug;
@@ -68,6 +76,7 @@ class ccSmarty extends Smarty
 	
 	/**
 	 * Create directory, if it doesn't exist.
+	 * @param string $dir Name of directory to create
 	 * @todo Accept array of directory names (to move common code here)
 	 */
 	protected function _createDir($dir)
@@ -75,12 +84,13 @@ class ccSmarty extends Smarty
 		if ( substr($dir, -1) != DIRECTORY_SEPARATOR )
 			$dir .= DIRECTORY_SEPARATOR;
 		if (!is_dir($dir))
-			mkdir($dir,0777,TRUE);
+			mkdir($dir,0744,TRUE);
 		return $dir;
 	} // _createDir()
 
 	/**
 	 * Add template dir(s), creating them, if they don't exist.
+	 * @param string|array $dirs Name(s) of template directory(ies)
 	 */
 	function setTemplateDir($dirs)
 	{
@@ -96,6 +106,7 @@ class ccSmarty extends Smarty
 		
 	/**
 	 * Add template dir(s), creating them, if they don't exist.
+	 * @param string|array $dirs Name(s) of template directory(ies)
 	 */
 	function addTemplateDir($dirs,$key=null)
 	{

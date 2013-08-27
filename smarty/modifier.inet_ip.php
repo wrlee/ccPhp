@@ -1,10 +1,12 @@
 <?php
 /**
+ * Smarty filter plugin support for inet_ip().
  * @package Smarty
  */
 /**
- * Convert int --> xxx.xxx.xxx.xxx
- */
+ * Convert IP between ASCII and numeric. 
+  * @param int|string $inet_ip IP addr
+*/
 function smarty_modifier_inet_ip($inet_ip)
 {
 	if (strpos('.',$inet_ip) === FALSE)
@@ -14,7 +16,7 @@ function smarty_modifier_inet_ip($inet_ip)
 } // smarty_inet_ntoa()
 
 
-/*
+/**
  * @param string $str_ip IP addr as a string, e.g., "127.0.0.1"
  * @returns int IP
  *
@@ -32,7 +34,8 @@ function inet_aton($str_ip)
 */
 
 /**
- * @param string $int_ip IP addr as an integer
+ * Convert IP address number to ASCII. 
+ * @param int $int_ip IP addr as an integer
  * @returns string IP addr string, e.g., "127.0.0.1"
  */
 function inet_ntoa($int_ip) 

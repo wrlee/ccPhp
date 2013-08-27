@@ -1,5 +1,7 @@
 <?php 
-
+/**
+ * @package header
+ */
 /** File: ccSimpleController
  * Simply dispatches to a method based on the first component of the URL...
  * no sub-path checking, etc., but if there is no component, it assumes a default
@@ -9,8 +11,12 @@
  */
 // 2011-10-24 Call begin() only if method will be rendered.
 // 2011-11-15 Call notfound() if no matching methods are found.
-class ccSimpleController extends ccController
+abstract class ccSimpleController 
+	extends ccController
 {
+	/**
+	 * If set then assume it's an offset and "eat" it.
+	 */
 	protected $base;
 	/**
 	 * Default implementation is to call, first, a common 'begin()' method 

@@ -7,11 +7,23 @@
  * This controller processes page requests that map to Smarty templates. 
  * @package ccPhp\PageController
  */
-class ccSmartyController extends ccSimpleController
+class ccSmartyController 
+	extends ccSimpleController
 {
+	/**
+	 * Reference to Smarty object. 
+	 */
 	protected $smarty;
+	/**
+	 * Default template name.
+	 */
 	protected $ext = '.tpl';
 	
+	/**
+	 * Create Smarty object.  Rather than calling this automatically in the 
+	 * constructor, there may be many action-methods for which Smarty is not needed,
+	 * so this should be called explicitly, when needed, from an action-method.
+	 */
 	protected function initSmarty()
 	{
 		if (!$this->smarty)
@@ -60,6 +72,14 @@ class ccSmartyController extends ccSimpleController
 	}
 	
 	/**
+	 * Render pages based on Smarty templates. 
+	 *
+	 * Derivations of this class can implement methods just as for ccSimpleController,
+	 * presumably to prep for displaying via Smarty. But, if no method exists
+	 * but there is a template with a matching name, it is displayed. As in the 
+	 * base-class, if any processing is to take place, then any existing begin()
+	 * will be called first. 
+	 *
 	 * @todo Consider, rather than pathing deeper to look for template, passing
 	 *       remaining path components as a 'params' argument to the template.
 	 */
@@ -99,7 +119,7 @@ class ccSmartyController extends ccSimpleController
 	
 	/**
 	 * Convenience method to call ccSmarty's display function. This adds 
-	 * the current request block and assumes an extension on othe file. 
+	 * the current request block and assumes a default extension to the template. 
 	 */
 	protected function display(ccRequest $request, $template, $args=NULL)
 	{
