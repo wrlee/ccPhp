@@ -32,7 +32,7 @@ class ccChainDispatcher implements ccPageInterface
 	{
 		$this->controllerChain[] = $controller;
 		if (!is_string($controller) && !($controller instanceof ccPageInterface))
-			throw ErrrorException(get_class($controller).' rendering object needs to implement ccPageInterface.');
+			throw new ErrorException(get_class($controller).' rendering object needs to implement ccPageInterface.');
 		return $this;			// Allow property chaining
 	} // function addPage()
 	
@@ -70,7 +70,7 @@ class ccChainDispatcher implements ccPageInterface
 				$this->controllerChain[$key] = new $controller;
 												// Make sure it is a valid type
 				if (!($this->controllerChain[$key] instanceof ccPageInterface))
-					throw ErrrorException($controller.' rendering object needs to implement ccPageInterface.');
+					throw new ErrorException($controller.' rendering object needs to implement ccPageInterface.');
 				$controller = $this->controllerChain[$key];
 			}
 			if ($controller->render(clone $request))// This one handled rendering

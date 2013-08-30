@@ -11,7 +11,11 @@
 /*
  * 2010-10-22 404 uses exceptions
  *          - Extend classpath interpretation to enter specific class specs.
- */
+ * 2013-08-28 Renamed get/setMainPage() get/setPage()
+ *          - Removed setFrameworkPath()
+ *          - setFrameworkPath() is now static
+ *          - Fix getRootUrl()'s duplicate '/'
+ */	
 //******************************************************************************
 // [BEGIN] Portability settings
 // @see http://www.php.net/manual/en/function.phpversion.php 
@@ -85,7 +89,7 @@ if (function_exists('__autoload'))
 spl_autoload_register(array('ccApp','_autoload'), true);
 
 //ccApp::setFrameworkPath(dirname(__FILE__));	// Function probably not needed
-ccApp::$_fwpath = dirname(__FILE__).DIRECTORY_SEPARATOR;
+// ccApp::$_fwpath = dirname(__FILE__).DIRECTORY_SEPARATOR;
 
 /**
  * Framework class reprsenting the "application". You can derive this class, but
@@ -94,6 +98,7 @@ ccApp::$_fwpath = dirname(__FILE__).DIRECTORY_SEPARATOR;
  * @package ccPhp
  * @todo Consider consolidating createApp() with getApp()
  * @todo Support instance specific error and exception handlers
+ * @todo Consider that flags can be user defined, with some pre-defined meanings.
  */
 class ccApp
 {
@@ -103,7 +108,7 @@ class ccApp
 	const MODE_PRODUCTION	= 8;	// Obsolete?
 
 	protected static $_me=NULL;			// Singleton ref to $this
-	/*protected*/ static $_fwpath=NULL;		// Path to framework files.
+//	/*protected*/ static $_fwpath=NULL;		// Path to framework files.
 
 	protected $config=Array();			// Configuration array
 
@@ -144,19 +149,19 @@ class ccApp
 		}
 		if (!class_exists($className))		// Check framework directories
 		{
-			if (file_exists(self::$_fwpath . 'core' . DIRECTORY_SEPARATOR .$classFilename)) 
+			if (file_exists(ccApp::getFrameworkPath() . 'core' . DIRECTORY_SEPARATOR .$classFilename)) 
 			{
-				include(self::$_fwpath . 'core' . DIRECTORY_SEPARATOR .$classFilename);
+				include(ccApp::getFrameworkPath() . 'core' . DIRECTORY_SEPARATOR .$classFilename);
 			}
-			elseif (file_exists(self::$_fwpath . $classFilename)) 
+			elseif (file_exists(ccApp::getFrameworkPath() . $classFilename)) 
 			{
-				include(self::$_fwpath . $classFilename);
+				include(ccApp::getFrameworkPath() . $classFilename);
 			}
 		}
 	} // _autoload()
 
 	/**
-	 * Add a relative path to the list of site-secific paths to search when 
+	 * Add a relative path to the list of site-specific paths to search when 
 	 * loading site-specific classes. 
 	 * @param string $path Is the path to be included in the search
 	 *        or, if $classname is specified, then the full fliepath. If the first
@@ -462,33 +467,23 @@ class ccApp
 	 * @param string $path Full, absolute path (e.g., dirname(__FILE__) of
 	 * ccApp.php)
 	 */
-	public function getFrameworkPath()
+	public static function getFrameworkPath()
 	{
-		return self::$_fwpath;
+		return dirname(__FILE__).DIRECTORY_SEPARATOR;
 	} // getFrameworkPath()
-	/**
-	 * @todo This method is probably not necessary
-	 */
-	private static function setFrameworkPath($path)
-	{
-		if (substr($path,-1) != DIRECTORY_SEPARATOR)
-			$path .= DIRECTORY_SEPARATOR;
-
-		self::$_fwpath = $path;
-	} // setFrameworkPath()
 
 	/**
 	 * @return object app's main page (e.g., dispatcher or controller)
 	 */
-	public function getMainPage()
+	public function getPage()
 	{
 		return $this->page;
-	} // getMainPage()
-	public function setMainPage(ccPageInterface $page)
+	} // getPage()
+	public function setPage(ccPageInterface $page)
 	{
 		$this->page = $page;
 		return $this;
-	} // setMainPage()
+	} // setPage()
 
 	/**
 	 * Current request (set via dispatch())
@@ -499,6 +494,8 @@ class ccApp
 	} // getRequest()
 		
 	/**
+	 * @return The part of URL that points to the root of this app, i.e., the 
+	 *         start of where this app resides.
 	 * @see getUrlOffset()
 	 */
 	function getRootUrl()
@@ -507,20 +504,20 @@ class ccApp
 			? $_SERVER['REDIRECT_SCRIPT_URI']
 			: $_SERVER['SCRIPT_URI'];
 			
-		$p = strpos($path,'//');
-		if ($p === FALSE)			// Don't know what to do here... bad input.
-		{
+		$p = strpos($path,'//');	// Offset past the protocol scheme spec
+		if ($p === FALSE)			// No protocol scheme.
+		{							// Don't know what to do here... bad input.
 		}
-		else
-		{
-			$p = strpos($path,'/',$p+2);
-			if ($p === FALSE)
-				$path .= '/';
-			else
-				$path = substr($path,0,$p+1);
+		else 								// Set $path to the part past the domain:port part
+		{									// suffixed with a '/'
+			$p = strpos($path,'/',$p+2);	// First path separator past the scheme
+			if ($p === FALSE)				// No '/': this app is at the root.
+				$path .= '/';				// Ensure it ends with a '/'
+			else 
+				$path = substr($path,0,$p+1);	// Ignore path after the domain portion.
 		}
 		
-		return $path . $this->getUrlOffset();
+		return $path . substr($this->getUrlOffset(),1);
 	} // getRootUrl()
 
 	/**
@@ -550,8 +547,8 @@ class ccApp
 	} // setSitePath()
 
 	/**
-	 * The URL offset is the part of the URL that spans from the server name
-	 * (and port, if any) to the app's "root"; usually "/" or "/index.php/".
+	 * The path part of the URL starting from '/' up to the path where this 
+	 * app's "root" starts; e.g., "/" or "/index.php/".
 	 *
 	 * @see getRootUrl()
 	 * @todo Consider moving to ccRequest?
@@ -593,7 +590,7 @@ class ccApp
 		if ($this->temppath[0] != DIRECTORY_SEPARATOR)	// setWorkingDir() not 
 			$this->setWorkingDir($this->temppath);		// called yet.
 		return $this->temppath;
-	} // setWorkingDir()
+	} // getWorkingDir()
 
 	/**
 	 * Default 404 handler.

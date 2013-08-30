@@ -15,7 +15,11 @@ abstract class ccSimpleController
 	extends ccController
 {
 	/**
-	 * If set then assume it's an offset and "eat" it.
+	 * If set then assume it's a URL offset. If the left-most path component matches, 
+	 * then this object is given control. The next path component is then matched
+	 * against any actions in this class. 
+	 *
+	 * If not set, then this 
 	 */
 	protected $base;
 	/**

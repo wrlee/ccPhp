@@ -2,6 +2,9 @@
 /**
  *
  * @package ccPhp\PageController
+ *
+ * @todo Add optional parameter to describe how to getMethodFromRequest() 
+ * 		 to adorn the method name that corresponds to the path component.
  */
 
 /**
@@ -44,6 +47,10 @@ abstract class ccController
 		else
 			$action = $action[0];					// Just keep the 1st component
 
+		// Base action-name on the component's leading alpha chars, parsing 
+		// the content by anything after a non-alpha char. This allows 
+		// ".../action:parameter/...". "action" is the action and ":parameter"
+		// is saved for later; it can be processed by the action. 
 		$valid_count = strspn($action,'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890');		
 		if ($valid_count < strlen($action))
 		{

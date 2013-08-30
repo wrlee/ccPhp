@@ -17,8 +17,10 @@ interface ccPageInterface
 	 * 
 	 * @param ccRequest $request The request block containing properties related
 	 *                  to the current page request. 
-	 * @return BOOL TRUE: Request handled (presumably, displayed); 
-	 *              FALSE: request not handled (the dispatcher will try the next)
+	 * @return BOOL TRUE: Request handled (presumably, displayed); no further processing.
+	 *              FALSE: Request "not handled" (the dispatcher will try the next)
+	 *              	A method can return FALSE if it a filter, of sorts.
+	 *         NULL: Not handled at all (e.g., no method)
 	 */
 	function render(ccRequest $request);
 } // interface ccPageInterface
