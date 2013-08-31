@@ -32,14 +32,18 @@ class ccSmarty extends Smarty
 			$this->addPluginsDir($fwpath.'smarty');
 
 		$devmode = $app->getDevMode();
-		$this->debugging_ctrl = ( $devmode & ~ccApp::MODE_PRODUCTION 
+		$this->debugging_ctrl = ( $devmode & ~CCAPP_PRODUCTION 
 		                          ? 'URL' 
 								  : 'NONE' );
-		$this->setCaching($devmode & ccApp::MODE_DEVELOPMENT 
+		$this->setCaching($devmode & ccApp::MODE_DEBUG 
 							? Smarty::CACHING_OFF
 							: Smarty::CACHING_LIFETIME_CURRENT);
-		$this->setCompileCheck( ($devmode & ~(ccApp::MODE_PRODUCTION) ) );
-//		$this->setCompileCheck( TRUE );
+//		$this->setCompileCheck( ($devmode & ~(CCAPP_PRODUCTION) ) );
+		// $this->setCompileCheck( Smarty::COMPILECHECK_CACHEMISS );
+		// $this->setForceCompile(TRUE);
+		// $this->caching = Smarty::CACHING_LIFETIME_CURRENT;
+		// $this->force_compile = TRUE;
+		// $this->force_cache = TRUE;
 //		$this->testInstall();
 	} // __construct()
 	
@@ -54,6 +58,7 @@ class ccSmarty extends Smarty
 // ccApp::getApp()->showTrace(debug_backtrace());
 //		if (substr($template,-strlen($this->ext)) != $this->ext)
 //			$template .= $this->ext;
+// ccTrace::log(__LINE__.":ccSmarty::render(".$template.")");
 		if ($this->templateExists($template))
 		{
 			$this->assign((Array)$paramAssocArray);

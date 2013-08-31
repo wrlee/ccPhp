@@ -7,6 +7,7 @@
  * @todo Add session handling?
  * @todo Need a way to set "debug" setting that will cascade thru components.
  * @todo Move error handling ccError class and refer through ccApp
+ * @todo Add on init-log-file(), to output info only when created.
  */
 /*
  * 2010-10-22 404 uses exceptions
@@ -15,6 +16,7 @@
  *          - Removed setFrameworkPath()
  *          - setFrameworkPath() is now static
  *          - Fix getRootUrl()'s duplicate '/'
+ *          - Redefined operational mode settings (ccApp::MODE_*)
  */	
 //******************************************************************************
 // [BEGIN] Portability settings
@@ -91,8 +93,13 @@ spl_autoload_register(array('ccApp','_autoload'), true);
 //ccApp::setFrameworkPath(dirname(__FILE__));	// Function probably not needed
 // ccApp::$_fwpath = dirname(__FILE__).DIRECTORY_SEPARATOR;
 
+// Just because PHP doesn't support setting class-consts via expressions, had to 
+// create global consts :-(
+define('CCAPP_DEVELOPMENT',(ccApp::MODE_DEBUG|ccApp::MODE_INFO|ccApp::MODE_WARN|ccApp::MODE_ERR|ccApp::MODE_TRACEBACK|ccApp::MODE_REVEAL));
+define('CCAPP_PRODUCTION',(ccApp::MODE_CACHE*2)|ccApp::MODE_CACHE);
+
 /**
- * Framework class reprsenting the "application". You can derive this class, but
+ * Framework class representing the "application". You can derive this class, but
  * you are not allowed to instantiate it directly, use ccApp::createApp().
  *
  * @package ccPhp
@@ -102,10 +109,16 @@ spl_autoload_register(array('ccApp','_autoload'), true);
  */
 class ccApp
 {
-	const MODE_DEVELOPMENT	= 1;	// Obsolete?
-	const MODE_TESTING		= 2;	// Obsolete?
-	const MODE_STAGING		= 4;	// Obsolete?
-	const MODE_PRODUCTION	= 8;	// Obsolete?
+	const MODE_DEBUG		= 1;	//* Debugging output
+	const MODE_INFO			= 2;	//* PHP info msgs
+	const MODE_WARN			= 4;	//* PHP warnings
+	const MODE_ERR			= 8;	//* PHP errors
+	const MODE_TRACEBACK	= 16;	//* Show tracebacks
+	const MODE_REVEAL		= 32;	//* Reveal paths
+	const MODE_MINIMIZE		= 64;	//* Use minimized resources (scripts, CSS, etc.)
+	const MODE_CACHE		= 128;	//* Enable caching
+	
+//	const MODE_DEVELOPMENT	= (ccApp::MODE_DEBUG|ccApp::MODE_INFO|ccApp::MODE_WARN|ccApp::MODE_ERR|ccApp::MODE_TRACEBACK|ccApp::MODE_REVEAL);
 
 	protected static $_me=NULL;			// Singleton ref to $this
 //	/*protected*/ static $_fwpath=NULL;		// Path to framework files.
@@ -113,7 +126,7 @@ class ccApp
 	protected $config=Array();			// Configuration array
 
 	protected $UrlOffset=NULL;			// Path from domain root for the site
-	protected $devMode = self::MODE_DEVELOPMENT; 	// Obsolete
+	protected $devMode = CCAPP_DEVELOPMENT;
 	protected $bDebug = FALSE; 			// Central place to hold debug status
 	
 	protected $sitepath=NULL;			// Path to site specific files.
@@ -610,7 +623,7 @@ class ccApp
 		<h1>404 Not Found</h1>
 		This is not the page you are looking for.<hr/>
 		<?php 
-		if ($this->getDevMode() & self::MODE_DEVELOPMENT)
+		if ($this->getDevMode() & CCAPP_DEVELOPMENT)
 		{
 			$trace = debug_backtrace();		// Get whole stack list
 			array_shift($trace);			// Ignore this function
@@ -726,7 +739,7 @@ EOD;
 		{
 			if (is_string($this->error404))
 				$this->error404 = new $this->error404;
-			if (($this->getDevMode() & self::MODE_DEVELOPMENT) 
+			if (($this->getDevMode() & CCAPP_DEVELOPMENT) 
 				&& !($this->error404 instanceof ccPageInterface))
 			{
 				trigger_error(get_class($this->error404).' does not implement ccPageInterface', E_WARNING);
@@ -740,7 +753,7 @@ EOD;
 	
 	// static function out($string)
 	// {
-		// if (!(ccApp::$_me->devMode & ccApp::MODE_DEVELOPMENT))
+		// if (!(ccApp::$_me->devMode & CCAPPE_DEVELOPMENT))
 			// return;
 //		//error_log($string,3,'/home/wrlee/htd.log');
 		// echo $string;

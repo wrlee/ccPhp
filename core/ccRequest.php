@@ -6,6 +6,7 @@
 /*
  * 2010-10-23 Better handling of path parsing into components and document values
  *          - Easier to override by implementing parseUrl()
+ * 2013-08-30 Added isAjax(), getRequestVars()
  */
 
 /**
@@ -21,6 +22,9 @@
  *
  * @package ccPhp
  * @todo Rather than rely on globals,use constructor's $URI value.
+ * @todo Enable the isAjax() method to be easily overridden or augmented.
+ * @todo Add Cookie functions (consider secure-only cookies)
+ * @todo Add getRequestValues ($_GET+$_POST or $_POST-only, for secure, non-debug)
  */
 class ccRequest implements ArrayAccess, IteratorAggregate 
 {
@@ -84,6 +88,20 @@ class ccRequest implements ArrayAccess, IteratorAggregate
 			   : $_SERVER['SCRIPT_URL'];
 	} // getRelativeUrl()
 	
+	/**
+	 * Return the request parameters, a combination of $_GET and/or $_POST. In 
+	 * development mode, this is a combination of the two. In production mode,
+	 * POST requests will only return $_POST. 
+	 * @return Array Associative array of request variables.
+	 *
+	 * @todo The set of values should be either $_POST or $_GET, dependent on 
+	 *       the request http method (get or post) and the development mode.  
+	 */
+	function getRequestVars()
+	{
+		return $_POST+$_GET;
+	}
+
 	/**
 	 * @returns Type of data to return (based on request), e.g., HTML, JSON, etc.
 	 */
@@ -174,6 +192,18 @@ class ccRequest implements ArrayAccess, IteratorAggregate
 		return $this->userAgentInfo;
 	}
 
+	/**
+	 * Is the current request an AJAX request? This may not be reliable. 
+	 * @return boolean [description]
+	 */
+	function isAjax()
+	{
+		// Windows: Firefox 20, IE 7-10, Safari 5.1
+		if (!isset($_SERVER['HTTP_X_REQUESTED_WITH']) || $_SERVER['HTTP_X_REQUESTED_WITH'] != 'XMLHttpRequest') 
+			return false;
+		else
+			return true;
+	}
 	function isIE()
 	{
 		return $this->userAgentInfo['Browser'] == 'IE';
@@ -326,6 +356,7 @@ class ccRequest implements ArrayAccess, IteratorAggregate
 		$this->properties['isiPad'] = $this->isiPad() ? 1 : 0;
 		$this->properties['isiOS'] = $this->isiOS() ? 1 : 0;
 		$this->properties['isIE'] = $this->isIE() ? 1 : 0;
+		$this->properties['isAjax'] = $this->isAjax() ? 1 : 0;
 		$this->properties['userAgent'] = $this->getUserAgent();
 		$this->properties['root'] = ccApp::getApp()->getUrlOffset();
 		$this->properties['scheme'] = $this->getUrlScheme();
@@ -338,7 +369,7 @@ class ccRequest implements ArrayAccess, IteratorAggregate
 	} // initProperties()
 	
 	/***************************************************************************
-	 * ArrayAccess, IteratorAggregate 
+	 * ArrayAccess, IteratorAggregate interface implementation
 	 */
 	public function offsetExists( $offset )
 	{
