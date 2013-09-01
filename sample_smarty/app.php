@@ -162,7 +162,7 @@ $debug = ($app->getDevMode() & CCAPP_DEVELOPMENT);
 // 5. Set the app's main "page" and "run" the app.
 $dispatch									// Add controller pages to chain 
 	->addPage(new uspsAjaxController())		// Item view and claiming
-	->addPage(new uspsController()) 		// Item view and claiming
+	->addPage(new ccSmartyController()) 		// Simple Smarty template support
 //	->addPage('ccCssController')			// CSS handler
 //	->addPage('FacebookNotificationController')	// FB notifications
 //	->addPage('AdminController')			// Admin functions
