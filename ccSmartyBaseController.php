@@ -7,7 +7,7 @@
  * This controller processes page requests that map to Smarty templates. 
  * @package ccPhp\PageController
  */
-class ccSmartyController 
+class ccSmartyBaseController
 	extends ccSimpleController
 {
 	/**
@@ -97,13 +97,16 @@ class ccSmartyController
 			$template = $request->shiftUrlPath();
 			if (!$template)
 				$template = $request->getDefaultDocument();
+// ccTrace::log(__LINE__.":ccSmartyController::render(".$template.")");
 			{							// Use fullpath to find template
 				$path = implode(DIRECTORY_SEPARATOR,$request->getUrlPath());
 				if ($path)
 					$template .=  DIRECTORY_SEPARATOR . $path;
 			}
+// ccTrace::log(__LINE__.":ccSmartyController::render(".$template.")");
 			if (substr($template,-strlen($this->ext)) != $this->ext)
 				$template .= $this->ext;
+// ccTrace::log(__LINE__.":ccSmartyController::render(".$template.")");
 			if ($this->smarty->templateExists($template))
 			{
 				if (method_exists($this,'begin'))	// See parent

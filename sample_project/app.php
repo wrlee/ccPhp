@@ -87,7 +87,7 @@
 error_reporting(E_ALL|E_STRICT);
 // error_reporting(E_STRICT);
 // error_reporting(ini_get('error_reporting')|E_STRICT);
-session_start();	// Req'd by Facebook (start session now to avoid output/header errors).
+// session_start();	// Req'd by Facebook (start session now to avoid output/header errors).
 
 //****
 // 1. "Activate" the ccPhp Framework from its directory, by including its primary
@@ -95,31 +95,27 @@ session_start();	// Req'd by Facebook (start session now to avoid output/header 
 require(dirname(dirname(__FILE__)).DIRECTORY_SEPARATOR.'ccFramework'.DIRECTORY_SEPARATOR.'ccApp.php');
 // ccTrace::setHtml(TRUE);
 // ccTrace::setSuppress();					// Ensure no accidental output
-ccTrace::setOutput('/home/wrlee/htd.log');	// Output to file.
-ccTrace::setLogging('/home/wrlee/htd.log');	// Log to file.
+// ccTrace::setOutput('/home/wrlee/htd.log');	// Output to file.
+// ccTrace::setLogging('/home/wrlee/htd.log');	// Log to file.
 
 //****
 // 2. Create and configure the Application object (singleton)
 $app = ccApp::createApp()
 	->setSitePath(dirname(__FILE__))		// Tell app where the site code is.
 	->setDevMode( 							// Set app mode flags (PRODUCTION, DEVELOPMENT, STAGING, TESTING)
-		ccApp::MODE_PRODUCTION
+		CCAPP_DEVELOPMENT
 	)
 	->setWorkingDir('.var')					// Set working dir (default 'working')
 
 	->addClassPath('classes')				// Site's support files (base-class)
 											// Add classname->file mappings
-	->addClassPath('..'.DIRECTORY_SEPARATOR.'Smarty'.DIRECTORY_SEPARATOR.'Smarty.class.php', 'Smarty')
-	->addClassPath('..'.DIRECTORY_SEPARATOR.'RedBeanPHP'.DIRECTORY_SEPARATOR.'rb.php','R')
-	->addClassPath('..'.DIRECTORY_SEPARATOR.'Facebook'.DIRECTORY_SEPARATOR.'facebook.php','Facebook')
-	->addPhpPath('/home/wrlee/php')			// My common library files
-											// Configure site (the following might
-											//   be moved to its own ccSite object
-//	->setSitePublicPath('public')			// Public facing web path
+//	->addClassPath('..'.DIRECTORY_SEPARATOR.'Smarty'.DIRECTORY_SEPARATOR.'Smarty.class.php', 'Smarty')
+//	->addClassPath('..'.DIRECTORY_SEPARATOR.'RedBeanPHP'.DIRECTORY_SEPARATOR.'rb.php','R')
+//	->addClassPath('..'.DIRECTORY_SEPARATOR.'Facebook'.DIRECTORY_SEPARATOR.'facebook.php','Facebook')
+//	->addPhpPath('/home/wrlee/php')			// My common library files
 	;
-// ccApp::tr($app->classpath);
 											// Log directory.
-$logfile = $app->createSiteDir($app->getWorkingPath().'logs').'htd.log';
+$logfile = $app->createSiteDir($app->getWorkingPath().'logs').basename($app->getUrlOffset()).'.log';
 ccTrace::setOutput($logfile);	// Output to file.
 ccTrace::setLogging($logfile);	// Log to file.
 
@@ -138,8 +134,8 @@ $dispatch = new ccChainDispatcher();		// Allocate before local.php inclusion
 //****
 // 4. Configure plugins or other stuff you want to use.
 // Config RedBean DB module
-$debug = ($app->getDevMode() & ccApp::MODE_DEVELOPMENT);
-//ccTrace::setSuppress(!($app->getDevMode() & ccApp::MODE_DEVELOPMENT));
+$debug = ($app->getDevMode() & CCAPP_DEVELOPMENT);
+//ccTrace::setSuppress(!($app->getDevMode() & CCAPP_DEVELOPMENT));
 
 if (!isset($rb_db_server) || !is_array($rb_db_server) || count($rb_db_server) != 3)
 {
@@ -158,13 +154,12 @@ else
 // 5. Set the app's main "page" and "run" the app.
 $dispatch									// Add controller pages to chain 
 	->addPage(new ItemController()) 		// Item view and claiming
-	->addPage('ccCssController')			// CSS handler
-	->addPage('FacebookNotificationController')	// FB notifications
-	->addPage('AdminController')			// Admin functions
-	->addPage('WebController')				// Misc web stuff
-	->addPage('FacebookAppController')		// FB App (should be last)
+//	->addPage('FacebookNotificationController')	// FB notifications
+//	->addPage('AdminController')			// Admin functions
+//	->addPage('WebController')				// Misc web stuff
+//	->addPage('FacebookAppController')		// FB App (should be last)
 	;
-$app->setMainPage($dispatch);				// Set dispatcher as app's "page"
+$app->setPage($dispatch);					// Set dispatcher as app's "page"
 	
 $request = new ccRequest();
 ccTrace::log((isset($_SERVER['REMOTE_ADDR']) ? $_SERVER['REMOTE_ADDR'].' ' : '')
