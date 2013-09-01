@@ -72,6 +72,8 @@
  * 	@todo Reconsider DevMode handling (rename to AppMode). 
  * 	@todo Need a way to set "debug" setting that will cascade thru components.
  *	@todo Look into using AutoLoad package (by the Doctrine and Symfony folks)?
+ *
+ * @todo MODE_PRODUCITON should prevent revealing errors (hide path info)
  */
 
 //****
@@ -87,39 +89,38 @@
 error_reporting(E_ALL|E_STRICT);
 // error_reporting(E_STRICT);
 // error_reporting(ini_get('error_reporting')|E_STRICT);
-session_start();	// Req'd by Facebook (start session now to avoid output/header errors).
+// session_start();	// Req'd by Facebook (start session now to avoid output/header errors).
 
 //****
 // 1. "Activate" the ccPhp Framework from its directory, by including its primary
 //    class, ccApp.
-require(dirname(dirname(__FILE__)).DIRECTORY_SEPARATOR.'ccFramework'.DIRECTORY_SEPARATOR.'ccApp.php');
-// ccTrace::setHtml(TRUE);
+require($_SERVER['DOCUMENT_ROOT'].DIRECTORY_SEPARATOR.'..'.DIRECTORY_SEPARATOR.'ccPhp'.DIRECTORY_SEPARATOR.'ccFramework'.DIRECTORY_SEPARATOR.'ccApp.php');
+ccTrace::setHtml(TRUE);
 // ccTrace::setSuppress();					// Ensure no accidental output
-ccTrace::setOutput('/home/wrlee/htd.log');	// Output to file.
-ccTrace::setLogging('/home/wrlee/htd.log');	// Log to file.
+// ccTrace::setOutput('/home/wrlee/htd.log');	// Output to file.
+// ccTrace::setLogging('/home/wrlee/htd.log');	// Log to file.
 
 //****
 // 2. Create and configure the Application object (singleton)
-$app = ccApp::createApp()
+$app = ccApp::createApp();
+$app
 	->setSitePath(dirname(__FILE__))		// Tell app where the site code is.
 	->setDevMode( 							// Set app mode flags (PRODUCTION, DEVELOPMENT, STAGING, TESTING)
-		ccApp::MODE_PRODUCTION
+		CCAPP_DEVELOPMENT
 	)
 	->setWorkingDir('.var')					// Set working dir (default 'working')
 
 	->addClassPath('classes')				// Site's support files (base-class)
 											// Add classname->file mappings
-	->addClassPath('..'.DIRECTORY_SEPARATOR.'Smarty'.DIRECTORY_SEPARATOR.'Smarty.class.php', 'Smarty')
-	->addClassPath('..'.DIRECTORY_SEPARATOR.'RedBeanPHP'.DIRECTORY_SEPARATOR.'rb.php','R')
-	->addClassPath('..'.DIRECTORY_SEPARATOR.'Facebook'.DIRECTORY_SEPARATOR.'facebook.php','Facebook')
-	->addPhpPath('/home/wrlee/php')			// My common library files
-											// Configure site (the following might
-											//   be moved to its own ccSite object
-//	->setSitePublicPath('public')			// Public facing web path
+	->addClassPath($app->getFrameworkPath().'..'.DIRECTORY_SEPARATOR.'Smarty'.DIRECTORY_SEPARATOR.'Smarty.class.php', 'Smarty')
+//	->addClassPath('..'.DIRECTORY_SEPARATOR.'RedBeanPHP'.DIRECTORY_SEPARATOR.'rb.php','R')
+//	->addClassPath('..'.DIRECTORY_SEPARATOR.'Facebook'.DIRECTORY_SEPARATOR.'facebook.php','Facebook')
+//	->addPhpPath('/home/wrlee/php')			// My common library files
 	;
 // ccApp::tr($app->classpath);
 											// Log directory.
-$logfile = $app->createSiteDir($app->getWorkingPath().'logs').'htd.log';
+											// See http://php.net/manual/en/reserved.variables.php#Hcom55068
+$logfile = $app->createSiteDir($app->getWorkingPath().'logs').basename($app->getUrlOffset()).'.log';
 ccTrace::setOutput($logfile);	// Output to file.
 ccTrace::setLogging($logfile);	// Log to file.
 
@@ -132,39 +133,43 @@ $dispatch = new ccChainDispatcher();		// Allocate before local.php inclusion
 //****
 // To set values that won't be deployed in production mode, create a local file
 // (that is not deployed to production--probably not checked into source control)
-@include 'local.php';	//<*********		// If exists, load overridable settings
-@include '../production.php';	//<***		// Common production settings (shared by all installations)
+//@include 'local.php';	//<*********		// If exists, load overridable settings
+//@include '../production.php';	//<***		// Common production settings (shared by all installations)
 	
 //****
 // 4. Configure plugins or other stuff you want to use.
 // Config RedBean DB module
-$debug = ($app->getDevMode() & ccApp::MODE_DEVELOPMENT);
-//ccTrace::setSuppress(!($app->getDevMode() & ccApp::MODE_DEVELOPMENT));
+$debug = ($app->getDevMode() & CCAPP_DEVELOPMENT);
+//ccTrace::setSuppress(!($app->getDevMode() & CCAPP_DEVELOPMENT));
 
-if (!isset($rb_db_server) || !is_array($rb_db_server) || count($rb_db_server) != 3)
-{
-	throw new Exception('$db_server not properly set');
-}
-else
-{
-	R::setup($rb_db_server[0],$rb_db_server[1],$rb_db_server[2]);
-	R::freeze( true );	// Freeze database, for now. 
-}
+// if (!isset($rb_db_server) || !is_array($rb_db_server) || count($rb_db_server) != 3)
+// {
+// 	throw new Exception('$db_server not properly set');
+// }
+// else
+// {
+// 	R::setup($rb_db_server[0],$rb_db_server[1],$rb_db_server[2]);
+// 	R::freeze( true );	// Freeze database, for now. 
+// }
 
 // R::debug($debug);
-// $smarty->setDebug($debug);
-	
+
+// echo "<pre>";
+// var_dump($app->getUrlOffset(),$app->getRootUrl(),dirname($_SERVER['SCRIPT_NAME']),basename(dirname($_SERVER['SCRIPT_NAME'])),$_SERVER,$GLOBALS);
+// echo "</pre>";
+
 //****
 // 5. Set the app's main "page" and "run" the app.
 $dispatch									// Add controller pages to chain 
-	->addPage(new ItemController()) 		// Item view and claiming
-	->addPage('ccCssController')			// CSS handler
-	->addPage('FacebookNotificationController')	// FB notifications
-	->addPage('AdminController')			// Admin functions
-	->addPage('WebController')				// Misc web stuff
-	->addPage('FacebookAppController')		// FB App (should be last)
+	->addPage(new uspsAjaxController())		// Item view and claiming
+	->addPage(new uspsController()) 		// Item view and claiming
+//	->addPage('ccCssController')			// CSS handler
+//	->addPage('FacebookNotificationController')	// FB notifications
+//	->addPage('AdminController')			// Admin functions
+//	->addPage('WebController')				// Misc web stuff
+//	->addPage('FacebookAppController')		// FB App (should be last)
 	;
-$app->setMainPage($dispatch);				// Set dispatcher as app's "page"
+$app->setPage($dispatch);					// Set dispatcher as app's "page"
 	
 $request = new ccRequest();
 ccTrace::log((isset($_SERVER['REMOTE_ADDR']) ? $_SERVER['REMOTE_ADDR'].' ' : '')
