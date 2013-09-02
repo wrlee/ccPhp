@@ -7,6 +7,7 @@
  * 2010-10-23 Better handling of path parsing into components and document values
  *          - Easier to override by implementing parseUrl()
  * 2013-08-30 Added isAjax(), getRequestVars()
+ * 2013-09-01 Added getFormat() [tentatively?]
  */
 
 /**
@@ -67,6 +68,11 @@ class ccRequest implements ArrayAccess, IteratorAggregate
 	function getDefaultDocument()
 	{
 		return $this->defaultDoc;
+	}
+
+	public function getFormat()
+	{
+		return $this->format;
 	}
 
 	/**
