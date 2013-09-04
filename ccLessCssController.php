@@ -6,7 +6,7 @@
  * @todo Consider propagating lessc Exceptions.
  * @todo  Consider whether/when compiled directory is needed
  */
-class ccLessPhp 
+class ccLessCssController
 	extends lessc
 	implements ccPageInterface
 {
@@ -16,6 +16,8 @@ class ccLessPhp
 	protected $source_dir='less/'; //.DIRECTORY_SEPARATOR;
 	protected $css_dir='css/'; //.DIRECTORY_SEPARATOR;
 	protected $app;
+
+	private $last_modified;
 
 	function __construct($css_dir=false)
 	{
@@ -48,14 +50,33 @@ class ccLessPhp
 
 		$cache = $this->autoCompileLess($ifile /*,$this->working_dir.$this->compile_dir.$file*/);
 
-		if ($cache == NULL)
-			return false;
+		if ($cache == NULL)	// No valid less source.
+			return false;	// 404
+// if (isset($_SERVER['HTTP_IF_MODIFIED_SINCE']) )
+// ccTrace::tr($_SERVER['HTTP_IF_MODIFIED_SINCE'].'='.strtotime($_SERVER['HTTP_IF_MODIFIED_SINCE']));
+// ccTrace::tr($this->last_modified.'='.gmdate("r",$this->last_modified));
+		// If conditional header and less has not been modified since req't
+		// then redirect 304 and circumvent content transfer.
+		if (   isset($_SERVER['HTTP_IF_MODIFIED_SINCE']) 
+			&& strtotime($_SERVER['HTTP_IF_MODIFIED_SINCE']) < $this->last_modified) 
+		{	
+			header($_SERVER['SERVER_PROTOCOL'].' 304 Not Modified', TRUE, 304);
+			header('Cache-Control: public');
+		}
 		else
 		{
-			header('Content-type: text/css');
-			echo $cache;
+			$this->display($cache);
 		}
 		return true;
+	}
+
+	protected function display($content)
+	{		
+		header('Content-type: text/css');
+		header('Cache-Control: public');
+		header('Last-Modified: '.date("r",$this->last_modified));
+//		header($_SERVER['SERVER_PROTOCOL'].' 404 Not Found', TRUE, 404);
+		echo $content;
 	}
 
 	/**
@@ -89,6 +110,7 @@ class ccLessPhp
 			if ($outputFile)
 				file_put_contents($outputFile, $newCache['compiled']);
 		}
+		$this->last_modified = $newCache['updated'];
 		return $newCache['compiled'];
 	}
 
@@ -105,4 +127,4 @@ class ccLessPhp
 		}
 	}
 	
-} // class ccLessPhp
+} // class ccLesCssController
