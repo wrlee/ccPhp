@@ -24,7 +24,7 @@ class ccSmarty extends Smarty
 		
 		$this->setCacheDir($smartyTempPath . 'cache')
 			->setCompileDir($smartyTempPath . 'compile')
-			->setConfigDir($app->getSitePath() . 'templates');
+			->setConfigDir($app->getAppPath() . 'templates');
 		$this->setTemplateDir($this->config_dir);
 		
 		$fwpath = ccApp::getApp()->getFrameworkPath();

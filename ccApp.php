@@ -17,6 +17,9 @@
  *          - setFrameworkPath() is now static
  *          - Fix getRootUrl()'s duplicate '/'
  *          - Redefined operational mode settings (ccApp::MODE_*)
+ * 2013-09-02 Renamed get/setSitePath() to get/setAppPath()
+ * 			- Renamed createSiteDir() to createAppDir() and protected it.
+ * 			- Added createWorkingDir()
  */	
 //******************************************************************************
 // [BEGIN] Portability settings
@@ -118,8 +121,6 @@ class ccApp
 	const MODE_MINIMIZE		= 64;	//* Use minimized resources (scripts, CSS, etc.)
 	const MODE_CACHE		= 128;	//* Enable caching
 	
-//	const MODE_DEVELOPMENT	= (ccApp::MODE_DEBUG|ccApp::MODE_INFO|ccApp::MODE_WARN|ccApp::MODE_ERR|ccApp::MODE_TRACEBACK|ccApp::MODE_REVEAL);
-
 	protected static $_me=NULL;			// Singleton ref to $this
 //	/*protected*/ static $_fwpath=NULL;		// Path to framework files.
 
@@ -130,7 +131,7 @@ class ccApp
 	protected $bDebug = FALSE; 			// Central place to hold debug status
 	
 	protected $sitepath=NULL;			// Path to site specific files.
-	protected $temppath='working';		// Path to working directory (for cache, etc)
+	protected $temppath='var/';			// Path to working directory (for cache, etc)
 	
 	protected $page=NULL; 				// Main page object for app
 	protected $error404 = NULL;			// External ccPageInterface to render errors.
@@ -174,7 +175,7 @@ class ccApp
 	} // _autoload()
 
 	/**
-	 * Add a relative path to the list of site-specific paths to search when 
+	 * Add a path to the list of site-specific paths to search when 
 	 * loading site-specific classes. 
 	 * @param string $path Is the path to be included in the search
 	 *        or, if $classname is specified, then the full fliepath. If the first
@@ -237,7 +238,7 @@ class ccApp
 
 		$classFilename = str_replace('_', DIRECTORY_SEPARATOR, $className).'.php';
 // global $bb,$eb, $bi,$ei, $btt,$ett, $rarr,$ldquo,$rdquo,$hellip,$nbsp,$nl;
-// ccTrace::s_out( '#'.__LINE__.' '.ccTrace::getCaller(0,dirname(ccApp::getApp()->getSitePath())).': '.$className." $rarr ".$classFilename.$nl);
+// ccTrace::s_out( '#'.__LINE__.' '.ccTrace::getCaller(0,dirname(ccApp::getApp()->getAppPath())).': '.$className." $rarr ".$classFilename.$nl);
 // ccTrace::s_out( '#'.__LINE__.' '.ccTrace::getCaller(3).': '.$className." $rarr ".$classFilename.$nl);
 // echo '#'.__LINE__.' '.$className." $rarr ".$classFilename.$nl;
 // self::tr('&nbsp;&nbsp;&nbsp;'.$this->sitepath.$classFilename);
@@ -298,7 +299,7 @@ class ccApp
 	 *			site-path.
 	 * @todo Accept array of directory names (to move common code here)
 	 */
-	public function createSiteDir($dir)
+	public function createAppDir($dir)
 	{
 		if ( substr($dir, -1) != DIRECTORY_SEPARATOR )	// Ensure suffixed w/'/'
 			$dir .= DIRECTORY_SEPARATOR;
@@ -307,7 +308,23 @@ class ccApp
 		if (!is_dir($dir))								// Path does not exist?
 			mkdir($dir,0744,TRUE);						// Create path
 		return $dir;									// Return modified path
-	} // createSiteDir()
+	} // createAppDir()
+
+	/**
+	 * Create a directory under the app's working directory.
+	 * @param  string $dir The name of a directory to be created under the working dir
+	 * @return string The path to the directory created. 
+	 */
+	public function createWorkingDir($dir)
+	{
+		if ( substr($dir, -1) != DIRECTORY_SEPARATOR )	// Ensure suffixed w/'/'
+			$dir .= DIRECTORY_SEPARATOR;
+		if ( $dir[0] != DIRECTORY_SEPARATOR )			// Not absolute path?
+			$dir = $this->sitepath.$this->temppath.$dir;// Prefix with site's working path
+		if (!is_dir($dir))								// Path does not exist?
+			mkdir($dir,0744,TRUE);						// Create path
+		return $dir;									// Return modified path
+	} // createWorkingDir()
 
 	/**
 	 * This method is called to render pages for the web site. It invokes the 
@@ -534,14 +551,14 @@ class ccApp
 	} // getRootUrl()
 
 	/**
-	 * Get path to site's files (not the URL)
+	 * Get the server path to site's files (not the URL)
 	 * @param string $path Full, absolute path (e.g., dirname(__FILE__) 
 	 *        of caller)
 	 */
-	public function getSitePath()
+	public function getAppPath()
 	{
 		return $this->sitepath;
-	} // getSitePath()
+	} // getAppPath()
 	/**
 	 * Get/set server path to site's files (not the URL). This method also sets
 	 * this path as the current directory so that all subsequent relative
@@ -549,7 +566,7 @@ class ccApp
 	 * @param string $path Full, absolute path (e.g., dirname(__FILE__) 
 	 *        of caller)
 	 */
-	public function setSitePath($path)
+	public function setAppPath($path)
 	{
 		if (substr($path,-1) != DIRECTORY_SEPARATOR)	// Ensure path-spec
 			$path .= DIRECTORY_SEPARATOR;				// suffixed w/'/'
@@ -557,7 +574,7 @@ class ccApp
 		$this->sitepath = $path;						// Save path
 		chdir($path);									// Set cd to "known" place
 		return $this;
-	} // setSitePath()
+	} // setAppPath()
 
 	/**
 	 * The path part of the URL starting from '/' up to the path where this 
@@ -588,22 +605,29 @@ class ccApp
 	} // setUrlOffset()
 		
 	/**
-	 * Set the application's working directory 
-	 * @param string $path Directory name, relative to site path (unless an 
+	 * Set the application's working directory relative to the app's code. It 
+	 * is created, if necessary.
+	 * @param string $dir Directory name, relative to app's path (unless an 
 	 *        absolute path-spec).
-	 * @see setSitePath();
+	 * @see createAppDir();
 	 */
-	public function setWorkingDir($path)
+	public function setWorkingDir($dir)
 	{
-		$this->temppath = $this->createSiteDir($path);
+		if ( substr($dir, -1) != DIRECTORY_SEPARATOR )	// Ensure suffixed w/'/'
+			$dir .= DIRECTORY_SEPARATOR;
+		$this->createAppDir($dir);
+		$this->temppath = $dir;
 		return $this;
 	} // setWorkingDir()
+
+	/**
+	 * Get the full path to the working directory.
+	 * @return [type] [description]
+	 */
 	public function getWorkingPath()
 	{
-		if ($this->temppath[0] != DIRECTORY_SEPARATOR)	// setWorkingDir() not 
-			$this->setWorkingDir($this->temppath);		// called yet.
-		return $this->temppath;
-	} // getWorkingDir()
+		return $this->sitepath.$this->temppath;
+	}
 
 	/**
 	 * Default 404 handler.
@@ -636,6 +660,7 @@ class ccApp
 	} // on404()
 
 	/**
+	 * Php error handler directs output to destinations determined by ccTrace.
 	 * @todo Consider throwing exception (caveat, flow of control does not continue)
 	 * @todo Add distinction between dev and production modes of output.
 	 * @todo Consider moving to separate Trace class
@@ -760,6 +785,7 @@ EOD;
 	// }
 	
 	/**
+	 * Output to log file.
 	 * options: HTML, log, stderr, stdout, formatted, timestamp
 	 */
 	static function log()
@@ -767,6 +793,7 @@ EOD;
 		return call_user_func_array(array('ccTrace','log'),func_get_args());
 	} // tr()
 	/**
+	 * Output debug output. 
 	 * options: HTML, log, stderr, stdout, formatted, timestamp
 	 */
 	static function tr()
