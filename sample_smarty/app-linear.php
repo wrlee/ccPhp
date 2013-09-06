@@ -103,10 +103,7 @@ ccTrace::setHtml(TRUE);
 
 //****
 // 2. Create and configure the Application object (singleton)
-/**
-* 
-*/
-$app = ccApp::createApp(dirname(__FILE__));
+$app = ccApp::createApp(dirname(__FILE__));	// Tell app where the site code is.
 $app
 	->setDevMode( 							// Set app mode flags (CCAPP_PRODUCTION, CCAPP_DEVELOPMENT)
 		CCAPP_DEVELOPMENT

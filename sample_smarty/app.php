@@ -144,7 +144,7 @@ class uspsApp extends ccApp
 $time=microtime(1);
 //****
 // 2. Create and configure the Application object (singleton)
-$app = ccApp::createApp(dirname(__FILE__),'uspsApp');
+$app = ccApp::createApp(dirname(__FILE__),'uspsApp');	// Tell app where the site code is.
 //$debug = ($app->getDevMode() & CCAPP_DEVELOPMENT);
 //ccTrace::setSuppress(!($app->getDevMode() & CCAPP_DEVELOPMENT));
 ccTrace::tr('==='.$_SERVER['REMOTE_ADDR'].' '.(microtime(1)-$time).' createApp()');
