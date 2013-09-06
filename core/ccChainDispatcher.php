@@ -13,7 +13,7 @@
  * true, then this render() returns FALSE (causing ccApp's dispatch() method to 
  * activate 404 page handling). 
  *
- * @package ccPhp\PageController
+ * @package ccPhp
  * @todo Move error handling ccError class and refer through ccApp
  * @todo Eliminate filter handling--not sure that it is needed.
  */

@@ -1,7 +1,7 @@
 <?php 
 /**
  *
- * @package ccPhp\PageController
+ * @package ccPhp
  *
  * @todo Add optional parameter to describe how to getMethodFromRequest() 
  * 		 to adorn the method name that corresponds to the path component.

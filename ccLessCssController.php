@@ -1,6 +1,7 @@
 <?php 
 
 /**
+ * @package ccPhp
  * @todo  Add settings for enable/disabling caching
  * @todo  Add MEMCACHE support of caching.
  * @todo Consider propagating lessc Exceptions.

@@ -7,7 +7,7 @@
 /**
  * ccSmarty derives the base Smarty class to add features for integration with ccPhp.
  * @used-by ccSmartyController
- * @package Smarty
+ * @package ccPhp
  */
 class ccSmarty extends Smarty
 {

@@ -1,8 +1,5 @@
 <?php
 /**
- * @package Smarty
- */
-/**
  * Decorate include spec with proper path info. 
  * @param type 		mime-type; usually optional
  * @param defer 	Applies to scripts only
@@ -12,6 +9,7 @@
  * type=css files=file1,file2,... minify= mime= media= <br/>
  * type=js files=file1,file2,... minify= mime= 			
  *
+ * @package Smarty
  * @todo Support favicon and other types of inclusions
  * @todo Support singular 'file' attribute
  * @todo Check browser version to determine which icon to use.
