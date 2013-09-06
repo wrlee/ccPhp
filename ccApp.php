@@ -8,6 +8,7 @@
  * @todo Need a way to set "debug" setting that will cascade thru components.
  * @todo Move error handling ccError class and refer through ccApp
  * @todo Add on init-log-file(), to output info only when created.
+ * @todo Add setLogFile(), setAppDir(js)
  */
 /*
  * 2010-10-22 404 uses exceptions
@@ -113,16 +114,16 @@ define('CCAPP_PRODUCTION',(ccApp::MODE_CACHE*2)|ccApp::MODE_CACHE);
 class ccApp
 {
 	const MODE_DEBUG		= 1;	//* Debugging output
-	const MODE_INFO			= 2;	//* PHP info msgs
-	const MODE_WARN			= 4;	//* PHP warnings
-	const MODE_ERR			= 8;	//* PHP errors
-	const MODE_TRACEBACK	= 16;	//* Show tracebacks
-	const MODE_REVEAL		= 32;	//* Reveal paths
-	const MODE_MINIMIZE		= 64;	//* Use minimized resources (scripts, CSS, etc.)
-	const MODE_CACHE		= 128;	//* Enable caching
+	const MODE_INFO			= 6;	//* PHP info msgs
+	const MODE_WARN			= 2;	//* PHP warnings
+	const MODE_ERR			= 4;	//* PHP errors
+	const MODE_TRACEBACK	= 8;	//* Show tracebacks
+	const MODE_REVEAL		= 16;	//* Reveal paths
+	const MODE_MINIMIZE		= 32;	//* Use minimized resources (scripts, CSS, etc.)
+	const MODE_PROFILE		= 64;	//* Enable profile
+	const MODE_CACHE		= 128;	//* Enable caching where it can
 	
 	protected static $_me=NULL;			// Singleton ref to $this
-//	/*protected*/ static $_fwpath=NULL;		// Path to framework files.
 
 	protected $config=Array();			// Configuration array
 
@@ -140,8 +141,21 @@ class ccApp
 		
 	protected $current_request; 		// Remember current request
 
+	/**
+	 * Save $_me as a singularity and (hack) 
+	 */
 	protected function __construct()	// As a singleton: block public allocation
 	{
+		self::$_me=$this;
+		$callstack = (PHP_VERSION_ID < 50400) ? debug_backtrace(0) : debug_backtrace(0,2);
+		foreach ($callstack as $caller) 
+			if ($caller['function'] == 'createApp') 
+			{
+				$this->sitepath = $caller['args'][0];
+				if (substr($this->sitepath, -1) != DIRECTORY_SEPARATOR)
+					$this->sitepath .= DIRECTORY_SEPARATOR;
+				break;
+			}
 	} // __construct()
 
 	/**
@@ -235,7 +249,6 @@ class ccApp
 	 */
 	public function autoload($className)
 	{
-
 		$classFilename = str_replace('_', DIRECTORY_SEPARATOR, $className).'.php';
 // global $bb,$eb, $bi,$ei, $btt,$ett, $rarr,$ldquo,$rdquo,$hellip,$nbsp,$nl;
 // ccTrace::s_out( '#'.__LINE__.' '.ccTrace::getCaller(0,dirname(ccApp::getApp()->getAppPath())).': '.$className." $rarr ".$classFilename.$nl);
@@ -278,15 +291,25 @@ class ccApp
 	/**
 	 * Create singleton instance of the app. 
 	 * 
+	 * @param string $appPath   Absolute path to the app's code.
 	 * @param string $className By default instance of ccApp is created, but 
 	 *                          the name of a derived class can be instantiated.
+	 * @return ccApp  App object.
 	 * @todo Consider consolidating into getApp()
-	 * @todo Consider allowing instance of ccApp to be passed. 
+	 * @todo Consider allowing instance of ccApp to be passed.
 	 * @todo Consider blocking this from creating a 2nd instance.
+	 * @todo Load cached version, if available.
+	 * @todo Allow parameters passe to constructor.
 	 */
-	public static function createApp($className=NULL)
+	public static function createApp($appPath, $className=NULL)
 	{
-		return self::$_me = ($className ? new $className : new self);
+		if (substr($appPath,-1) != DIRECTORY_SEPARATOR)	// Ensure path-spec
+			$appPath .= DIRECTORY_SEPARATOR;			// suffixed w/'/'
+
+		chdir($appPath);								// Set cd to "known" place
+		$className ? new $className : new self;
+
+		return self::$_me;
 	} // createApp()
 		
 	/**
@@ -348,6 +371,7 @@ class ccApp
 			{
 				case 300: case 301: case 302: case 303: 
 				case 304: case 305: case 306: case 307: 
+					header($_SERVER['SERVER_PROTOCOL'].' '.$e->getCode().' '.$e->getMessage(), TRUE, $e->getCode());
 					$this->redirect($e->getLocation(), $e->getCode(), $e->getMessage());
 					break;
 				case 404: $this->show404($request);
@@ -435,18 +459,18 @@ class ccApp
 		setcookie($name, $value, $expire, $path, $domain, $secure, $httponly);
 	} // setCookie()
 
-	/**
-	 * Set debug setting
-	 */
-	public function getDebug()
-	{
-		return $this->bDebug;
-	}
-	public function setDebug($bDebug=TRUE)
-	{
-		$this->bDebug = $bDebug;
-		return $this;
-	}
+//	/**
+//	 * Set debug setting
+//	 */
+//	public function getDebug()
+//	{
+//		return $this->bDebug;
+//	}
+//	public function setDebug($bDebug=TRUE)
+//	{
+//		$this->bDebug = $bDebug;
+//		return $this;
+//	}
 	
 	/**
 	 * @obsolete
@@ -559,22 +583,22 @@ class ccApp
 	{
 		return $this->sitepath;
 	} // getAppPath()
-	/**
-	 * Get/set server path to site's files (not the URL). This method also sets
-	 * this path as the current directory so that all subsequent relative
-	 * paths are from a normalized location. 
-	 * @param string $path Full, absolute path (e.g., dirname(__FILE__) 
-	 *        of caller)
-	 */
-	public function setAppPath($path)
-	{
-		if (substr($path,-1) != DIRECTORY_SEPARATOR)	// Ensure path-spec
-			$path .= DIRECTORY_SEPARATOR;				// suffixed w/'/'
-
-		$this->sitepath = $path;						// Save path
-		chdir($path);									// Set cd to "known" place
-		return $this;
-	} // setAppPath()
+//	/**
+//	 * Get/set server path to site's files (not the URL). This method also sets
+//	 * this path as the current directory so that all subsequent relative
+//	 * paths are from a normalized location. 
+//	 * @param string $path Full, absolute path (e.g., dirname(__FILE__) 
+//	 *        of caller)
+//	 */
+//	public function setAppPath($path)
+//	{
+//		if (substr($path,-1) != DIRECTORY_SEPARATOR)	// Ensure path-spec
+//			$path .= DIRECTORY_SEPARATOR;				// suffixed w/'/'
+//
+//		$this->sitepath = $path;						// Save path
+//		chdir($path);									// Set cd to "known" place
+//		return $this;
+//	} // setAppPath()
 
 	/**
 	 * The path part of the URL starting from '/' up to the path where this 
@@ -585,24 +609,21 @@ class ccApp
 	 */
 	public function getUrlOffset()
 	{
-		if (!$this->UrlOffset)				// If not set, 
-			$this->setUrlOffset(); 			//    Ensure init'd 
+		if (!$this->UrlOffset)			// If not set, 
+			$this->initUrlOffset(); 	//    Ensure init'd 
 		return $this->UrlOffset;
-	} // setUrlOffset()
+	} // getUrlOffset()
 	/**
-	 * @todo This value is inferred from env settings, so shouldn't be public. 
+	 * This returns the part of the url that is the "root" of this app. 
+	 * This value is inferred from env settings, so shouldn't be public.
 	 */
-	private function setUrlOffset($component=NULL)
+	private function initUrlOffset()
 	{
-		if (!$component)
-		{
-			$component = dirname($_SERVER['SCRIPT_NAME']);
-			if ($component != '/') 
-				$component .= '/';
-		}
+		$component = dirname($_SERVER['SCRIPT_NAME']);
+		if ($component != '/') 
+			$component .= '/';
 		$this->UrlOffset = $component;
-		return $this;
-	} // setUrlOffset()
+	} // initUrlOffset()
 		
 	/**
 	 * Set the application's working directory relative to the app's code. It 

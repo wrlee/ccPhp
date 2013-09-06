@@ -58,6 +58,7 @@ class ccRequest implements ArrayAccess, IteratorAggregate
 	{
 		// Set client properties based on UserAgent string
 		$this->userAgentInfo = $this->parseUserAgent();
+		ccTrace::tr($this->userAgentInfo);
 		// Set values based on path.
 		$url = $URI ? $URI : isset($_SERVER['REDIRECT_SCRIPT_URI']) 
 			? $_SERVER['REDIRECT_SCRIPT_URI']
@@ -249,8 +250,40 @@ class ccRequest implements ArrayAccess, IteratorAggregate
 	 */
 	protected function parseUserAgent()
 	{
-// 		ini_set('browscap',$app->getFrameworkPath().'lite_php_browscap.ini');
-// 		return get_browser();
+	    $agent = $this->getUserAgent();
+	    ccTrace::tr($agent);
+		$yu=array();
+		$q_s=array("#\.#","#\*#","#\?#");
+		$q_r=array("\.",".*",".?");
+		$brows=parse_ini_file(ccApp::getApp()->getFrameworkPath().'full_php_browscap.ini',true,INI_SCANNER_RAW);
+		foreach($brows as $k=>$t){
+		  if(fnmatch($k,$agent)){
+		  $yu['browser_name_pattern']=$k;
+		  $pat=preg_replace($q_s,$q_r,$k);
+		  $yu['browser_name_regex']=strtolower("^$pat$");
+		    foreach($brows as $g=>$r){
+		      if($t['Parent']==$g){
+		        foreach($brows as $a=>$b){
+		          if($r['Parent']==$a){
+		            $yu=array_merge($yu,$b,$r,$t);
+		            foreach($yu as $d=>$z){
+		              $l=strtolower($d);
+		              $hu[$l]=$z;
+		            }
+		          }
+		        }
+		      }
+		    }
+		    break;
+		  }
+		}
+		return $hu;
+
+		if (ini_get('browscap'))
+		{
+			ini_set('browscap',ccApp::getApp()->getFrameworkPath().'lite_php_browscap.ini');
+			return get_browser();
+		}
 		if (defined('INI_SCANNER_RAW'))
 			$browsedb = (parse_ini_file(ccApp::getApp()->getFrameworkPath().'lite_php_browscap.ini',TRUE,INI_SCANNER_RAW));
 		else

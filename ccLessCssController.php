@@ -52,13 +52,26 @@ class ccLessCssController
 
 		if ($cache == NULL)	// No valid less source.
 			return false;	// 404
+
+		$tz = date_default_timezone_get ();
+		date_default_timezone_set('UTC');	// Stabilize time
+
 // if (isset($_SERVER['HTTP_IF_MODIFIED_SINCE']) )
 // ccTrace::tr($_SERVER['HTTP_IF_MODIFIED_SINCE'].'='.strtotime($_SERVER['HTTP_IF_MODIFIED_SINCE']));
-// ccTrace::tr($this->last_modified.'='.gmdate("r",$this->last_modified));
+// if (isset($_SERVER['HTTP_IF_NONE_MATCH']) )
+// ccTrace::tr($_SERVER['HTTP_IF_NONE_MATCH'].'='.strtotime($_SERVER['HTTP_IF_NONE_MATCH']));
+// ccTrace::tr($this->last_modified.'='.date("r",$this->last_modified));
+// ccTrace::tr($_SERVER);
+
+		// If ETag matches, then we can just return. 
+		if ((   isset($_SERVER['HTTP_IF_NONE_MATCH']) 
+			 && $_SERVER['HTTP_IF_NONE_MATCH'] == $this->last_modified) 
+//			||
 		// If conditional header and less has not been modified since req't
 		// then redirect 304 and circumvent content transfer.
-		if (   isset($_SERVER['HTTP_IF_MODIFIED_SINCE']) 
-			&& strtotime($_SERVER['HTTP_IF_MODIFIED_SINCE']) < $this->last_modified) 
+//		  (   isset($_SERVER['HTTP_IF_MODIFIED_SINCE']) 
+//			&& strtotime($_SERVER['HTTP_IF_MODIFIED_SINCE']) >= $this->last_modified) 
+		   )
 		{	
 			header($_SERVER['SERVER_PROTOCOL'].' 304 Not Modified', TRUE, 304);
 			header('Cache-Control: public');
@@ -67,6 +80,7 @@ class ccLessCssController
 		{
 			$this->display($cache);
 		}
+		date_default_timezone_set($tz);
 		return true;
 	}
 
@@ -75,6 +89,7 @@ class ccLessCssController
 		header('Content-type: text/css');
 		header('Cache-Control: public');
 		header('Last-Modified: '.date("r",$this->last_modified));
+		header('ETag: '.$this->last_modified);
 //		header($_SERVER['SERVER_PROTOCOL'].' 404 Not Found', TRUE, 404);
 		echo $content;
 	}
