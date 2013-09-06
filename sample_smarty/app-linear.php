@@ -101,58 +101,38 @@ ccTrace::setHtml(TRUE);
 // ccTrace::setOutput('/home/wrlee/htd.log');	// Output to file.
 // ccTrace::setLogging('/home/wrlee/htd.log');	// Log to file.
 
-/**
- * 
- */
-class uspsApp extends ccApp
-{
-	function __construct()
-	{
-		parent::__construct();
-		$this->setWorkingDir('.var')
-			 ->setDevMode( 							// Set app mode flags (CCAPP_PRODUCTION, CCAPP_DEVELOPMENT)
-				CCAPP_DEVELOPMENT
-			 )
-			 ->addClassPath('classes')				// Site's support files (base-class)
-													// Add classname->file mappings
-			 ->addClassPath($this->getFrameworkPath().'..'.DIRECTORY_SEPARATOR.'Smarty'.DIRECTORY_SEPARATOR.'Smarty.class.php', 'Smarty')
-			 ->addClassPath($this->getFrameworkPath().'..'.DIRECTORY_SEPARATOR.'LessPhp'.DIRECTORY_SEPARATOR.'lessc.inc.php', 'lessc')
-//			 ->addClassPath('..'.DIRECTORY_SEPARATOR.'RedBeanPHP'.DIRECTORY_SEPARATOR.'rb.php','R')
-//			 ->addClassPath('..'.DIRECTORY_SEPARATOR.'Facebook'.DIRECTORY_SEPARATOR.'facebook.php','Facebook')
-//			 ->addPhpPath('/home/wrlee/php')		// My common library files
-			;
-											// Log directory.
-											// See http://php.net/manual/en/reserved.variables.php#Hcom55068
-		$logfile = $this->createWorkingDir('logs').basename($this->getUrlOffset()).'.log';
-		ccTrace::setOutput($logfile);	// Output to file.
-		ccTrace::setLogging($logfile);	// Log to file.
-
-		//****
-		// 5. Set the app's main "page" and "run" the app.
-		$dispatch = new ccChainDispatcher();		// Allocate before local.php inclusion
-		$dispatch									// Add controller pages to chain 
-			->addPage(new uspsAjaxController())		// Item view and claiming
-			->addPage(new ccSmartyController()) 	// Simple Smarty template support
-			->addPage(new ccLessCssController()) 	// Less CSS support
-		//	->addPage('FacebookNotificationController')	// FB notifications
-		//	->addPage('FacebookAppController')		// FB App (should be last)
-			;
-		$this->setPage($dispatch);					// Set dispatcher as app's "page"
-	} // __construct()
-} // class uspsApp
-
-$time=microtime(1);
 //****
 // 2. Create and configure the Application object (singleton)
-$app = ccApp::createApp(dirname(__FILE__),'uspsApp');
-//$debug = ($app->getDevMode() & CCAPP_DEVELOPMENT);
-//ccTrace::setSuppress(!($app->getDevMode() & CCAPP_DEVELOPMENT));
-ccTrace::tr('==='.$_SERVER['REMOTE_ADDR'].' '.(microtime(1)-$time).' createApp()');
+/**
+* 
+*/
+$app = ccApp::createApp(dirname(__FILE__));
+$app
+	->setDevMode( 							// Set app mode flags (CCAPP_PRODUCTION, CCAPP_DEVELOPMENT)
+		CCAPP_DEVELOPMENT
+	)
+	->setWorkingDir('.var')					// Set working dir (default 'working')
+
+//	->addClassPath('classes')				// Site's support files (base-class)
+											// Add classname->file mappings
+	->addClassPath($app->getFrameworkPath().'..'.DIRECTORY_SEPARATOR.'Smarty'.DIRECTORY_SEPARATOR.'Smarty.class.php', 'Smarty')
+	->addClassPath($app->getFrameworkPath().'..'.DIRECTORY_SEPARATOR.'LessPhp'.DIRECTORY_SEPARATOR.'lessc.inc.php', 'lessc')
+//	->addClassPath('..'.DIRECTORY_SEPARATOR.'RedBeanPHP'.DIRECTORY_SEPARATOR.'rb.php','R')
+//	->addClassPath('..'.DIRECTORY_SEPARATOR.'Facebook'.DIRECTORY_SEPARATOR.'facebook.php','Facebook')
+//	->addPhpPath('/home/wrlee/php')			// My common library files
+	;
+// ccApp::tr($app->classpath);
+											// Log directory.
+											// See http://php.net/manual/en/reserved.variables.php#Hcom55068
+$logfile = $app->createWorkingDir('logs').basename($app->getUrlOffset()).'.log';
+ccTrace::setOutput($logfile);	// Output to file.
+ccTrace::setLogging($logfile);	// Log to file.
 
 //****
 // 3. Create and configure stuff before attempting to include "local" settings.
 //	  This allows a local file to reconfigure app during development 
 //	  (or production) to distiguish between those separate distributions.
+$dispatch = new ccChainDispatcher();		// Allocate before local.php inclusion
 
 //****
 // To set values that won't be deployed in production mode, create a local file
@@ -163,6 +143,8 @@ ccTrace::tr('==='.$_SERVER['REMOTE_ADDR'].' '.(microtime(1)-$time).' createApp()
 //****
 // 4. Configure plugins or other stuff you want to use.
 // Config RedBean DB module
+$debug = ($app->getDevMode() & CCAPP_DEVELOPMENT);
+//ccTrace::setSuppress(!($app->getDevMode() & CCAPP_DEVELOPMENT));
 
 // if (!isset($rb_db_server) || !is_array($rb_db_server) || count($rb_db_server) != 3)
 // {
@@ -173,22 +155,29 @@ ccTrace::tr('==='.$_SERVER['REMOTE_ADDR'].' '.(microtime(1)-$time).' createApp()
 // 	R::setup($rb_db_server[0],$rb_db_server[1],$rb_db_server[2]);
 // 	R::freeze( true );	// Freeze database, for now. 
 // }
+
 // R::debug($debug);
 
 // echo "<pre>";
 // var_dump($app->getUrlOffset(),$app->getRootUrl(),dirname($_SERVER['SCRIPT_NAME']),basename(dirname($_SERVER['SCRIPT_NAME'])),$_SERVER,$GLOBALS);
 // echo "</pre>";
-	
-$time=microtime(1);
-$request = new ccRequest();
-ccTrace::tr('==='.$_SERVER['REMOTE_ADDR'].' '.(microtime(1)-$time).' ccRequest()');
 
+//****
+// 5. Set the app's main "page" and "run" the app.
+$dispatch									// Add controller pages to chain 
+	->addPage(new uspsAjaxController())		// Item view and claiming
+	->addPage(new ccSmartyController()) 	// Simple Smarty template support
+	->addPage(new ccLessCssController()) 	// Less CSS support
+//	->addPage('FacebookNotificationController')	// FB notifications
+//	->addPage('FacebookAppController')		// FB App (should be last)
+	;
+$app->setPage($dispatch);					// Set dispatcher as app's "page"
+	
+$request = new ccRequest();
 ccTrace::log((isset($_SERVER['REMOTE_ADDR']) ? $_SERVER['REMOTE_ADDR'].' ' : '')
             .(isset($_COOKIE['PHPSESSID']) ? $_COOKIE['PHPSESSID'].' ' : '')
             .'"'.$request->getUserAgent().'" '.$request->getUrl() );
-$time=microtime(1);
 $app->dispatch($request);
-ccTrace::tr('==='.$_SERVER['REMOTE_ADDR'].' '.(microtime(1)-$time).' dispatch()');
 
 //**** END OF FILE ****//
 // Return to index.php //
