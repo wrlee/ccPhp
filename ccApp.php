@@ -11,6 +11,7 @@
  * @todo Add setLogFile(), setAppDir(js)
  */
 /*
+ * @See http://php.net/manual/en/reserved.variables.php#Hcom55068
  * 2010-10-22 404 uses exceptions
  *          - Extend classpath interpretation to enter specific class specs.
  * 2013-08-28 Renamed get/setMainPage() get/setPage()
