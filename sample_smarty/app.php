@@ -6,8 +6,9 @@
  *   sitecode-+-|public-+-|js		Public/web facing directory
  *            |         +-|css
  *            |         index.php	Default base (includes config.php)
- *            |        .htaccess	Mod-rewrite to route all URIs to index.php
- *            +--config.php			Site/app config and startup file (includes ccApp)
+ *            |         .htaccess	Mod-rewrite to route all URIs to index.php
+ *            +-|templates			Smarty templates
+ *            +--app.php			Site/app config and startup file (includes ccApp)
  *   framework+-|core--cc*.php		ccPhp core Framework files.
  *            ccApp.php				"Root" framework file(include this to use ccPhp).
  *            cc*.php				Add'l non-core framework files.
@@ -52,7 +53,8 @@
  *
  * @todo Consider a separate "site" object (to allow site specific configuration),
  *       currently part of the "app" object.
- * @todo Consider moving most of this code to index.php?
+ * @todo Consider moving most of this code to index.php? No. Keep most of this 
+ *       out of public/hacking view
  *
  * Things I need to do soon:
  *  @todo Add example of DB/model component (Doctrine? RedBean?)
@@ -72,8 +74,7 @@
  * 	@todo Reconsider DevMode handling (rename to AppMode). 
  * 	@todo Need a way to set "debug" setting that will cascade thru components.
  *	@todo Look into using AutoLoad package (by the Doctrine and Symfony folks)?
- *
- * @todo MODE_PRODUCITON should prevent revealing errors (hide path info)
+ *  @todo MODE_PRODUCITON should prevent revealing errors (hide path info)
  */
 
 //****
@@ -102,17 +103,20 @@ ccTrace::setHtml(TRUE);
 
 //****
 // 2. Create and configure the Application object (singleton)
-$app = ccApp::createApp();
+/**
+* 
+*/
+$app = ccApp::createApp(dirname(__FILE__));
 $app
-	->setSitePath(dirname(__FILE__))		// Tell app where the site code is.
-	->setDevMode( 							// Set app mode flags (PRODUCTION, DEVELOPMENT, STAGING, TESTING)
+	->setDevMode( 							// Set app mode flags (CCAPP_PRODUCTION, CCAPP_DEVELOPMENT)
 		CCAPP_DEVELOPMENT
 	)
 	->setWorkingDir('.var')					// Set working dir (default 'working')
 
-	->addClassPath('classes')				// Site's support files (base-class)
+//	->addClassPath('classes')				// Site's support files (base-class)
 											// Add classname->file mappings
 	->addClassPath($app->getFrameworkPath().'..'.DIRECTORY_SEPARATOR.'Smarty'.DIRECTORY_SEPARATOR.'Smarty.class.php', 'Smarty')
+	->addClassPath($app->getFrameworkPath().'..'.DIRECTORY_SEPARATOR.'LessPhp'.DIRECTORY_SEPARATOR.'lessc.inc.php', 'lessc')
 //	->addClassPath('..'.DIRECTORY_SEPARATOR.'RedBeanPHP'.DIRECTORY_SEPARATOR.'rb.php','R')
 //	->addClassPath('..'.DIRECTORY_SEPARATOR.'Facebook'.DIRECTORY_SEPARATOR.'facebook.php','Facebook')
 //	->addPhpPath('/home/wrlee/php')			// My common library files
@@ -120,7 +124,7 @@ $app
 // ccApp::tr($app->classpath);
 											// Log directory.
 											// See http://php.net/manual/en/reserved.variables.php#Hcom55068
-$logfile = $app->createSiteDir($app->getWorkingPath().'logs').basename($app->getUrlOffset()).'.log';
+$logfile = $app->createWorkingDir('logs').basename($app->getUrlOffset()).'.log';
 ccTrace::setOutput($logfile);	// Output to file.
 ccTrace::setLogging($logfile);	// Log to file.
 
@@ -162,11 +166,9 @@ $debug = ($app->getDevMode() & CCAPP_DEVELOPMENT);
 // 5. Set the app's main "page" and "run" the app.
 $dispatch									// Add controller pages to chain 
 	->addPage(new uspsAjaxController())		// Item view and claiming
-	->addPage(new ccSmartyController()) 		// Simple Smarty template support
-//	->addPage('ccCssController')			// CSS handler
+	->addPage(new ccSmartyController()) 	// Simple Smarty template support
+	->addPage(new ccLessCssController()) 	// Less CSS support
 //	->addPage('FacebookNotificationController')	// FB notifications
-//	->addPage('AdminController')			// Admin functions
-//	->addPage('WebController')				// Misc web stuff
 //	->addPage('FacebookAppController')		// FB App (should be last)
 	;
 $app->setPage($dispatch);					// Set dispatcher as app's "page"
