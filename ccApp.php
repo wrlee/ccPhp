@@ -1,5 +1,6 @@
 <?php
-/** File: ccApp.php
+/** 
+ * File: ccApp.php
  * 
  * The ccApp class represents the application. It is a singleton.
  *
@@ -9,6 +10,30 @@
  * @todo Move error handling ccError class and refer through ccApp
  * @todo Add on init-log-file(), to output info only when created.
  * @todo Add setLogFile(), setAppDir(js)
+ * @todo Consider a separate "site" object (to allow site specific configuration),
+ *       currently part of the "app" object.
+ * 
+ * @todo Consider moving most of this code to index.php? No. Keep most of this 
+ *       out of public/hacking view
+ * Things I need to do soon:
+ *  @todo Add example of DB/model component (Doctrine? RedBean?)
+ *  @todo Add internal "redirection" support
+ *  @todo Allow site paths to auto-generate paths. 
+ *  @todo Debugging/tracing component (work in progress: ccTrace
+ *	@todo Move error handling ccError class and refer through ccApp?
+ *
+ * Things I dunno how to do:
+ *  @todo Need for session support?
+ *  @todo Page caching 
+ *  @todo ob_start() support
+ *  @todo Create structure of simple front-end event mapping to support here.
+ *  @todo CSS and JS compression/minimization support for production mode. 
+ *  @todo Single ccApp.setDebug() setting that will cascade thru components.
+ *	@todo Logging support.
+ * 	@todo Reconsider DevMode handling (rename to AppMode). 
+ * 	@todo Need a way to set "debug" setting that will cascade thru components.
+ *	@todo Look into using AutoLoad package (by the Doctrine and Symfony folks)?
+ *  @todo MODE_PRODUCITON should prevent revealing errors (hide path info)
  */
 /*
  * @See http://php.net/manual/en/reserved.variables.php#Hcom55068
@@ -33,15 +58,30 @@ if (!defined('PHP_VERSION_ID'))
 
     define('PHP_VERSION_ID', ($_version[0] * 10000 + $_version[1] * 100 + $_version[2]));
 }
-//echo PHP_VERSION_ID.'<br/>';
-if (PHP_VERSION_ID < 50207) 
-{
-    define('PHP_MAJOR_VERSION', $_version[0]);
-    define('PHP_MINOR_VERSION', $_version[1]);
-	
-	$_version = explode('-', $_version[2]);
-	define('PHP_EXTRA_VERSION', $_version[0]);
-	define('PHP_RELEASE_VERSION', isset($_version[1]) ? $_version[1] : '');
+if (PHP_VERSION_ID < 50400) {
+	if (PHP_VERSION_ID < 50300)
+	{
+		if (PHP_VERSION_ID < 50207) 
+		{
+			if (PHP_VERSION_ID < 50200)
+				define('E_RECOVERABLE_ERROR',4096);
+		    define('PHP_MAJOR_VERSION', $_version[0]);
+		    define('PHP_MINOR_VERSION', $_version[1]);
+			
+			$_version = explode('-', $_version[2]);
+			define('PHP_EXTRA_VERSION', $_version[0]);
+			define('PHP_RELEASE_VERSION', isset($_version[1]) ? $_version[1] : '');
+		}
+		define('E_DEPRECATED', 8092);
+		define('E_USER_DEPRECATED', 16384);
+	}			
+	define('PHP_SESSION_DISABLED',0);
+	define('PHP_SESSION_NONE',1);
+	define('PHP_SESSION_ACTIVE',2);
+	function session_status()
+	{
+		return session_id() === '' ? PHP_SESSION_NONE : PHP_SESSION_ACTIVE;
+	}
 }
 unset($_version);	// Not needed any longer
 // [END] Portability settings
@@ -113,7 +153,12 @@ define('CCAPP_PRODUCTION',(ccApp::MODE_CACHE*2)|ccApp::MODE_CACHE);
  * @todo Consider that flags can be user defined, with some pre-defined meanings.
  */
 class ccApp
+//	implements Serializable
 {
+	public function render(ccRequest $request)
+	{
+		return false;
+	}
 	const MODE_DEBUG		= 1;	//* Debugging output
 	const MODE_INFO			= 6;	//* PHP info msgs
 	const MODE_WARN			= 2;	//* PHP warnings
@@ -304,11 +349,27 @@ class ccApp
 	 */
 	public static function createApp($appPath, $className=NULL)
 	{
+//		$sessActive = (session_status() == PHP_SESSION_ACTIVE);
+//	    if (!$sessActive)					// If session support not running
+//	    	session_start();				//   turn on to presist browser info
+//
+//	    if ( isset($_SESSION['ccApp']) ) 	// If already cached, return info
+//	    {
+//	    	self::$_me = unserialize($_SESSION['ccApp']);
+//		    if ( !$sessActive )				// Session wasn't running
+//		    	session_commit();			//   So turn back off
+//	    	return self::$_me;				// Return serialized object
+//	    }
+//
 		if (substr($appPath,-1) != DIRECTORY_SEPARATOR)	// Ensure path-spec
 			$appPath .= DIRECTORY_SEPARATOR;			// suffixed w/'/'
 
 		chdir($appPath);								// Set cd to "known" place
 		$className ? new $className : new self;
+
+//		$_SESSION['ccApp'] = serialize(self::$_me);
+//	    if ( !$sessActive )					// Session wasn't running
+//	    	session_commit();				//   So turn back off
 
 		return self::$_me;
 	} // createApp()
@@ -371,9 +432,12 @@ class ccApp
 			switch ($e->getCode())
 			{
 				case 300: case 301: case 302: case 303: 
-				case 304: case 305: case 306: case 307: 
+				case 305: case 306: case 307: 
 					header($_SERVER['SERVER_PROTOCOL'].' '.$e->getCode().' '.$e->getMessage(), TRUE, $e->getCode());
 					$this->redirect($e->getLocation(), $e->getCode(), $e->getMessage());
+					break;
+				case 304: 
+					header($_SERVER['SERVER_PROTOCOL'].' '.$e->getCode().' '.$e->getMessage(), TRUE, $e->getCode());
 					break;
 				case 404: $this->show404($request);
 					break;
@@ -682,7 +746,8 @@ class ccApp
 	} // on404()
 
 	/**
-	 * Php error handler directs output to destinations determined by ccTrace.
+	 * Php error handler directs output to destinations determined by ccTrace. This also 
+	 * will output to stdout based on the app's devMode setting.
 	 * @todo Consider throwing exception (caveat, flow of control does not continue)
 	 * @todo Add distinction between dev and production modes of output.
 	 * @todo Consider moving to separate Trace class
@@ -694,33 +759,62 @@ class ccApp
 			$errortype = Array(
 				E_ERROR			=> 'Error',			// 1
 				E_PARSE			=> 'Parsing Error', // 4
-//				E_CORE_ERROR	=> 'Core Error',
-//				E_CORE_WARNING	=> 'Core Warning',
+//				E_CORE_ERROR	=> 'Core Error',	// 16
+//				E_CORE_WARNING	=> 'Core Warning',	// 32
 				E_COMPILE_ERROR	=> 'Compile Error',	// 64
-//				E_COMPILE_WARNING => 'Compile Warning',
-				E_WARNING		=> 'Warning',
-				E_NOTICE		=> 'Notice',
-				E_USER_ERROR	=> 'User Error',
-				E_USER_WARNING	=> 'User Warning',
-				E_USER_NOTICE	=> 'User Notice',
-				E_STRICT		=> 'Strict'
+//				E_COMPILE_WARNING => 'Compile Warning',	// 128
+				E_WARNING		=> 'Warning',		// 2
+				E_NOTICE		=> 'Notice',		// 8
+				E_USER_ERROR	=> 'User Error',	// 256
+				E_USER_WARNING	=> 'User Warning',	// 512
+				E_USER_NOTICE	=> 'User Notice',	// 1024
+				E_STRICT		=> 'Strict'			// 2048
 			);
-			if (PHP_VERSION_ID >= 50200)
-				$errortype[E_RECOVERABLE_ERROR] = 'Recoverable Error';
-			if (PHP_VERSION_ID >= 50300)
+			if ( PHP_VERSION_ID >= 50200 )
 			{
-//				$errortype[E_DEPRECATED] = 'Deprecated';
-				$errortype[E_USER_DEPRECATED] = 'User Deprecated';
-			}			
+				$errortype[E_RECOVERABLE_ERROR] = 'Recoverable Error'; 	// 4096
+				if ( PHP_VERSION_ID >= 50300 )
+				{
+					$errortype[E_DEPRECATED] = 'Deprecated';			// 8092
+					$errortype[E_USER_DEPRECATED] = 'User Deprecated'; 	// 16384
+				}			
+			}
 			if (!isset($errortype[$errno]))
 				$errortype[$errno] = "Error($errno)";
 
 			global $bred,$ered,$bb,$eb, $bi,$ei, $btt,$ett, $rarr,$ldquo,$rdquo,$hellip,$nbsp,$nl;
 			error_log("$errortype[$errno]: $errstr in $errfile#$errline",0);
 			$msg = "$bb$bred$errortype[$errno]$ered: $errstr$eb$nl"
-				 // . "        in $errfile#$errline"; 
+//				 . "        in $errfile#$errline"; 
 				 . "        in ".ccTrace::fmtPath($errfile,$errline); 
-			print $msg.$nl;
+			$self = ccApp::getApp();
+			if ($self)					// In case this is invoked before constructor
+				switch ($errno) 
+				{
+					case E_COMPILE_ERROR:
+					case E_ERROR:
+					case E_PARSE:
+					case E_USER_ERROR:
+						if ( ! ($self->devMode & ccApp::MODE_ERR) ) break;
+						$errno = E_ERROR;		// Normalize for next step
+					case E_WARNING:
+					case E_USER_WARNING:
+					case E_RECOVERABLE_ERROR:
+						if ( ! ( $errno == E_ERROR || $self->devMode & ccApp::MODE_WARN ) ) break;
+						$errno = E_WARNING; 	// Normalize for next step
+					case E_NOTICE:
+					case E_USER_NOTICE:
+					case E_DEPRECATED:
+					case E_USER_DEPRECATED:
+						if ( ! ( $errno == E_WARNING || $self->devMode & ccApp::MODE_INFO ) ) break;
+						echo "$msg<br/>";
+						break;
+					default:
+						echo "errno($errno): $msg<br/>";
+						break;
+				}
+			else
+				echo "errno($errno): $msg<br/>";
 //			self::log($msg);
 			$trace = debug_backtrace();		// Get whole stack list
 			array_shift($trace);			// Ignore this function
@@ -822,4 +916,24 @@ EOD;
 	{
 		return call_user_func_array(array('ccTrace','tr'),func_get_args());
 	} // tr()
+
+	public function serialize ( )
+	{
+		return serialize($this);
+	}
+	public function unserialize ( $serialized )
+	{
+		self::$_me = $this;
+		$temp = unserialize($serialized);
+		$this->config = $temp->config;
+		$this->UrlOffset = $temp->UrlOffset;
+		$this->devMode = $temp->devMode;
+		$this->bDebug = $temp->bDebug;
+		$this->sitepath = $temp->sitepath;
+		$this->temppath = $temp->temppath;
+		$this->page = $temp->page;
+		$this->error404 = $temp->error404;
+		$this->classpath = $temp->classpath;
+		$this->current_request = $temp->current_request;
+	}
 } // class ccApp

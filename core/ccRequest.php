@@ -58,7 +58,7 @@ class ccRequest implements ArrayAccess, IteratorAggregate
 	{
 		// Set client properties based on UserAgent string
 		$this->userAgentInfo = $this->parseUserAgent();
-		ccTrace::tr($this->userAgentInfo);
+//		ccTrace::tr($this->userAgentInfo);
 		// Set values based on path.
 		$url = $URI ? $URI : isset($_SERVER['REDIRECT_SCRIPT_URI']) 
 			? $_SERVER['REDIRECT_SCRIPT_URI']
@@ -250,61 +250,56 @@ class ccRequest implements ArrayAccess, IteratorAggregate
 	 */
 	protected function parseUserAgent()
 	{
+		$sessActive = (session_status() == PHP_SESSION_ACTIVE);
 	    $agent = $this->getUserAgent();
-	    ccTrace::tr($agent);
-		$yu=array();
-		$q_s=array("#\.#","#\*#","#\?#");
-		$q_r=array("\.",".*",".?");
-		$brows=parse_ini_file(ccApp::getApp()->getFrameworkPath().'full_php_browscap.ini',true,INI_SCANNER_RAW);
-		foreach($brows as $k=>$t){
-		  if(fnmatch($k,$agent)){
-		  $yu['browser_name_pattern']=$k;
-		  $pat=preg_replace($q_s,$q_r,$k);
-		  $yu['browser_name_regex']=strtolower("^$pat$");
-		    foreach($brows as $g=>$r){
-		      if($t['Parent']==$g){
-		        foreach($brows as $a=>$b){
-		          if($r['Parent']==$a){
-		            $yu=array_merge($yu,$b,$r,$t);
-		            foreach($yu as $d=>$z){
-		              $l=strtolower($d);
-		              $hu[$l]=$z;
-		            }
-		          }
-		        }
-		      }
-		    }
-		    break;
-		  }
-		}
-		return $hu;
+//	    ccTrace::tr($agent);
 
-		if (ini_get('browscap'))
-		{
+	    if (!$sessActive)				// If session support not running
+	    	session_start();			//   turn on to presist browser info
+
+	    if ( isset($_SESSION[$agent]) )	// If already cached, return info
+	    	return unserialize($_SESSION[$agent]);
+
+		if (ini_get('browscap'))		// If there's built-in support
+		{								//  call it.
 			ini_set('browscap',ccApp::getApp()->getFrameworkPath().'lite_php_browscap.ini');
-			return get_browser();
+			$hu = get_browser();
 		}
-		if (defined('INI_SCANNER_RAW'))
-			$browsedb = (parse_ini_file(ccApp::getApp()->getFrameworkPath().'lite_php_browscap.ini',TRUE,INI_SCANNER_RAW));
-		else
-			$browsedb = (parse_ini_file(ccApp::getApp()->getFrameworkPath().'lite_php_browscap.ini',TRUE));
-		foreach ($browsedb as $template => $prop)
+		else 							// Simulate get_browser() call
 		{
-// echo $template.PHP_EOL;
-			$pattern = preg_replace(array('/([\(\)\+\.])/','/([\?\*])/'),array('\\\\${1}','.${1}'),$template);
-			if (preg_match('%'.$pattern.'%',$this->getUserAgent()))
-			{
-				$p2 = $prop;
-				while (isset($prop['Parent']))
-				{
-// echo $prop['Parent'].PHP_EOL;
-					$prop = $browsedb[$prop['Parent']];
-					$p2 += $prop;
+			$yu=array();
+			$q_s=array("#\.#","#\*#","#\?#");
+			$q_r=array("\.",".*",".?");
+			if (defined('INI_SCANNER_RAW'))
+				$brows=parse_ini_file(ccApp::getApp()->getFrameworkPath().'full_php_browscap.ini',true,INI_SCANNER_RAW);
+			else
+				$brows=parse_ini_file(ccApp::getApp()->getFrameworkPath().'full_php_browscap.ini',true);
+			foreach($brows as $k=>$t){
+				if(fnmatch($k,$agent)) {
+					$yu['browser_name_pattern']=$k;
+					$pat=preg_replace($q_s,$q_r,$k);
+					$yu['browser_name_regex']=strtolower("^$pat$");
+					foreach($brows as $g=>$r) {
+						if($t['Parent']==$g) {
+							foreach($brows as $a=>$b) {
+								if($r['Parent']==$a) {
+									$yu=array_merge($yu,$b,$r,$t);
+									foreach($yu as $d=>$z) {
+										$l=strtolower($d);
+										$hu[$l]=$z;
+									}
+								}
+							}
+						}
+					}
+					break;
 				}
-// var_dump($p2);
-				return $p2;
 			}
 		}
+    	$_SESSION[$agent] = serialize($hu);
+	    if ( !$sessActive )			// Session wasn't running
+	    	session_commit();		//   So turn back off
+		return $hu;					// Return browser info array
 	} // parseUserAgent()
 
 	/**

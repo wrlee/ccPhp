@@ -57,6 +57,8 @@ class ccLessCssController
 		$tz = date_default_timezone_get ();
 		date_default_timezone_set('UTC');	// Stabilize time
 
+// if (isset($_SERVER['HTTP_ETAG']) )
+// ccTrace::tr("Etag=".$_SERVER['HTTP_ETAG']);
 // if (isset($_SERVER['HTTP_IF_MODIFIED_SINCE']) )
 // ccTrace::tr($_SERVER['HTTP_IF_MODIFIED_SINCE'].'='.strtotime($_SERVER['HTTP_IF_MODIFIED_SINCE']));
 // if (isset($_SERVER['HTTP_IF_NONE_MATCH']) )
@@ -74,8 +76,9 @@ class ccLessCssController
 //			&& strtotime($_SERVER['HTTP_IF_MODIFIED_SINCE']) >= $this->last_modified) 
 		   )
 		{	
-			header($_SERVER['SERVER_PROTOCOL'].' 304 Not Modified', TRUE, 304);
 			header('Cache-Control: public');
+			throw new ccHttpStatusException(304, 'Not Modified');
+//			header($_SERVER['SERVER_PROTOCOL'].' 304 Not Modified', TRUE, 304);
 		}
 		else
 		{
@@ -136,7 +139,6 @@ class ccLessCssController
 		try {
 			return parent::cachedCompile($in,$force);
 		} catch (Exception $e) {
-			session_start();
 			echo 'LessPHP: '.$e->getMessage();
 			ccTrace::tr('Exception: '.$e->getMessage());
 			return NULL;

@@ -1,12 +1,22 @@
 <?php
 /**
  * @package ccPhp
- */ 
-
+ *
+ * A ccPageInterface can throw this exception when it is "successfully" 
+ * handling a page rendering but its handling results in a non-200 (and non-
+ * 404 result-code. 
+ * 
+ * This should, generally, _not_ be used to throw a 404 "page not found"
+ * result code since throwing this exception (or any exception) will 
+ * circumvent other ccPageInterface implementations that might be able to 
+ * handle the URL. That is, 404s should be implied by returning false from 
+ * the render handler of the ccPageInterface, rather than throwing this
+ * exception as a 404.
+ */
 class ccHttpStatusException extends Exception
 {
 	protected $status;
-	protected $location;	// For 30x exceptions
+	protected $location;	// For 30x redirections exceptions
 
 	function __construct( $status, $message=NULL, Exception $previous = NULL )
 	{
@@ -41,8 +51,11 @@ class ccHttpStatusException extends Exception
 			case 206: $message = 'Partial Content';
 				break;
 
+			case 304:  $message = 'Not Modified'; 
+				break;
+
 			case 300: case 301: case 302: case 303: 
-			case 304: case 305: case 306: case 307: 
+			case 305: case 306: case 307: 
 				if ($message === NULL)
 					throw new ErrorException('Location not specified for redirection' );
 				$this->location = $message;
@@ -60,9 +73,7 @@ class ccHttpStatusException extends Exception
 						break;
 					// The requested page can be found under a different url 
 					case 303: $message = 'See Other';
-						break;
-					case 304: $message = 'Not Modified';	 
-						break;
+						break; 
 					case 305: $message = 'Use Proxy';	 
 						break;
 //					case 306: $message = 'Unused'; // This code was used in a previous version. It is no longer used, but the code is reserved
