@@ -3,9 +3,6 @@
 {block name=head}
 {*cc_include files="test.js,test.css"*}
 {cc_include files="img/favicon.ico,usps.css"}
-<!--style type="text/css">
-body { background-color:blue; }
-</style-->
 {/block}
 
 {block name=body}
@@ -18,13 +15,29 @@ body { background-color:blue; }
 {/block}
 
 <script>
-{*block name=onReady}
-$('.menuitem').click(function(evt){
-	evt.preventDefault();
-	link=this.id;
-	console.log(link);
-	$('#content').load(link);
-	return false;
+{block name=onReady}
+$('.menuitem').click(function (evt) {
+    evt.preventDefault();
+    var link = this.id;
+    console.log(link); 
+    $('#content').load(link);
+/*	$.ajax({
+            type: 'POST',
+			url: link,
+    //data: body,
+            dataType: 'html',
+            success: function (data, textStatus, jqXHR) {
+                console.log(data);
+			    $('#content')[0].innerHTML = data;
+            },
+            error: function (xhr, textStatus, errThrown) {
+                console.log(xhr);
+                console.log(textStatus);
+                console.log(errThrown);
+                $('#message').html(xhr.responseText);
+            }
+    });
+*/	return false;
 });
-{/block*}
+{/block}
 </script>

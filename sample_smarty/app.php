@@ -16,65 +16,6 @@
  * You can define searches for site's class files via a local __autoload() or other
  * function (which must be registered via spl_autoload_register())
  *
- * Concepts:
- * ccApp:  There is an App singleton object that represents the application and 
- *		its properties. (At the moment, there isn't much functionality.
- * ccRequest:  Represents the current page request. It parses the URL and 
- *		request environment processing. In particular, it also parses the 
- *		User-Agent string to determine characteristics about the requesting 
- *		client. 
- * ccPageInterface: Is an interface for any kind of class that renders a page. 
- *		The interface contains a single method, render(), that returns TRUE 
- *		(page was rendered) or FALSE (page was not rendered). When FALSE, it is 
- *		assumed to be a 404 response. render() takes a single parameter, 
- *		ccRequest, which the implementation can use to determine what to render. 
- *		A controller type of page rendering object could implement its render() 
- *		to correlate various URL paths with specific methods of its own. Other 
- *		implmentations might dispatch to other ccPageInterface objects, thereby 
- *		acting as dispatch-controller objects. 
- *
- * Page Interface implementation examples:
- * ccChainDispatcher: Dispatches app flow to a "chain" of other page-interface 
- *		objects to generate content. Each object is given a chance to process 
- *		the request. If no objects process the request (i.e., all of their 
- *		render() methods return FALSE), a 404 error results.  
- *		Note: The ccRequest object is cloned for each page-object so that 
- *		changes to the request-object won't cause side-effects with 
- *		subsequent page-objects in the chain.
- * ccSimpleController: Uses the request object's URL path, mapping the next 
- *		component to a method within this object, if it exists. If there is no 
- *		URL component, then it maps to the default method name, "index", if it 
- *		exists. If a matching method is found, before() is first called (if it 
- *		exists) to perform common handling. If before() returns FALSE, the 
- *		mapped method is not called. The return value of render() is the value 
- *		of the before() (if FALSE) or mapped-method's return value, otherwise it 
- *		returns FALSE. 
- *		Note: This might be renamed to ccController
- *
- * @todo Consider a separate "site" object (to allow site specific configuration),
- *       currently part of the "app" object.
- * @todo Consider moving most of this code to index.php? No. Keep most of this 
- *       out of public/hacking view
- *
- * Things I need to do soon:
- *  @todo Add example of DB/model component (Doctrine? RedBean?)
- *  @todo Add internal "redirection" support
- *  @todo Allow site paths to auto-generate paths. 
- *  @todo Debugging/tracing component (work in progress: ccTrace
- *	@todo Move error handling ccError class and refer through ccApp?
- *
- * Things I dunno how to do:
- *  @todo Need for session support?
- *  @todo Page caching 
- *  @todo ob_start() support
- *  @todo Create structure of simple front-end event mapping to support here.
- *  @todo CSS and JS compression/minimization support for production mode. 
- *  @todo Single ccApp.setDebug() setting that will cascade thru components.
- *	@todo Logging support.
- * 	@todo Reconsider DevMode handling (rename to AppMode). 
- * 	@todo Need a way to set "debug" setting that will cascade thru components.
- *	@todo Look into using AutoLoad package (by the Doctrine and Symfony folks)?
- *  @todo MODE_PRODUCITON should prevent revealing errors (hide path info)
  */
 
 //****
@@ -86,9 +27,7 @@
 //    RewriteCond %{REQUEST_FILENAME} !-d
 //    RewriteRule .* index.php
 
-// error_reporting(E_ALL);
 error_reporting(E_ALL|E_STRICT);
-// error_reporting(E_STRICT);
 // error_reporting(ini_get('error_reporting')|E_STRICT);
 // session_start();	// Req'd by Facebook (start session now to avoid output/header errors).
 
@@ -96,13 +35,15 @@ error_reporting(E_ALL|E_STRICT);
 // 1. "Activate" the ccPhp Framework from its directory, by including its primary
 //    class, ccApp.
 require($_SERVER['DOCUMENT_ROOT'].DIRECTORY_SEPARATOR.'..'.DIRECTORY_SEPARATOR.'ccPhp'.DIRECTORY_SEPARATOR.'ccFramework'.DIRECTORY_SEPARATOR.'ccApp.php');
-ccTrace::setHtml(TRUE);
+
+// ccTrace::setHtml(TRUE);
 // ccTrace::setSuppress();					// Ensure no accidental output
 // ccTrace::setOutput('/home/wrlee/htd.log');	// Output to file.
 // ccTrace::setLogging('/home/wrlee/htd.log');	// Log to file.
 
 /**
- * 
+ * App specific class extends the ccFramework's app class, ccApp. This will 
+ * be a singularlity instantiated by ccApp::createApp(). 
  */
 class uspsApp extends ccApp
 {
@@ -121,11 +62,14 @@ class uspsApp extends ccApp
 //			 ->addClassPath('..'.DIRECTORY_SEPARATOR.'Facebook'.DIRECTORY_SEPARATOR.'facebook.php','Facebook')
 //			 ->addPhpPath('/home/wrlee/php')		// My common library files
 			;
+											// If sessions are used, set the directory
+											// specific to this app.
+		session_save_path($this->createWorkingDir('sessions'));	
+//		session_start();
 											// Log directory.
-											// See http://php.net/manual/en/reserved.variables.php#Hcom55068
 		$logfile = $this->createWorkingDir('logs').basename($this->getUrlOffset()).'.log';
-		ccTrace::setOutput($logfile);	// Output to file.
-		ccTrace::setLogging($logfile);	// Log to file.
+		ccTrace::setOutput($logfile);		// Output to file.
+		ccTrace::setLogging($logfile);		// Log to file.
 
 		//****
 		// 5. Set the app's main "page" and "run" the app.
@@ -134,8 +78,9 @@ class uspsApp extends ccApp
 			->addPage(new uspsAjaxController())		// Item view and claiming
 			->addPage(new ccSmartyController()) 	// Simple Smarty template support
 			->addPage(new ccLessCssController()) 	// Less CSS support
-		//	->addPage('FacebookNotificationController')	// FB notifications
-		//	->addPage('FacebookAppController')		// FB App (should be last)
+//			->addPage(new ccTreeController())
+//			->addPage('FacebookNotificationController')	// FB notifications
+//			->addPage('FacebookAppController')		// FB App (should be last)
 			;
 		$this->setPage($dispatch);					// Set dispatcher as app's "page"
 	} // __construct()
@@ -144,7 +89,23 @@ class uspsApp extends ccApp
 $time=microtime(1);
 //****
 // 2. Create and configure the Application object (singleton)
-$app = ccApp::createApp(dirname(__FILE__),'uspsApp');	// Tell app where the site code is.
+
+session_save_path(dirname(__FILE__).'/.var/sessions');	
+session_start();
+//$sessActive = (session_status() == PHP_SESSION_ACTIVE);
+//if (!$sessActive)					// If session support not running
+//	session_start();				//   turn on to presist browser info
+//
+//if ( isset($_SESSION['ccApp']) ) 	// If already cached, return info
+//{
+//	$app = unserialize($_SESSION['ccApp']);
+//    if ( !$sessActive )				// Session wasn't running
+//    	session_commit();			//   So turn back off
+//}
+//else
+	$app = ccApp::createApp(dirname(__FILE__),'uspsApp');	// Tell app where the site code is.
+//ccTrace::tr($app);
+
 //$debug = ($app->getDevMode() & CCAPP_DEVELOPMENT);
 //ccTrace::setSuppress(!($app->getDevMode() & CCAPP_DEVELOPMENT));
 ccTrace::tr('==='.$_SERVER['REMOTE_ADDR'].' '.(microtime(1)-$time).' createApp()');
@@ -189,6 +150,7 @@ ccTrace::log((isset($_SERVER['REMOTE_ADDR']) ? $_SERVER['REMOTE_ADDR'].' ' : '')
 $time=microtime(1);
 $app->dispatch($request);
 ccTrace::tr('==='.$_SERVER['REMOTE_ADDR'].' '.(microtime(1)-$time).' dispatch()');
+
 
 //**** END OF FILE ****//
 // Return to index.php //
