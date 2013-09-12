@@ -1,6 +1,5 @@
 <?php 
 /**
- *
  * @package ccPhp
  *
  * @todo Add optional parameter to describe how to getMethodFromRequest() 
@@ -13,11 +12,9 @@
  *
  * The render() method can use the getMethodFromRequest() to 
  *
- *
  * @param ccRequest $request a request block representing the current URI
  * @return BOOL True if handled and no subsequent controller need handle req't
  *              False, not handled, next controller in list will handle it.
- * @package ccPhp\PageController
  */
 abstract class ccController 
 	implements ccPageInterface

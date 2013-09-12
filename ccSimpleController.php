@@ -1,5 +1,6 @@
 <?php 
-/** File: ccSimpleController
+/** 
+ * File: ccSimpleController
  * Simply dispatches to a method based on the first component of the URL...
  * no sub-path checking, etc., but if there is no component, it assumes a default
  * method called index.

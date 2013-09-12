@@ -47,6 +47,7 @@
  * 2013-09-02 Renamed get/setSitePath() to get/setAppPath()
  * 			- Renamed createSiteDir() to createAppDir() and protected it.
  * 			- Added createWorkingDir()
+ * 2013-09-12 Remove getPage()
  */	
 //******************************************************************************
 // [BEGIN] Portability settings
@@ -78,6 +79,11 @@ if (PHP_VERSION_ID < 50400) {
 	define('PHP_SESSION_DISABLED',0);
 	define('PHP_SESSION_NONE',1);
 	define('PHP_SESSION_ACTIVE',2);
+	/**
+	 * Return status of session. Built-in available in 5.4
+	 * @return int enum of status
+	 * @see php.net
+	 */
 	function session_status()
 	{
 		return session_id() === '' ? PHP_SESSION_NONE : PHP_SESSION_ACTIVE;
@@ -155,10 +161,6 @@ define('CCAPP_PRODUCTION',(ccApp::MODE_CACHE*2)|ccApp::MODE_CACHE);
 class ccApp
 //	implements Serializable
 {
-	public function render(ccRequest $request)
-	{
-		return false;
-	}
 	const MODE_DEBUG		= 1;	//* Debugging output
 	const MODE_INFO			= 6;	//* PHP info msgs
 	const MODE_WARN			= 2;	//* PHP warnings
@@ -188,7 +190,7 @@ class ccApp
 	protected $current_request; 		// Remember current request
 
 	/**
-	 * Save $_me as a singularity and (hack) 
+	 * Save $_me as a singularity and (hack). 
 	 */
 	protected function __construct()	// As a singleton: block public allocation
 	{
@@ -492,6 +494,7 @@ class ccApp
 	} // set404handler()
 
 	/**
+	 * Get current app object singleton.
 	 * @return object App singleton instance
 	 */
 	public static function getApp()
@@ -538,7 +541,6 @@ class ccApp
 //	}
 	
 	/**
-	 * @obsolete
 	 * Get/set app's disposition mask.
 	 */
 	public function getDevMode()
@@ -591,13 +593,19 @@ class ccApp
 		return dirname(__FILE__).DIRECTORY_SEPARATOR;
 	} // getFrameworkPath()
 
+//	/**
+//	 * @return object app's main page (e.g., dispatcher or controller)
+//	 */
+//	public function getPage()
+//	{
+//		return $this->page;
+//	} // getPage()
 	/**
-	 * @return object app's main page (e.g., dispatcher or controller)
+	 * Set the primary page handler for the app. This is usually a controller
+	 * that dispatches to other handlers (internally or externally; i.e., other
+	 * ccPageInterface objects).
+	 * @param ccPageInterface $page [description]
 	 */
-	public function getPage()
-	{
-		return $this->page;
-	} // getPage()
 	public function setPage(ccPageInterface $page)
 	{
 		$this->page = $page;
@@ -613,9 +621,11 @@ class ccApp
 	} // getRequest()
 		
 	/**
-	 * @return The part of URL that points to the root of this app, i.e., the 
-	 *         start of where this app resides.
+	 * Get the part of the URL which points to the root of this app, i.e., the 
+	 *         start of where this app resides. 
+	 * @return string The URI
 	 * @see getUrlOffset()
+	 * @todo Handle case where URL does not have a scheme
 	 */
 	function getRootUrl()
 	{
@@ -826,6 +836,8 @@ class ccApp
 	} // onError()
 
 	/**
+	 * Default exception handler. Works in conjunction with ccTrace to produce
+	 * formatted output to the right destination.
 	 * @todo Add distinction between dev and production modes of output.
 	 * @todo See php.net on tips for proper handling of this handler.
 	 * @todo Consider moving to separate Trace class
@@ -849,9 +861,11 @@ class ccApp
 	} // onException()
 
 	/**
+	 * Redirect to a different URL. 
 	 * @param string $url Send rediret to browser
 	 * @todo Forward qstring, post  variables, and cookies. 
 	 * @todo Allow "internal" redirect that does not return to the client.
+	 * @todo Consider using ccHttpStatusException
 	 */
 	function redirect($url,$status = 302,$message='Redirect')
 	{

@@ -1,13 +1,17 @@
 <?php 
 /**
+ * This controller processes page requests that map to Smarty templates. By 
+ * default, this does not assume the Smarty object should be created. This gives
+ * implemenation flexibility to instantiate Smarty as needed. Presuably not all 
+ * methods need to use Smarty, so they can instantiate them as needed, keeping 
+ * related smarty and non-smarty code in the same implementation. 
  *
- * @package ccPhp\PageController
+ * @see  ccSmartyController for an implementation which simply enables 
+ *       templates (but leverages the features of this class)
+ * 
+ * @package ccPhp
  */
-/**
- * This controller processes page requests that map to Smarty templates. 
- * @package ccPhp\PageController
- */
-class ccSmartyBaseController
+abstract class ccSmartyBaseController
 	extends ccSimpleController
 {
 	/**
