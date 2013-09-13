@@ -93,62 +93,6 @@ unset($_version);	// Not needed any longer
 // [END] Portability settings
 //******************************************************************************
 
-set_error_handler(Array('ccApp','onError'));
-set_exception_handler(Array('ccApp','onException'));
-/*public function errorHandlerCallback($code, $string, $file, $line, $context) 
-{
-	$e = new Excpetion($string, $code);
-	$e->line = $line;
-	$e->file = $file;
-	throw $e;
-}
-*/
-/**
- * Shutdown handler.
- * Capture last error to report errors that are not normally trapped by error-
- * handling functions, e.g., fatal and parsing errors.
- * @todo Activate only for debug mode.
- */
-function cc_onShutdown()
-{
-    $err=error_get_last();
-	switch ($err['type'])
-	{
-		case E_WARNING:
-		case E_NOTICE:
-		case E_USER_ERROR:
-		case E_USER_WARNING:
-		case E_USER_NOTICE:
-			return FALSE;
-		break;
-		
-		case E_COMPILE_ERROR:
-		case E_PARSE:
-		default:
-			return ccApp::onError($err['type'], $err['message'], $err['file'], $err['line'], $GLOBALS);
-	}
-//	trigger_error($err['message'],$err['type']);
-}
-register_shutdown_function('cc_onShutdown');
-
-
-// We are using spl_autoload_* features to simplify search for class files. If
-// the app has defined an __autoload() of their own without chaining it with
-// the spl_autoload_register() call, then this will add it automatically.
-if (function_exists('__autoload')) 
-{
-	spl_autoload_register('__autoload', true, true); 
-}
-spl_autoload_register(array('ccApp','_autoload'), true);
-
-//ccApp::setFrameworkPath(dirname(__FILE__));	// Function probably not needed
-// ccApp::$_fwpath = dirname(__FILE__).DIRECTORY_SEPARATOR;
-
-// Just because PHP doesn't support setting class-consts via expressions, had to 
-// create global consts :-(
-define('CCAPP_DEVELOPMENT',(ccApp::MODE_DEBUG|ccApp::MODE_INFO|ccApp::MODE_WARN|ccApp::MODE_ERR|ccApp::MODE_TRACEBACK|ccApp::MODE_REVEAL));
-define('CCAPP_PRODUCTION',(ccApp::MODE_CACHE*2)|ccApp::MODE_CACHE);
-
 /**
  * Framework class representing the "application". You can derive this class, but
  * you are not allowed to instantiate it directly, use ccApp::createApp().
@@ -159,7 +103,7 @@ define('CCAPP_PRODUCTION',(ccApp::MODE_CACHE*2)|ccApp::MODE_CACHE);
  * @todo Consider that flags can be user defined, with some pre-defined meanings.
  */
 class ccApp
-//	implements Serializable
+	implements Serializable
 {
 	const MODE_DEBUG		= 1;	//* Debugging output
 	const MODE_INFO			= 6;	//* PHP info msgs
@@ -951,3 +895,56 @@ EOD;
 		$this->current_request = $temp->current_request;
 	}
 } // class ccApp
+
+set_error_handler(Array('ccApp','onError'));
+set_exception_handler(Array('ccApp','onException'));
+/*public function errorHandlerCallback($code, $string, $file, $line, $context) 
+{
+	$e = new Excpetion($string, $code);
+	$e->line = $line;
+	$e->file = $file;
+	throw $e;
+}
+*/
+/**
+ * Shutdown handler.
+ * Capture last error to report errors that are not normally trapped by error-
+ * handling functions, e.g., fatal and parsing errors.
+ * @todo Activate only for debug mode.
+ */
+function cc_onShutdown()
+{
+    $err=error_get_last();
+	switch ($err['type'])
+	{
+		case E_WARNING:
+		case E_NOTICE:
+		case E_USER_ERROR:
+		case E_USER_WARNING:
+		case E_USER_NOTICE:
+			return FALSE;
+		break;
+		
+		case E_COMPILE_ERROR:
+		case E_PARSE:
+		default:
+			return ccApp::onError($err['type'], $err['message'], $err['file'], $err['line'], $GLOBALS);
+	}
+//	trigger_error($err['message'],$err['type']);
+}
+register_shutdown_function('cc_onShutdown');
+
+// We are using spl_autoload_* features to simplify search for class files. If
+// the app has defined an __autoload() of their own without chaining it with
+// the spl_autoload_register() call, then this will add it automatically.
+if (function_exists('__autoload')) 
+{
+	spl_autoload_register('__autoload', true, true); 
+}
+spl_autoload_register(array('ccApp','_autoload'), true);
+
+// Just because PHP doesn't support setting class-consts via expressions, had to 
+// create global consts :-(
+define('CCAPP_DEVELOPMENT',(ccApp::MODE_DEBUG|ccApp::MODE_INFO|ccApp::MODE_WARN|ccApp::MODE_ERR|ccApp::MODE_TRACEBACK|ccApp::MODE_REVEAL));
+define('CCAPP_PRODUCTION',(ccApp::MODE_CACHE*2)|ccApp::MODE_CACHE);
+
