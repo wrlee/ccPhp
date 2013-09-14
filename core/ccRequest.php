@@ -3,6 +3,8 @@
  *
  * @package ccPhp
  */
+namespace ccPhp;
+
 /*
  * 2010-10-23 Better handling of path parsing into components and document values
  *          - Easier to override by implementing parseUrl()
@@ -27,7 +29,7 @@
  * @todo Add Cookie functions (consider secure-only cookies)
  * @todo Add getRequestValues ($_GET+$_POST or $_POST-only, for secure, non-debug)
  */
-class ccRequest implements ArrayAccess, IteratorAggregate 
+class ccRequest implements \ArrayAccess, \IteratorAggregate 
 {
 	protected $defaultDoc = 'index';	// Default document name
 	protected $userAgentInfo;			// Array of client characteristics 

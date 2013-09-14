@@ -1,4 +1,5 @@
 <?php 
+namespace ccPhp;
 
 /**
  * This is a page renderer of sorts; it is a controller; but it is a controller

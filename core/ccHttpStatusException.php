@@ -1,4 +1,5 @@
 <?php
+namespace ccPhp;
 /**
  * @package ccPhp
  *
@@ -13,7 +14,7 @@
  * the render handler of the ccPageInterface, rather than throwing this
  * exception as a 404.
  */
-class ccHttpStatusException extends Exception
+class ccHttpStatusException extends \Exception
 {
 	protected $status;
 	protected $location;	// For 30x redirections exceptions

@@ -1,4 +1,5 @@
 <?php 
+namespace ccPhp;
 /** 
  * File: ccSimpleController
  * Simply dispatches to a method based on the first component of the URL...

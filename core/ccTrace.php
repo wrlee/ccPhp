@@ -1,5 +1,4 @@
 <?php
-
 /**
  * This is an example (and default case) for a class that performs logging. It 
  * is attached to, but loosely coupled from the ccApp class. 
@@ -9,6 +8,8 @@
  *
  * @package ccPhp
  */
+namespace ccPhp;
+
 list ($bb,  $eb,   $bi,  $ei,   $btt,  $ett,   $rarr,   $ldquo,   $rdquo,   $hellip,   $nbsp,   $nl,            $bred,               $ered) =
 array('<b>','</b>','<i>','</i>','<tt>','</tt>','&rarr;','&ldquo;','&rdquo;','&hellip;','&nbsp;','<br/>'.PHP_EOL,'<font color="red">','</font>');
 

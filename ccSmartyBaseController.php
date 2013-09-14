@@ -1,4 +1,5 @@
 <?php 
+namespace ccPhp;
 /**
  * This controller processes page requests that map to Smarty templates. By 
  * default, this does not assume the Smarty object should be created. This gives

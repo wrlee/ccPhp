@@ -3,6 +3,8 @@
  * ccPhp Support for Smarty integration.
  * @package Smarty
  */
+namespace ccPhp;
+use \Smarty;
 
 /**
  * ccSmarty derives the base Smarty class to add features for integration with ccPhp.

@@ -5,6 +5,7 @@
  * @todo Add optional parameter to describe how to getMethodFromRequest() 
  * 		 to adorn the method name that corresponds to the path component.
  */
+namespace ccPhp;
 
 /**
  * Classes based on this class render implement page rendering in methods,
@@ -57,7 +58,7 @@ abstract class ccController
 													// Check that method exists
 		if (method_exists( $this, $action ))		// If method exists
 		{											//   check that it's public
-			$refl = new ReflectionMethod($this, $action);
+			$refl = new \ReflectionMethod($this, $action);
 			if ($refl->isPublic()) 					// Handlers must be public
 			{
 				$request->shiftUrlPath();			// Swallow parsed component

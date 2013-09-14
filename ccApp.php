@@ -49,7 +49,10 @@
  * 			- Added createWorkingDir()
  * 2013-09-12 Remove getPage()
  */	
-//******************************************************************************
+//******************************************************************************\
+namespace ccPhp;
+use ccPhp\ccTrace;
+
 // [BEGIN] Portability settings
 // @see http://www.php.net/manual/en/function.phpversion.php 
 // @see http://www.php.net/manual/en/reserved.constants.php#reserved.constants.core
@@ -86,7 +89,7 @@ if (PHP_VERSION_ID < 50400) {
 	 */
 	function session_status()
 	{
-		return session_id() === '' ? PHP_SESSION_NONE : PHP_SESSION_ACTIVE;
+		return \session_id() === '' ? PHP_SESSION_NONE : PHP_SESSION_ACTIVE;
 	}
 }
 unset($_version);	// Not needed any longer
@@ -103,7 +106,7 @@ unset($_version);	// Not needed any longer
  * @todo Consider that flags can be user defined, with some pre-defined meanings.
  */
 class ccApp
-	implements Serializable
+	implements \Serializable
 {
 	const MODE_DEBUG		= 1;	//* Debugging output
 	const MODE_INFO			= 6;	//* PHP info msgs
@@ -161,16 +164,34 @@ class ccApp
 	 */
 	public static function _autoload($className)
 	{
-		$classFilename = str_replace('_', DIRECTORY_SEPARATOR, $className).'.php';
-											// Check instance specific autoload
+// echo __METHOD__.'#'.__LINE__."($className) ".__NAMESPACE__.' '.__CLASS__. " <br>";
 		if (self::$_me && method_exists(self::$_me,'autoload'))
 		{
 			self::$_me->autoload($className); // Using spl_autoload_register()?
 		}
+// echo '<pre>';
+// var_dump(debug_backtrace());
+// echo '</pre>';
+											// Check instance specific autoload
 		if (!class_exists($className))		// Check framework directories
 		{
+			if (__NAMESPACE__ != '')
+			{
+				$className = explode('\\', $className);
+// echo '<pre>';
+// var_dump($className);
+// echo '</pre>';
+				// If __NAMESPACE__ in effect and namespace is not in effect 
+				// or no NS specified, return (not request a ccFramework class)
+				if ( $className[0] != __NAMESPACE__ || count($className) < 2)
+					return;
+				$className = end($className);
+			}
+			$classFilename = str_replace('_', DIRECTORY_SEPARATOR, $className).'.php';
+// echo __METHOD__.'#'.__LINE__."($className) ".ccApp::getFrameworkPath() . 'core' . DIRECTORY_SEPARATOR .$classFilename. " <br>";
 			if (file_exists(ccApp::getFrameworkPath() . 'core' . DIRECTORY_SEPARATOR .$classFilename)) 
 			{
+// echo __METHOD__.'#'.__LINE__."($className) ".ccApp::getFrameworkPath() . 'core' . DIRECTORY_SEPARATOR .$classFilename. " <br>";
 				include(ccApp::getFrameworkPath() . 'core' . DIRECTORY_SEPARATOR .$classFilename);
 			}
 			elseif (file_exists(ccApp::getFrameworkPath() . $classFilename)) 
@@ -896,8 +917,17 @@ EOD;
 	}
 } // class ccApp
 
-set_error_handler(Array('ccApp','onError'));
-set_exception_handler(Array('ccApp','onException'));
+// We are using spl_autoload_* features to simplify search for class files. If
+// the app has defined an __autoload() of their own without chaining it with
+// the spl_autoload_register() call, then this will add it automatically.
+if (function_exists('__autoload')) 
+{
+	spl_autoload_register('__autoload', true, true); 
+}
+spl_autoload_register(array(__NAMESPACE__.'\ccApp','_autoload'), true);
+
+set_error_handler(Array(__NAMESPACE__.'\ccApp','onError'));
+set_exception_handler(Array(__NAMESPACE__.'\ccApp','onException'));
 /*public function errorHandlerCallback($code, $string, $file, $line, $context) 
 {
 	$e = new Excpetion($string, $code);
@@ -912,6 +942,7 @@ set_exception_handler(Array('ccApp','onException'));
  * handling functions, e.g., fatal and parsing errors.
  * @todo Activate only for debug mode.
  */
+// register_shutdown_function(function ()
 function cc_onShutdown()
 {
     $err=error_get_last();
@@ -931,17 +962,9 @@ function cc_onShutdown()
 			return ccApp::onError($err['type'], $err['message'], $err['file'], $err['line'], $GLOBALS);
 	}
 //	trigger_error($err['message'],$err['type']);
-}
-register_shutdown_function('cc_onShutdown');
-
-// We are using spl_autoload_* features to simplify search for class files. If
-// the app has defined an __autoload() of their own without chaining it with
-// the spl_autoload_register() call, then this will add it automatically.
-if (function_exists('__autoload')) 
-{
-	spl_autoload_register('__autoload', true, true); 
-}
-spl_autoload_register(array('ccApp','_autoload'), true);
+};
+// });
+register_shutdown_function(__NAMESPACE__.'\cc_onShutdown');
 
 // Just because PHP doesn't support setting class-consts via expressions, had to 
 // create global consts :-(

@@ -1,4 +1,5 @@
 <?php
+use ccPhp\ccApp;
 /**
  * Decorate include spec with proper path info. 
  * @param type 		mime-type; usually optional

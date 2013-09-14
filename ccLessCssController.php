@@ -1,4 +1,6 @@
 <?php 
+namespace ccPhp;
+use \lessc;
 
 /**
  * @package ccPhp
