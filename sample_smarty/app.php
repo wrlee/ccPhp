@@ -17,6 +17,9 @@
  * function (which must be registered via spl_autoload_register())
  *
  */
+use ccPhp\ccApp;
+use ccPhp\ccTrace;
+use ccPhp\ccChainDispatcher;
 
 //****
 // 0. Create public, web-facing directory with index.php which includes this file.
@@ -76,8 +79,8 @@ class uspsApp extends ccApp
 		$dispatch = new ccChainDispatcher();		// Allocate before local.php inclusion
 		$dispatch									// Add controller pages to chain 
 			->addPage(new uspsAjaxController())		// Item view and claiming
-			->addPage(new ccSmartyController()) 	// Simple Smarty template support
-			->addPage(new ccLessCssController()) 	// Less CSS support
+			->addPage(new ccPhp\ccSmartyController()) 	// Simple Smarty template support
+			->addPage(new ccPhp\ccLessCssController()) 	// Less CSS support
 //			->addPage(new ccTreeController())
 //			->addPage('FacebookNotificationController')	// FB notifications
 //			->addPage('FacebookAppController')		// FB App (should be last)
@@ -141,7 +144,7 @@ ccTrace::tr('==='.$_SERVER['REMOTE_ADDR'].' '.(microtime(1)-$time).' createApp()
 // echo "</pre>";
 	
 $time=microtime(1);
-$request = new ccRequest();
+$request = new ccPhp\ccRequest();
 ccTrace::tr('==='.$_SERVER['REMOTE_ADDR'].' '.(microtime(1)-$time).' ccRequest()');
 
 ccTrace::log((isset($_SERVER['REMOTE_ADDR']) ? $_SERVER['REMOTE_ADDR'].' ' : '')
