@@ -124,10 +124,10 @@ class ccApp
 
 	protected $UrlOffset=NULL;			// Path from domain root for the site
 	protected $devMode = CCAPP_DEVELOPMENT;
-	protected $bDebug = FALSE; 			// Central place to hold debug status
+//	protected $bDebug = FALSE; 			// Central place to hold debug status
 	
 	protected $sitepath=NULL;			// Path to site specific files.
-	protected $temppath='var/';			// Path to working directory (for cache, etc)
+	protected $temppath='';				// Path to working directory (for cache, etc)
 	
 	protected $page=NULL; 				// Main page object for app
 	protected $error404 = NULL;			// External ccPageInterface to render errors.
@@ -154,10 +154,9 @@ class ccApp
 	} // __construct()
 
 	/**
-	 * Search for class definition from framework folder. 
-	 * If there is an
-	 * instance of the app, call its autoload first where site specific searches
-	 * will take precedence. 
+	 * Search for class definition from framework folders. 
+	 * If there is an instance of the app, call its autoload first where 
+	 * site specific searches will take precedence. 
 	 *
 	 * This method is appropriate to call this from __autoload() or 
 	 * register via spl_autoload_register()
@@ -175,29 +174,22 @@ class ccApp
 											// Check instance specific autoload
 		if (!class_exists($className))		// Check framework directories
 		{
-			if (__NAMESPACE__ != '')
+			if (__NAMESPACE__ != '' && __NAMESPACE__ == substr($className, 0, strlen(__NAMESPACE__)))
 			{
 				$className = explode('\\', $className);
-// echo '<pre>';
-// var_dump($className);
-// echo '</pre>';
-				// If __NAMESPACE__ in effect and namespace is not in effect 
-				// or no NS specified, return (not request a ccFramework class)
-				if ( $className[0] != __NAMESPACE__ || count($className) < 2)
-					return;
-				$className = end($className);
+//				// If __NAMESPACE__ in effect and namespace is not part of name 
+//				// or no NS specified, return (not request a ccFramework class)
+//				if ( $className[0] != __NAMESPACE__ || count($className) < 2)
+//					return;
+				$className = end($className);	// Use only classname of this f/w
 			}
-			$classFilename = str_replace('_', DIRECTORY_SEPARATOR, $className).'.php';
+//			$classFilename = str_replace('_', DIRECTORY_SEPARATOR, $className).'.php';
+			$classFilename = $className.'.php';
 // echo __METHOD__.'#'.__LINE__."($className) ".ccApp::getFrameworkPath() . 'core' . DIRECTORY_SEPARATOR .$classFilename. " <br>";
 			if (file_exists(ccApp::getFrameworkPath() . 'core' . DIRECTORY_SEPARATOR .$classFilename)) 
-			{
-// echo __METHOD__.'#'.__LINE__."($className) ".ccApp::getFrameworkPath() . 'core' . DIRECTORY_SEPARATOR .$classFilename. " <br>";
 				include(ccApp::getFrameworkPath() . 'core' . DIRECTORY_SEPARATOR .$classFilename);
-			}
 			elseif (file_exists(ccApp::getFrameworkPath() . $classFilename)) 
-			{
 				include(ccApp::getFrameworkPath() . $classFilename);
-			}
 		}
 	} // _autoload()
 
@@ -347,7 +339,7 @@ class ccApp
 	 * @param string $dir Directory name (relative to site-path), if not an 
 	 *		  absolute path.
 	 *
-	 * @returns string Semi-normalized path name (suffixed with '/' prefixed w/
+	 * @return string Semi-normalized path name (suffixed with '/' prefixed w/
 	 *			site-path.
 	 * @todo Accept array of directory names (to move common code here)
 	 */
@@ -381,8 +373,9 @@ class ccApp
 	/**
 	 * This method is called to render pages for the web site. It invokes the 
 	 * "main page" (which is usually a dispatcher or controller) to render 
-	 * content. If no content is rendered (i.e., the page's render() method
-	 * returns FALSE, then 404 handling is invoked. 
+	 * content. If render() returns false, implies no content is rendered then
+	 * 404, Page Not Found. handling is invoked. 
+	 * @throws ccHttpStatusException If false, since this is the end of the line.
 	 */
 	public function dispatch(ccRequest $request)
 	{
@@ -587,7 +580,7 @@ class ccApp
 		
 	/**
 	 * Get the part of the URL which points to the root of this app, i.e., the 
-	 *         start of where this app resides. 
+	 * start of where this app resides. 
 	 * @return string The URI
 	 * @see getUrlOffset()
 	 * @todo Handle case where URL does not have a scheme
@@ -659,10 +652,10 @@ class ccApp
 	 */
 	private function initUrlOffset()
 	{
-		$component = dirname($_SERVER['SCRIPT_NAME']);
-		if ($component != '/') 
-			$component .= '/';
-		$this->UrlOffset = $component;
+		$UrlOffset = dirname($_SERVER['SCRIPT_NAME']);
+		if ($UrlOffset != '/') 
+			$UrlOffset .= '/';
+		$this->UrlOffset = $UrlOffset;
 	} // initUrlOffset()
 		
 	/**
@@ -674,7 +667,7 @@ class ccApp
 	 */
 	public function setWorkingDir($dir)
 	{
-		if ( substr($dir, -1) != DIRECTORY_SEPARATOR )	// Ensure suffixed w/'/'
+		if ( $dir != '' && substr($dir, -1) != DIRECTORY_SEPARATOR )	// Ensure suffixed w/'/'
 			$dir .= DIRECTORY_SEPARATOR;
 		$this->createAppDir($dir);
 		$this->temppath = $dir;
@@ -687,7 +680,9 @@ class ccApp
 	 */
 	public function getWorkingPath()
 	{
-		return $this->sitepath.$this->temppath;
+		return ($this->temppath[0] == DIRECTORY_SEPARATOR) 
+				? $this->temppath 
+				: $this->sitepath.$this->temppath;
 	}
 
 	/**
@@ -726,6 +721,7 @@ class ccApp
 	 * @todo Consider throwing exception (caveat, flow of control does not continue)
 	 * @todo Add distinction between dev and production modes of output.
 	 * @todo Consider moving to separate Trace class
+	 * @todo Display error to page based on display_errors setting
 	 */
 	static function onError($errno, $errstr, $errfile, $errline, $errcontext)
 	{
@@ -907,7 +903,7 @@ EOD;
 		$this->config = $temp->config;
 		$this->UrlOffset = $temp->UrlOffset;
 		$this->devMode = $temp->devMode;
-		$this->bDebug = $temp->bDebug;
+//		$this->bDebug = $temp->bDebug;
 		$this->sitepath = $temp->sitepath;
 		$this->temppath = $temp->temppath;
 		$this->page = $temp->page;
