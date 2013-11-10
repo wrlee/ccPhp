@@ -3,7 +3,8 @@
  *
  * @package ccPhp
  */
-namespace ccPhp;
+namespace ccPhp\core;
+use ccPhp\ccApp;
 
 /*
  * 2010-10-23 Better handling of path parsing into components and document values

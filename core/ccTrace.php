@@ -8,7 +8,7 @@
  *
  * @package ccPhp
  */
-namespace ccPhp;
+namespace ccPhp\core;
 
 list ($bb,  $eb,   $bi,  $ei,   $btt,  $ett,   $rarr,   $ldquo,   $rdquo,   $hellip,   $nbsp,   $nl,            $bred,               $ered) =
 array('<b>','</b>','<i>','</i>','<tt>','</tt>','&rarr;','&ldquo;','&rdquo;','&hellip;','&nbsp;','<br/>'.PHP_EOL,'<font color="red">','</font>');
@@ -249,7 +249,7 @@ array('<b>','</b>','<i>','</i>','<tt>','</tt>','&rarr;','&ldquo;','&rdquo;','&he
 	 * @param string $path Matching root path to display (ignore stack entries
 	 *        that do not match in order to show only "app" sources).
 	 *
-	 * [filename][ [class{::|->}[{function}()][#{line#}]
+	 * @return  string Caller [filename][ [class{::|->}[{function}()][#{line#}]
 	 */
 	static function getCaller($traceOffset = 1, $path=NULL)
 	{

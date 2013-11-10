@@ -50,9 +50,7 @@
  * 2013-09-12 Remove getPage()
  */	
 //******************************************************************************\
-namespace ccPhp;
-use ccPhp\ccTrace;
-
+namespace {
 // [BEGIN] Portability settings
 // @see http://www.php.net/manual/en/function.phpversion.php 
 // @see http://www.php.net/manual/en/reserved.constants.php#reserved.constants.core
@@ -78,13 +76,14 @@ if (PHP_VERSION_ID < 50400) {
 		}
 		define('E_DEPRECATED', 8092);
 		define('E_USER_DEPRECATED', 16384);
+		define('__DIR__', dirname(__FILE__));
 	}			
 	define('PHP_SESSION_DISABLED',0);
 	define('PHP_SESSION_NONE',1);
 	define('PHP_SESSION_ACTIVE',2);
 	/**
-	 * Return status of session. Built-in available in 5.4
-	 * @return int enum of status
+	 * Return $status of session. Built-in available in 5.4
+	 * @return int enum of $status
 	 * @see php.net
 	 */
 	function session_status()
@@ -94,6 +93,13 @@ if (PHP_VERSION_ID < 50400) {
 }
 unset($_version);	// Not needed any longer
 // [END] Portability settings
+} // namespace
+namespace ccPhp {
+// include 'ccPhp.inc';
+use ccPhp\core\ccTrace;
+use ccPhp\core\ccRequest;
+use ccPhp\core\ccPageInterface;
+
 //******************************************************************************
 
 /**
@@ -120,7 +126,7 @@ class ccApp
 	
 	protected static $_me=NULL;			// Singleton ref to $this
 
-	protected $config=Array();			// Configuration array
+//	protected $config=Array();			// Configuration array
 
 	protected $UrlOffset=NULL;			// Path from domain root for the site
 	protected $devMode = CCAPP_DEVELOPMENT;
@@ -133,6 +139,7 @@ class ccApp
 	protected $error404 = NULL;			// External ccPageInterface to render errors.
 										// The following are rel to sitepath:
 	protected $classpath=array();		// List of site paths to search for classes
+//	protected $classLoader=NULL;		// SplClassLoader reference
 		
 	protected $current_request; 		// Remember current request
 
@@ -143,7 +150,9 @@ class ccApp
 	{
 		self::$_me=$this;
 		$callstack = (PHP_VERSION_ID < 50400) ? debug_backtrace(0) : debug_backtrace(0,2);
-		foreach ($callstack as $caller) 
+
+		// Hack: look up the call-stack to pull 1st arg from createApp()
+		foreach ($callstack as $caller)	
 			if ($caller['function'] == 'createApp') 
 			{
 				$this->sitepath = $caller['args'][0];
@@ -168,9 +177,11 @@ class ccApp
 		{
 			self::$_me->autoload($className); // Using spl_autoload_register()?
 		}
+// if (strpos($className, 'ccTrace') > 0) {
 // echo '<pre>';
 // var_dump(debug_backtrace());
 // echo '</pre>';
+// }
 											// Check instance specific autoload
 		if (!class_exists($className))		// Check framework directories
 		{
@@ -185,11 +196,11 @@ class ccApp
 			}
 //			$classFilename = str_replace('_', DIRECTORY_SEPARATOR, $className).'.php';
 			$classFilename = $className.'.php';
-// echo __METHOD__.'#'.__LINE__."($className) ".ccApp::getFrameworkPath() . 'core' . DIRECTORY_SEPARATOR .$classFilename. " <br>";
-			if (file_exists(ccApp::getFrameworkPath() . 'core' . DIRECTORY_SEPARATOR .$classFilename)) 
-				include(ccApp::getFrameworkPath() . 'core' . DIRECTORY_SEPARATOR .$classFilename);
-			elseif (file_exists(ccApp::getFrameworkPath() . $classFilename)) 
-				include(ccApp::getFrameworkPath() . $classFilename);
+// echo __METHOD__.'#'.__LINE__."($className) ".self::getFrameworkPath() . 'core' . DIRECTORY_SEPARATOR .$classFilename. " <br>";
+			if (file_exists(self::getFrameworkPath() . 'core' . DIRECTORY_SEPARATOR .$classFilename)) 
+				include(self::getFrameworkPath() . 'core' . DIRECTORY_SEPARATOR .$classFilename);
+			elseif (file_exists(self::getFrameworkPath() . $classFilename)) 
+				include(self::getFrameworkPath() . $classFilename);
 		}
 	} // _autoload()
 
@@ -256,7 +267,7 @@ class ccApp
 	{
 		$classFilename = str_replace('_', DIRECTORY_SEPARATOR, $className).'.php';
 // global $bb,$eb, $bi,$ei, $btt,$ett, $rarr,$ldquo,$rdquo,$hellip,$nbsp,$nl;
-// ccTrace::s_out( '#'.__LINE__.' '.ccTrace::getCaller(0,dirname(ccApp::getApp()->getAppPath())).': '.$className." $rarr ".$classFilename.$nl);
+// ccTrace::s_out( '#'.__LINE__.' '.ccTrace::getCaller(0,dirname(self::getApp()->getAppPath())).': '.$className." $rarr ".$classFilename.$nl);
 // ccTrace::s_out( '#'.__LINE__.' '.ccTrace::getCaller(3).': '.$className." $rarr ".$classFilename.$nl);
 // echo '#'.__LINE__.' '.$className." $rarr ".$classFilename.$nl;
 // self::tr('&nbsp;&nbsp;&nbsp;'.$this->sitepath.$classFilename);
@@ -410,33 +421,33 @@ class ccApp
 		}
 	} // dispatch()
 
-	/**
-	 * A place to get/set settings that should be accessible across the application
-	 * @param string $name Name of value to return.
-	 *
-	 * @see set()
-	 * @todo Option to automatically save in session, dependent on dev mode.
-	 */
-	public function get($name, $default=NULL)
-	{
-		if (!isset($this->config[$name]))	// If not set,
-			$this->set($name, $default);	//   set to default
-		return $this->config[$name];		// and return value.
-	} // get()
-	/**
-	 * A place to get/set settings that should be accessible across the application
-	 * @param string $name Name of value to set (names starting with an underscore
-	 *                     are reserved for "internal use" and should be avoided).
-	 * @param mixed $value Value associated with $name.
-	 *
-	 * @see get()
-	 * @todo Option to automatically save in session, dependent on dev mode.
-	 */
-	public function set($name, $value)
-	{
-		$this->config[$name] = $value;
-		return $this;
-	} // set()
+//	/**
+//	 * A place to get/set settings that should be accessible across the application
+//	 * @param string $name Name of value to return.
+//	 *
+//	 * @see set()
+//	 * @todo Option to automatically save in session, dependent on dev mode.
+//	 */
+//	public function get($name, $default=NULL)
+//	{
+//		if (!isset($this->config[$name]))	// If not set,
+//			$this->set($name, $default);	//   set to default
+//		return $this->config[$name];		// and return value.
+//	} // get()
+//	/**
+//	 * A place to get/set settings that should be accessible across the application
+//	 * @param string $name Name of value to set (names starting with an underscore
+//	 *                     are reserved for "internal use" and should be avoided).
+//	 * @param mixed $value Value associated with $name.
+//	 *
+//	 * @see get()
+//	 * @todo Option to automatically save in session, dependent on dev mode.
+//	 */
+//	public function set($name, $value)
+//	{
+//		$this->config[$name] = $value;
+//		return $this;
+//	} // set()
 
 	/**
 	 * Handle 404 (page not found errors).
@@ -703,7 +714,7 @@ class ccApp
 		<h1>404 Not Found</h1>
 		This is not the page you are looking for.<hr/>
 		<?php 
-		if ($this->getDevMode() & CCAPP_DEVELOPMENT)
+		if ($this->getDevMode() & self::MODE_TRACEBACK)
 		{
 			$trace = debug_backtrace();		// Get whole stack list
 			array_shift($trace);			// Ignore this function
@@ -758,7 +769,7 @@ class ccApp
 			$msg = "$bb$bred$errortype[$errno]$ered: $errstr$eb$nl"
 //				 . "        in $errfile#$errline"; 
 				 . "        in ".ccTrace::fmtPath($errfile,$errline); 
-			$self = ccApp::getApp();
+			$self = self::getApp();
 			if ($self)					// In case this is invoked before constructor
 				switch ($errno) 
 				{
@@ -766,18 +777,18 @@ class ccApp
 					case E_ERROR:
 					case E_PARSE:
 					case E_USER_ERROR:
-						if ( ! ($self->devMode & ccApp::MODE_ERR) ) break;
+						if ( ! ($self->devMode & self::MODE_ERR) ) break;
 						$errno = E_ERROR;		// Normalize for next step
 					case E_WARNING:
 					case E_USER_WARNING:
 					case E_RECOVERABLE_ERROR:
-						if ( ! ( $errno == E_ERROR || $self->devMode & ccApp::MODE_WARN ) ) break;
+						if ( ! ( $errno == E_ERROR || $self->devMode & self::MODE_WARN ) ) break;
 						$errno = E_WARNING; 	// Normalize for next step
 					case E_NOTICE:
 					case E_USER_NOTICE:
 					case E_DEPRECATED:
 					case E_USER_DEPRECATED:
-						if ( ! ( $errno == E_WARNING || $self->devMode & ccApp::MODE_INFO ) ) break;
+						if ( ! ( $errno == E_WARNING || $self->devMode & self::MODE_INFO ) ) break;
 						echo "$msg<br/>";
 						break;
 					default:
@@ -900,7 +911,7 @@ EOD;
 	{
 		self::$_me = $this;
 		$temp = unserialize($serialized);
-		$this->config = $temp->config;
+//		$this->config = $temp->config;
 		$this->UrlOffset = $temp->UrlOffset;
 		$this->devMode = $temp->devMode;
 //		$this->bDebug = $temp->bDebug;
@@ -921,6 +932,11 @@ if (function_exists('__autoload'))
 	spl_autoload_register('__autoload', true, true); 
 }
 spl_autoload_register(array(__NAMESPACE__.'\ccApp','_autoload'), true);
+
+//set_include_path(get_include_path().PATH_SEPARATOR.__DIR__);
+// require dirname(__DIR__).DIRECTORY_SEPARATOR.'SplClassLoader.php';
+// $classLoader = new \SplClassLoader(__NAMESPACE__, dirname(__DIR__));
+// $classLoader->register();
 
 set_error_handler(Array(__NAMESPACE__.'\ccApp','onError'));
 set_exception_handler(Array(__NAMESPACE__.'\ccApp','onException'));
@@ -958,7 +974,7 @@ function cc_onShutdown()
 			return ccApp::onError($err['type'], $err['message'], $err['file'], $err['line'], $GLOBALS);
 	}
 //	trigger_error($err['message'],$err['type']);
-};
+}
 // });
 register_shutdown_function(__NAMESPACE__.'\cc_onShutdown');
 
@@ -966,4 +982,5 @@ register_shutdown_function(__NAMESPACE__.'\cc_onShutdown');
 // create global consts :-(
 define('CCAPP_DEVELOPMENT',(ccApp::MODE_DEBUG|ccApp::MODE_INFO|ccApp::MODE_WARN|ccApp::MODE_ERR|ccApp::MODE_TRACEBACK|ccApp::MODE_REVEAL));
 define('CCAPP_PRODUCTION',(ccApp::MODE_CACHE*2)|ccApp::MODE_CACHE);
+} // ccPhp
 

@@ -2,6 +2,9 @@
 namespace ccPhp;
 use \lessc;
 
+use ccPhp\core\ccPageInterface;
+use ccPhp\core\ccRequest;
+
 /**
  * @package ccPhp
  * @todo  Add settings for enable/disabling caching
@@ -49,11 +52,12 @@ class ccLessCssController
 			return false;
 
 		$file = $request->getTrueFilename();
+ccTrace::tr($file);
 		$ifile = pathinfo($file, PATHINFO_FILENAME).'.less';
 
 		$cache = $this->autoCompileLess($ifile /*,$this->working_dir.$this->compile_dir.$file*/);
 
-		if ($cache == NULL)	// No valid less source.
+		if (is_null($cache))// No valid less source.
 			return false;	// 404
 
 		$tz = date_default_timezone_get ();
@@ -127,6 +131,7 @@ class ccLessCssController
 		if (!is_array($cache) || $newCache["updated"] > $cache["updated"]) 
 		{
 			ccTrace::tr($cacheFile);
+			ccTrace::tr($newCache);
 			file_put_contents($cacheFile, serialize($newCache));
 			if ($outputFile)
 				file_put_contents($outputFile, $newCache['compiled']);
