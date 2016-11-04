@@ -1,8 +1,8 @@
 <?php 
-namespace ccPhp;
+//!namespace ccPhp;
 
 // use ccPhp\ccController;
-use ccPhp\core\ccRequest;
+//! use ccPhp\core\ccRequest;
 
 /** 
  * File: ccSimpleController
@@ -50,13 +50,18 @@ abstract class ccSimpleController
 			ccApp::getApp()->redirect($request->getUrl().'/'.($request->getQueryString() ? '?'.$request->getQueryString() : ''),301);
 
 		$method = $this->getMethodFromRequest($request);
+
 		if ( $method )
 		{
 			if (method_exists($this,'begin'))
 				if (!call_user_func(array($this,'begin'), $request))
 					return FALSE;
 					
-			return call_user_func(array($this,$method),$request);
+			$rc = call_user_func(array($this,$method),$request);
+
+			if ($rc && method_exists($this,'after'))
+				call_user_func(array($this,'after'), $request);
+			return $rc;
 		}
 		elseif (method_exists($this,'notfound'))
 		{
@@ -64,7 +69,11 @@ abstract class ccSimpleController
 				if (!call_user_func(array($this,'begin'), $request))
 					return FALSE;
 					
-			return call_user_func(array($this,'notfound'), $request);
+			$rc = call_user_func(array($this,'notfound'), $request);
+
+			if ($rc && method_exists($this,'after'))
+				call_user_func(array($this,'after'), $request);
+			return $rc;
 		}
 		else
 			return NULL;		// Method not found.

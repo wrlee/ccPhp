@@ -1,5 +1,5 @@
 <?php
-namespace ccPhp;
+//!namespace ccPhp;
 /**
  * @package ccPhp
  *

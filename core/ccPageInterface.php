@@ -1,6 +1,6 @@
 <?php 
 
-namespace ccPhp\core;
+//!namespace ccPhp\core;
 
 /**
  * This interface represents an object that can render a page, callable by the 

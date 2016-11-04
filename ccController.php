@@ -5,9 +5,9 @@
  * @todo Add optional parameter to describe how to getMethodFromRequest() 
  * 		 to adorn the method name that corresponds to the path component.
  */
-namespace ccPhp;
-use ccPhp\core\ccPageInterface;
-use ccPhp\core\ccRequest;
+//!namespace ccPhp;
+//!use ccPhp\core\ccPageInterface;
+//!use ccPhp\core\ccRequest;
 
 /**
  * Classes based on this class render implement page rendering in methods,

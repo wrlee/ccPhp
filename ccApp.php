@@ -94,11 +94,12 @@ if (PHP_VERSION_ID < 50400) {
 unset($_version);	// Not needed any longer
 // [END] Portability settings
 } // namespace
-namespace ccPhp {
+namespace //! ccPhp 
+{
 // include 'ccPhp.inc';
-use ccPhp\core\ccTrace;
-use ccPhp\core\ccRequest;
-use ccPhp\core\ccPageInterface;
+//!use ccPhp\core\ccTrace;
+//!use ccPhp\core\ccRequest;
+//!use ccPhp\core\ccPageInterface;
 
 //******************************************************************************
 
@@ -710,7 +711,7 @@ class ccApp
 		}
 		?>
 		<html><body><hr/>
-		<?php print $_SERVER['SCRIPT_URI'] ?>
+		<?php print $request->getUrl() ?>
 		<h1>404 Not Found</h1>
 		This is not the page you are looking for.<hr/>
 		<?php 

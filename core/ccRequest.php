@@ -3,8 +3,8 @@
  *
  * @package ccPhp
  */
-namespace ccPhp\core;
-use ccPhp\ccApp;
+//!namespace ccPhp\core;
+//!use ccPhp\ccApp;
 
 /*
  * 2010-10-23 Better handling of path parsing into components and document values
@@ -63,10 +63,13 @@ class ccRequest implements \ArrayAccess, \IteratorAggregate
 		$this->userAgentInfo = $this->parseUserAgent();
 //		ccTrace::tr($this->userAgentInfo);
 		// Set values based on path.
-		$url = $URI ? $URI : isset($_SERVER['REDIRECT_SCRIPT_URI']) 
-			? $_SERVER['REDIRECT_SCRIPT_URI']
-			: $_SERVER['SCRIPT_URI'];
+		$url = $URI ? $URI : $this->getUrl();
 		$this->parseUrl($url);
+/*		echo '<pre>';
+		echo $url . PHP_EOL;
+		print_r($this->components);
+		echo '</pre>';
+*/
 	} // __construct()
 
 	function getDefaultDocument()
@@ -128,7 +131,9 @@ class ccRequest implements \ArrayAccess, \IteratorAggregate
 	{
 		return isset($_SERVER['REDIRECT_SCRIPT_URI']) 
 			? $_SERVER['REDIRECT_SCRIPT_URI']
-			: $_SERVER['SCRIPT_URI'];
+			: isset($_SERVER['SCRIPT_URI'])
+			  ? $_SERVER['SCRIPT_URI']
+			  : $_SERVER['REQUEST_SCHEME'].'://'.$_SERVER['SERVER_NAME'].($_SERVER['SERVER_PORT'] != 80 ? ':'.$_SERVER['SERVER_PORT'] : '').preg_replace('/\?.*$/','',$_SERVER['REQUEST_URI']);
 	} // getUrl()
 
 	function getUrlPort() 
@@ -155,7 +160,9 @@ class ccRequest implements \ArrayAccess, \IteratorAggregate
 	 */
 	function getUrlScheme() 
 	{
-		$scheme = substr($_SERVER['SCRIPT_URI'],0,strpos($_SERVER['SCRIPT_URI'],':'));
+		$scheme = isset($_SERVER['REQUEST_SCHEME']) 
+					? $_SERVER['REQUEST_SCHEME']
+					: substr($_SERVER['SCRIPT_URI'],0,strpos($_SERVER['SCRIPT_URI'],':'));
 //		$scheme = strstr($_SERVER['SCRIPT_URI'],':',true); // PHP 5.3+
 		return $scheme;
 	} // getUrlScheme()
@@ -216,7 +223,8 @@ class ccRequest implements \ArrayAccess, \IteratorAggregate
 	}
 	function isIE()
 	{
-		return $this->userAgentInfo['Browser'] == 'IE';
+		return isset($this->userAgentInfo['browser']) && $this->userAgentInfo['browser'] == 'IE' 
+			|| isset($this->userAgentInfo['Browser']) && $this->userAgentInfo['Browser'] == 'IE';
 	}
 
 	function isMobile()
@@ -225,17 +233,18 @@ class ccRequest implements \ArrayAccess, \IteratorAggregate
 	}
 	function isiOS()
 	{
-		return $this->userAgentInfo['Platform'] == 'iPhone OSX' 
+		return isset($this->userAgentInfo['Platform'])  && $this->userAgentInfo['Platform']
+			|| isset($this->userAgentInfo['Platform']) && $this->userAgentInfo['Platform'] == 'iPhone OSX' 
 			|| $this->isiPhone() 
 			|| $this->isiPad();
 	}
 	function isiPad()
 	{
-		return $this->userAgentInfo['Browser'] == 'iPad';
+		return isset($this->userAgentInfo['Browser']) && $this->userAgentInfo['Browser'] == 'iPad';
 	}
 	function isiPhone()
 	{
-		return $this->userAgentInfo['Browser'] == 'iPhone';
+		return isset($this->userAgentInfo['Browser']) && $this->userAgentInfo['Browser'] == 'iPhone';
 	}
 	function isSecure()
 	{
@@ -253,6 +262,11 @@ class ccRequest implements \ArrayAccess, \IteratorAggregate
 	 */
 	protected function parseUserAgent()
 	{
+		try {
+			return get_browser(NULL, TRUE);
+		}
+		catch (Exception $e) {
+
 		$sessActive = (session_status() == PHP_SESSION_ACTIVE);
 	    $agent = $this->getUserAgent();
 //	    ccTrace::tr($agent);
@@ -303,6 +317,8 @@ class ccRequest implements \ArrayAccess, \IteratorAggregate
 	    if ( !$sessActive )			// Session wasn't running
 	    	session_commit();		//   So turn back off
 		return $hu;					// Return browser info array
+
+		} // catch
 	} // parseUserAgent()
 
 	/**
@@ -347,6 +363,8 @@ class ccRequest implements \ArrayAccess, \IteratorAggregate
 		$path = substr($path, strlen(ccApp::getApp()->getUrlOffset()));
 
 		$this->components = explode('/',$path);
+		if (count($this->components) > 1 && !$this->components[0])	// If leading '/' causes empty 1st entry
+			array_shift($this->components);							//   ignore it.
 
 								// Determine format requested
 		if (isset($pathinfo['extension'])) 
@@ -403,6 +421,7 @@ class ccRequest implements \ArrayAccess, \IteratorAggregate
 		$this->properties['truename'] = $this->getTrueFilename();
 		$this->properties['type'] = $this->getType();
 		$this->properties['method'] = $this->getHttpMethod();
+		$this->properties['url_path'] = implode(DIRECTORY_SEPARATOR, $this->getUrlPath());
 	} // initProperties()
 	
 	/***************************************************************************

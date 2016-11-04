@@ -1,7 +1,7 @@
 <?php 
-namespace ccPhp\core;
-use ccPhp\core\ccPageInterface;
-use ccPhp\core\ccRequest;
+//!namespace ccPhp\core;
+//!use ccPhp\core\ccPageInterface;
+//!use ccPhp\core\ccRequest;
 
 /**
  * This is a page renderer of sorts; it is a controller; but it is a controller
