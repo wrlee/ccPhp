@@ -656,6 +656,7 @@ class ccApp
 	{
 		if (!$this->UrlOffset)			// If not set, 
 			$this->initUrlOffset(); 	//    Ensure init'd 
+// echo __METHOD__.'#'.__LINE__.' "'.$this->UrlOffset.'"<br/>';
 		return $this->UrlOffset;
 	} // getUrlOffset()
 	/**

@@ -30,9 +30,37 @@ Getting Started
 4. Pick a primary controller as the base-class for your app's core functionality. You might derive from **ccSimpleController**, to start. Add methods whose names correspond to URL path names. Each method outputs content for the corresponding paths. Each method should return TRUE if it handled the URL. 
 5. Add an instance of the new class to the app.cpp so that the class will get control when a request arrives. 
 
+Output and Debugging
+--------------------
+Development builds can be pretty noisy. But it is a pain to have to remove all the diagnostic output when moving to production; then more of a pain to add them back in, if there there a problem discovered. The framework helps to control whether and where diagnostic output should go, without making a lot of source code changes to add/delete debugging code. 
+
+* Logging 
+* Debugging statements 
+* PHP errors and tracbacks
+
+Output can be included in the output content--which is convenient during development. The output can be formatted for HTML output or output as plain text--depending on how the output will be viewed. It can also be redirected to log files with a simple setting. The default is to output as HTML within the content output, to allow getting started, easily.
+
+* Generating Output
+* Controlling Output
+
+*Setup, usage & viewing [to be completed]*
+
+**ccTrace** class
+
+    tail -f .var/log/project.log
+
+Configuration
+-------------
+The idea of the framework is to get you up and running as quick as possible, then as you find a need to refine, the features are there to suppor that. As such, there are several defaults that you may want to override. 
+
+* **ccApp::setWorkingDir()** By default, the framework creates a directory in the root of the application code called '.var'. This is where the application can put "disposable" files (e.g., temporary files, cache files, etc.). You can retrieve the directory with **ccApp::getWorkingDir()**. 
+* **ccApp::setDevMode()** This contains flags which the framework uses to determine whether to output content. It has other flags which are dedicated to functionality as well. I'm still debating on what kinds of flags should be added.
+* **local.php** vs **production.php** There are files which might be dependent on the deployment of the app. And there may be reasons that some settings (e.g., database passwords) should not be exposed in the source management system (for all to see). For these reasons, it might be useful to follow the patter of having a custom files included, if avaiable, with those deploymennt specific settings. Then, when sources are updated, they should not break those settings. This is approach is shown in the sample **app.php**.
+
 TODO
 ====
 * Clean up requirements/complexity of app.php config file, moving more defaults to ccApp.com.
 * Redefine/simplify namespace usage to group all intended "public" classes to be under the same namespace. A separate namespace is for those who are augmenting the framework. And another namespace for "private" implementation.
 * Define an organization for components that are added (e.g., Smarty, LessCSS, etc.)
 * The namespace and "extras" may require a redefinition of how autoload() should work.
+* Consider adding a unified configuration mechanism to enable simple setting (and addition) of application specific values. This may not be necessary since such settings are easily added to the **app.php** file, programmatically (and that is consistent with its approach, anyway).
