@@ -388,7 +388,7 @@ class ccRequest implements \ArrayAccess, \IteratorAggregate
 		$path = $pathinfo['dirname'].'/'.$pathinfo['filename'];
 		$this->truename = $pathinfo['basename'];
 		$path = substr($path, strlen(ccApp::getApp()->getUrlOffset()));
-		var_dump($path);
+//		var_dump($path);
 // echo '</pre>';
 
 //		if (count($this->components) > 1 && !$this->components[0])	// If leading '/' causes empty 1st entry
