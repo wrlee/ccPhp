@@ -1,3 +1,7 @@
+Options -Indexes
+IndexOptions FancyIndexing
+IndexOptions NameWidth=*
+
 RewriteEngine On
 
 # if a directory or a file exists, use it directly

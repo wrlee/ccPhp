@@ -596,6 +596,7 @@ class ccApp
 	 * @return string The URI
 	 * @see getUrlOffset()
 	 * @todo Handle case where URL does not have a scheme
+	 * @todo Move to ccRequest
 	 */
 	function getRootUrl()
 	{

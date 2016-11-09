@@ -116,6 +116,33 @@ class ccRequest implements \ArrayAccess, \IteratorAggregate
 	}
 
 	/**
+	 * Get the part of the URL which points to the root of this app, i.e., the 
+	 * start of where this app resides. 
+	 * @return string The URI
+	 * @see getUrlOffset()
+	 * @todo Handle case where URL does not have a scheme
+	 */
+	function getRootUrl()
+	{
+		$path = $this->getUrl();
+			
+		$p = strpos($path,'//');	// Offset past the protocol scheme spec
+		if ($p === FALSE)			// No protocol scheme.
+		{							// Don't know what to do here... bad input.
+		}
+		else 								// Set $path to the part past the domain:port part
+		{									// suffixed with a '/'
+			$p = strpos($path,'/',$p+2);	// First path separator past the scheme
+			if ($p === FALSE)				// No '/': this app is at the root.
+				$path .= '/';				// Ensure it ends with a '/'
+			else 
+				$path = substr($path,0,$p+1);	// Ignore path after the domain portion.
+		}
+		
+		return $path . substr(ccApp::getApp()->getUrlOffset(),1);
+	} // getRootUrl()
+
+	/**
 	 * @returns Type of data to return (based on request), e.g., HTML, JSON, etc.
 	 */
 	function getType()
@@ -376,13 +403,14 @@ class ccRequest implements \ArrayAccess, \IteratorAggregate
 
 		$offset = self::len_of_common_initial($_SERVER['SCRIPT_NAME'],$_SERVER['REQUEST_URI']);
 		$this->components = $offset == -1 ? '/' : substr($_SERVER['REQUEST_URI'], $offset );
-// echo __FILE__.'#'.__LINE__;
+// echo __FILE__.'#'.__LINE__.PHP_EOL;
 // echo '<pre>';
 // var_dump($offset);
 // var_dump($_SERVER['REQUEST_URI']);
 // var_dump($_SERVER['SCRIPT_NAME']);
 // var_dump($this->components);
-		$this->components = array_filter(explode('/',$this->components));
+// var_dump(explode('/',$this->components));
+		$this->components = array_values(array_filter(explode('/',$this->components)));
 // var_dump($this->components);
 // print_r($_SERVER);
 		$path = $pathinfo['dirname'].'/'.$pathinfo['filename'];
