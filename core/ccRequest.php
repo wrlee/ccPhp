@@ -330,7 +330,7 @@ class ccRequest implements \ArrayAccess, \IteratorAggregate
 					$pat=preg_replace($q_s,$q_r,$k);
 					$yu['browser_name_regex']=strtolower("^$pat$");
 					foreach($brows as $g=>$r) {
-						if($t['Parent']==$g) {
+						if(isset($t['Parent']) && $t['Parent']==$g) {
 							foreach($brows as $a=>$b) {
 								if($r['Parent']==$a) {
 									$yu=array_merge($yu,$b,$r,$t);
