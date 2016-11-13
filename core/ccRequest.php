@@ -346,10 +346,14 @@ class ccRequest implements \ArrayAccess, \IteratorAggregate
 				}
 			}
 		}
-    	$_SESSION[$agent] = serialize($hu);
-	    if ( !$sessActive )			// Session wasn't running
-	    	session_commit();		//   So turn back off
-		return $hu;					// Return browser info array
+		if (isset($hu)) {
+			$_SESSION[$agent] = serialize($hu);
+			if ( !$sessActive )			// Session wasn't running
+				session_commit();		//   So turn back off
+			return $hu;					// Return browser info array
+		}
+		else
+			return [];
 
 		} // else get_browser() not avail
 	} // parseUserAgent()

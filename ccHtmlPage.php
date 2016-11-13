@@ -12,6 +12,10 @@
  * - Add any content to preface or epilog
  * - Implement content generator (e.g., onContent())
  *
+ * 
+ * 
+ * @todo Reimplement use of begin()/after() to free those up for normal 
+ * 		 derived-class overriding (call onPreface()/onEpilog() separately, explicitly)
  * @todo Define packages, e.g., jQuery, Bootstrap, etc. which will perform the appropriate
  *       setup for the corresponding package (include CSS, JS)
  * @todo Add meta tag support
@@ -19,8 +23,8 @@
  *       of the interface, describing only: preface, content, and epilog. Then allowing
  *       augmentation of those three elements by inserting to top and bottom of each. 
  */
-class ccHtmlPage 
-	implements ccPageInterface
+class ccHtmlPage
+	extends ccSimpleController
 {
 	protected $request;						// Current request
 	protected $title;						// Page title (in head)
@@ -28,12 +32,27 @@ class ccHtmlPage
 	protected $htmlHeadSources=[];
 	protected $htmlTailSources=[];
 	protected $scripts=[];					// Array of scripts and locations
+	protected $preface=[];					// Preface suffix content
+	protected $epilog=[];					// Epilog prefix content
 //	protected $packages; 					// List of packages to include
 //		public const PKG_BOOTSTRAP='bootstrap';	// Implies jquery
 //		public const PKG_JQUERY='jquery';	
 //	protected $meta;						// Meta tag info
-	protected $preface=[];					// Preface suffix content
-	protected $epilog=[];					// Epilog prefix content
+
+	protected function begin($request)
+	{
+		$this->request = $request;
+		$this->onHeaders();
+		$this->onPreface();
+
+		return true;
+	} // begin()
+
+	protected function after($request)
+	{
+		$this->onEpilog();
+	} // after()
+
 
 	/**
 	 * Get/set Google Analytics tracking ID
@@ -43,7 +62,6 @@ class ccHtmlPage
 		if (!$tracking_id)
 			return $this->GoogleAnalyticsTrackingID;
 		else {
-			$rc = $this->GoogleAnalyticsTrackingID;
 			$this->GoogleAnalyticsTrackingID = $tracking_id;
 			$this->addScript(<<<GA_SCRIPT
 // Google Analytics
@@ -55,7 +73,7 @@ class ccHtmlPage
   ga('send', 'pageview');
 GA_SCRIPT
 );
-			return $rc; 		// Return previous value
+			return $this; 		// Allow chaining
 		}
 	} // googleAnalytics()
 
@@ -80,14 +98,30 @@ GA_SCRIPT
 			$this->htmlTailSources[] = $uri;
 	}
 
-	const SCRIPT_ONLOAD=1;
-	const SCRIPT_TOP=2;
-	const SCRIPT_BOTTOM=3;
-	protected function addScript($script, $location=self::SCRIPT_BOTTOM)
+	const INSERT_TOP=2;				// Insert in header
+	const INSERT_BOTTOM=3;			// Insert before end of <body>
+	const INSERT_ONLOAD=1;			// Insert in doc load()
+
+	/**
+	 * Pass text or function to generate text of script to be inserted in content.
+	 * @param string|function $script Content to be inserted, a function returning text or text
+	 * @param $location Where to insert content
+	 * @see  insertScript()
+	 */
+	protected function addScript($script, $location=self::INSERT_BOTTOM)
 	{
 		$this->scripts[] = [$script, $location];
 	}
-	protected function addPrefix($content)
+	/**
+	 * Pass text or function to generate text of script to be inserted in content.
+	 * @param string|function $head Content to be inserted, a function return text or text
+	 * @see  insertScript()
+	 */
+	protected function addHead($head)
+	{
+		$this->head[] = $head;
+	}
+	protected function addPreface($content)
 	{
 		$this->preface[] = $content;
 	}
@@ -99,11 +133,15 @@ GA_SCRIPT
 	/**
 	 * Include CSS, script, etc. Type is inferred by extension. Scripts are added to bottom, by 
 	 * default unless $head is TRUE. 
+	 * 
+	 * @todo Support for <script>'s' async="async", defer="defer", type="text/javascript"
+	 * 	     see http://www.w3schools.com/tags/tag_script.asp
 	 */
-	protected function insertUriSource($uri, $type='')
+	private function insertUriSource($uri, $type='')
 	{
 		if (! $type )
 			$type = pathinfo( $uri, PATHINFO_EXTENSION );
+		$CH_TAB = "\x9";
 		switch ($type) 
 		{
 			case 'css':
@@ -113,7 +151,7 @@ GA_SCRIPT
 				$media = isset($params['media']) ? 'media="'.$params['media'].'" ' : '';
 //				if ($uri[0] != '/' && strpos($uri,':') === false)
 //					$uri = ccApp::getApp()->getUrlOffset().'css/'.$uri;
-				echo '<link rel="stylesheet" '.$media.'type="'.$mime.'" href="'.$uri.'"/>'.PHP_EOL;
+				echo $CH_TAB.'<link rel="stylesheet" '.$media.'type="'.$mime.'" href="'.$uri.'"/>'.PHP_EOL;
 			break;
 			case 'js':
 			case 'javascript':
@@ -122,7 +160,7 @@ GA_SCRIPT
 //				if ($uri[0] != '/' && strpos($uri,':') === false)
 //					$uri = ccApp::getApp()->getUrlOffset().'js/'.$uri;
 //				echo '<script'.$mime.' '.$defer.'src="'.$uri.'"></script>'.PHP_EOL;
-				echo '<script'.$mime.' '.$defer.'src="'.$uri.'"></script>'.PHP_EOL;
+				echo $CH_TAB.'<script'.$mime.' '.$defer.'src="'.$uri.'"></script>'.PHP_EOL;
 
 			break;
 			case 'ico':
@@ -141,7 +179,13 @@ GA_SCRIPT
 		}
 	} // insertUriSource()
 
-	function insertScripts($location)
+	/**
+	 * Insert script content based on setup previously defined by addScript() method.
+	 * @param  $location Which set of scripts to insert: INSERT_TOP, INSERT_BOTTOM, INSERT_ONLOAD
+	 * @return Undefined
+	 * @see addScript()
+	 */
+	private function insertScripts($location)
 	{
 		$wrapper = false;
 		foreach ($this->scripts as $script) {
@@ -157,11 +201,11 @@ GA_SCRIPT
 				}
 			}
 		}
-		if ($location == self::SCRIPT_BOTTOM)
+		if ($location == self::INSERT_BOTTOM)
 		{
 			$loaded=false;
 			foreach ($this->scripts as $script) {
-				if ($script[1] == self::SCRIPT_ONLOAD) {
+				if ($script[1] == self::INSERT_ONLOAD) {
 					if (!$wrapper) {
 						echo '<script type="text/javascript">'.PHP_EOL;
 						$wrapper = true;
@@ -182,7 +226,7 @@ GA_SCRIPT
 		}
 		if ($wrapper)
 			echo '</script>'.PHP_EOL;
-	}
+	} // insertScripts()
 
 	// Implement these as if you were being called, live. The content of each is captured then 
 	// output by the base-class so it can be performed in the correct order (e.g., onHeaders 
@@ -195,88 +239,49 @@ GA_SCRIPT
 // 	protected function onContent() {} // Core content, called by onBody()
 // 	protected function onScript($head=FALSE) {} // Things within the script tags top or bottom
 // //	protected function after() {} // Common stuff to do before each action (ccSimpleController)
-	public function render(ccRequest $request) 
-	{
-		$this->request = $request;
-		$this->onPage();
-		return true;
-	}
 
-	/**
-	 * Output page (this calls the subsequent)
-	 */
-	protected function onPage() {
-		$this->onHeaders();
-		$this->onPreface();
-		$this->onBody();
-		$this->onEpilog();
-	} // onPage()
-
-	protected function onPreface()
-	{
-		?>
-<!DOCTYPE html>
-<html lang="en">
-<?php
-		$this->onHead();
-	} // onPreface()
 //	protected function before() {} // Common stuff to do before each action (ccSimpleController)
 	protected function onHeaders() {} // HTTP Header output 
 
-	protected function onHead($content=NULL) {
-		?>
-<head>
-<?php
-			// onTitle();
-//			$this->onMeta();
-			// Inclusions css & scripts
-			foreach ($this->htmlHeadSources as $uri)
-				$this->insertUriSource($uri);
-
-			$this->insertScripts(self::SCRIPT_TOP);
-
-			if (is_callable($content))
-				$content();
-		?>
-</head> 
-<?php
-	} // Things within the head tag
-
-	/**
-	 * Render body content. If $onContent is specified, it will perform 
-	 * core content rendering. 
-	 * @param  function $onContent Function to perform content rendering.
-	 * @return boolean            TRUE, handled, FALSE, rejected
-	 */
-	protected function onBody()	{
-		?>
+	protected function onPreface()
+	{	?>
+<!DOCTYPE html>
+<html lang="en">
+<?php $this->onHead(); ?>
 <body>
 <?php
-		foreach ($this->preface as $stanza) {
-			if (is_callable($stanza))
-				$stanza();
-			else
-				echo $stanza;
-		}
+		$this->insert($this->preface);
+	} // onPreface()
 
-		if (method_exists( $this, 'onContent' ))
-			$this->onContent();
-
-		foreach ($this->epilog as $stanza) {
-			if (is_callable($stanza))
-				$stanza();
-			else
-				echo $stanza;
-		}
-		foreach ($this->htmlTailSources as $uri)
-			$this->insertUriSource($uri);
-		$this->insertScripts(self::SCRIPT_BOTTOM);
+	/**
+	 * @todo Add IE settings that determine IE compatibility level and other conditional statements
+	 * @todo Add charset overrides
+	 */
+	protected function onHead($content=NULL) 
+	{
 		?>
-</body> 
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<meta charset="utf-8">
+	<base href="<?=$this->request->getRootUrl()?>">
 <?php
-	} // Things within the body tags
+		// onTitle();
+		
+		$this->insert($this->head);
 
-//	protected function onContent() {} // Core content, called by onBody()
+		// Inclusions css & scripts
+		foreach ($this->htmlHeadSources as $uri)
+			$this->insertUriSource($uri);
+
+		$this->insertScripts(self::INSERT_TOP);
+
+		if (is_callable($content))
+			$content();
+	?>
+</head> 
+<?php
+	} // onHead()
+
 //	protected function after() {} // Common stuff to do before each action (ccSimpleController)
 
 	/**
@@ -288,10 +293,31 @@ GA_SCRIPT
 	 */
 	protected function onEpilog($content=NULL)
 	{
+		$this->insert($this->epilog);
+
+		foreach ($this->htmlTailSources as $uri)
+			$this->insertUriSource($uri);
+		$this->insertScripts(self::INSERT_BOTTOM);
+		?>
+</body> 
+<?php
 		if ($content)
 			$content();
 		?></html>
 		<?php
-	}
+	} // onEpilog()
+
+	private function insert(Array $contentArray, $onEach=NULL)
+	{
+		foreach ($contentArray as $content) {
+			if (is_callable($onEach))
+				$onEach($content);
+			else
+				if (is_callable($content))
+					$content();
+				else 
+					echo $content.PHP_EOL;
+		}
+	} // insert()
 
 } // ccHtmlPage
