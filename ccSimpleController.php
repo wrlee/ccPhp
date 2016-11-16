@@ -17,6 +17,7 @@
 abstract class ccSimpleController 
 	extends ccController
 {
+	private $defaultHandler=NULL;
 	/**
 	 * If set then assume it's a URL offset. If the left-most path component matches, 
 	 * then this object is given control. The next path component is then matched
@@ -63,7 +64,19 @@ abstract class ccSimpleController
 				call_user_func(array($this,'after'), $request);
 			return $rc;
 		}
-		elseif (method_exists($this,'notfound'))
+		elseif ($this->defaultHandler)
+		{
+			if (method_exists($this,'begin'))
+				if (!call_user_func(array($this,'begin'), $request))
+					return FALSE;
+					
+			$rc = call_user_func(array($this,$this->defaultHandler), $request);
+
+			if ($rc && method_exists($this,'after'))
+				call_user_func(array($this,'after'), $request);
+			return $rc;
+		}
+/*		elseif (method_exists($this,'notfound'))
 		{
 			if (method_exists($this,'begin'))
 				if (!call_user_func(array($this,'begin'), $request))
@@ -75,7 +88,17 @@ abstract class ccSimpleController
 				call_user_func(array($this,'after'), $request);
 			return $rc;
 		}
-		else
+*/		else
 			return NULL;		// Method not found.
 	} // render()
+
+	/**
+	 * Set default handler when action-specific method name does not exist. This
+	 * defaults to 
+	 * @param [type] $method [description]
+	 */
+	protected function setDefaultHandler($method)
+	{
+		$this->defaultHandler = $method;
+	} // setDefaultHandler
 } // class ccSimpleController
