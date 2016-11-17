@@ -49,31 +49,6 @@
  *		of the before() (if FALSE) or mapped-method's return value, otherwise it 
  *		returns FALSE. 
  *		Note: This might be renamed to ccController
- *
- * @todo Consider a separate "site" object (to allow site specific configuration),
- *       currently part of the "app" object.
- * @todo Consider moving most of this code to index.php? No. Keep most of this 
- *       out of public/hacking view
- *
- * Things I need to do soon:
- *  @todo Add example of DB/model component (Doctrine? RedBean?)
- *  @todo Add internal "redirection" support
- *  @todo Allow site paths to auto-generate paths. 
- *  @todo Debugging/tracing component (work in progress: ccTrace
- *	@todo Move error handling ccError class and refer through ccApp?
- *
- * Things I dunno how to do:
- *  @todo Need for session support?
- *  @todo Page caching 
- *  @todo ob_start() support
- *  @todo Create structure of simple front-end event mapping to support here.
- *  @todo CSS and JS compression/minimization support for production mode. 
- *  @todo Single ccApp.setDebug() setting that will cascade thru components.
- *	@todo Logging support.
- * 	@todo Reconsider DevMode handling (rename to AppMode). 
- * 	@todo Need a way to set "debug" setting that will cascade thru components.
- *	@todo Look into using AutoLoad package (by the Doctrine and Symfony folks)?
- *  @todo MODE_PRODUCITON should prevent revealing errors (hide path info)
  */
 
 //****

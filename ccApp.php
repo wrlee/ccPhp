@@ -197,9 +197,8 @@ class ccApp
 			}
 //			$classFilename = str_replace('_', DIRECTORY_SEPARATOR, $className).'.php';
 			$classFilename = $className.'.php';
-// echo __METHOD__.'#'.__LINE__."($className) ".self::getFrameworkPath() . 'core' . DIRECTORY_SEPARATOR .$classFilename. " <br>";
-			if (file_exists(self::getFrameworkPath() . 'core' . DIRECTORY_SEPARATOR .$classFilename)) 
-				include(self::getFrameworkPath() . 'core' . DIRECTORY_SEPARATOR .$classFilename);
+			if (file_exists(self::getFrameworkPath() . 'classes' . DIRECTORY_SEPARATOR . $classFilename)) 
+				include(self::getFrameworkPath() . 'classes' . DIRECTORY_SEPARATOR . $classFilename);
 			elseif (file_exists(self::getFrameworkPath() . $classFilename)) 
 				include(self::getFrameworkPath() . $classFilename);
 		}
