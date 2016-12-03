@@ -29,6 +29,7 @@ class ccHtmlPage
 	protected $request;						// Current request
 	protected $title;						// Page title (in head)
 	protected $GoogleAnalyticsTrackingID;	// GA tracking ID
+	protected $head=[];						// <head> content
 	protected $htmlHeadSources=[];
 	protected $htmlTailSources=[];
 	protected $scripts=[];					// Array of scripts and locations
@@ -264,6 +265,7 @@ GA_SCRIPT
 	<meta http-equiv="X-UA-Compatible" content="IE=edge">
 	<meta charset="utf-8">
 	<base href="<?=$this->request->getRootUrl()?>">
+	<title><?= $this->title ?></title>
 <?php
 		// onTitle();
 		
