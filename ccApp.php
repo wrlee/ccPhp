@@ -114,35 +114,51 @@ namespace //! ccPhp
  */
 class ccApp
 	implements \Serializable
-{
-	const MODE_DEBUG		= 1;	//* Debugging output
-	const MODE_INFO			= 6;	//* PHP info msgs
-	const MODE_WARN			= 2;	//* PHP warnings
-	const MODE_ERR			= 4;	//* PHP errors
-	const MODE_TRACEBACK	= 8;	//* Show tracebacks
-	const MODE_REVEAL		= 16;	//* Reveal paths
-	const MODE_MINIMIZE		= 32;	//* Use minimized resources (scripts, CSS, etc.)
-	const MODE_PROFILE		= 64;	//* Enable profile
-	const MODE_CACHE		= 128;	//* Enable caching where it can
-	
-	protected static $_me=NULL;			// Singleton ref to $this
-
-//	protected $config=Array();			// Configuration array
-
-	protected $UrlOffset=NULL;			// Path from domain root for the site
+{								/** Debugging output */
+	const MODE_DEBUG	= 1;	
+								/** PHP info msgs */
+	const MODE_INFO		= 6;	
+								/** PHP warnings */
+	const MODE_WARN		= 2;	
+								/** PHP errors */
+	const MODE_ERR		= 4;	
+								/** Show tracebacks */
+	const MODE_TRACEBACK= 8;	
+								/** Reveal paths */
+	const MODE_REVEAL	= 16;	
+								/** Use minimized resources (scripts, CSS, etc.) */
+	const MODE_MINIMIZE	= 32;	
+								/** Enable profile */
+	const MODE_PROFILE	= 64;	
+								/** Enable caching where it can */
+	const MODE_CACHE	= 128;	
+								/** @var ccApp Reference to singleton self */
+	protected static $_me=NULL;			
+								// Configuration array
+//	protected $config=Array();			
+								/** @var string URL path offset to base of this app;
+								 * path from domain root for the site.
+								 */
+	protected $UrlOffset=NULL;
+								/** @var int Operation mode bitmask. See MODE_* constants */
 	protected $devMode = CCAPP_DEVELOPMENT;
-//	protected $bDebug = FALSE; 			// Central place to hold debug status
-	
-	protected $sitepath=NULL;			// Path to site specific files.
-	protected $temppath='';				// Path to working directory (for cache, etc)
-	
-	protected $page=NULL; 				// Main page object for app
-	protected $error404 = NULL;			// External ccPageInterface to render errors.
-										// The following are rel to sitepath:
-	protected $classpath=array();		// List of site paths to search for classes
-//	protected $classLoader=NULL;		// SplClassLoader reference
-		
-	protected $current_request; 		// Remember current request
+								/** @var boolean Central place to hold debug status */
+//	protected $bDebug = FALSE;
+								/** @var string Path to site specific files. */
+	protected $sitepath=NULL;
+								/** @var string Path to working directory (for cache, etc) */
+	protected $temppath='';
+								/** @var ccPageInterface Main page object for app */
+	protected $page=NULL;
+								/** @var string|ccPageInterface class that renders 404 pages. */
+	protected $error404 = NULL;
+								// The following are rel to sitepath:
+								/** @var array List of site paths to search for classes */
+	protected $classpath=array();
+								/** @var SplClassLoader reference */
+//	protected $classLoader=NULL;
+								/** @var ccRequest Remember current request */
+	protected $current_request;
 
 	/**
 	 * Save $_me as a singularity and (hack). 
@@ -170,6 +186,7 @@ class ccApp
 	 *
 	 * This method is appropriate to call this from __autoload() or 
 	 * register via spl_autoload_register()
+	 * @param  string $className Name of class to load.
 	 */
 	public static function _autoload($className)
 	{
@@ -262,6 +279,7 @@ class ccApp
 
 	/**
 	 * Instance specific autoload() searches site specific paths.
+	 * @param  string $className Name of class to load.
 	 */
 	public function autoload($className)
 	{
@@ -386,6 +404,7 @@ class ccApp
 	 * "main page" (which is usually a dispatcher or controller) to render 
 	 * content. If render() returns false, implies no content is rendered then
 	 * 404, Page Not Found. handling is invoked. 
+	 * @param  ccRequest $request Current HTTP/ccPhp request
 	 * @throws ccHttpStatusException If false, since this is the end of the line.
 	 */
 	public function dispatch(ccRequest $request)
@@ -476,6 +495,15 @@ class ccApp
 	 * not an absolute path, then the base is assumed to be the URL offset to
 	 * the site.
 	 *
+	 * @param string  $name     Cookie name
+	 * @param string  $value    Cookie value
+	 * @param integer $expire   Expiration 
+	 * @param string  $path     URI sub-path
+	 * @param string  $domain   Domain
+	 * @param boolean $secure   https only?
+	 * @param boolean $httponly http only?
+	 *
+	 * @see  http://php.net/manual/en/function.setcookie.php
 	 * @see getUrlOffset()
 	 */
 	function setCookie(
@@ -516,6 +544,19 @@ class ccApp
 	{
 		return $this->devMode;
 	}
+	/**
+	 * Set "how" the app should behave based on the $mode bit-mask. 
+	 * @param integer $mode [description]
+	 *		MODE_DEBUG	Debugging output
+	 *		MODE_INFO	PHP info msgs
+	 *		MODE_WARN	PHP warnings
+	 *		MODE_ERR	PHP errors
+	 *		MODE_TRACEBACK	Show tracebacks
+	 *		MODE_REVEAL	Reveal paths
+	 *		MODE_MINIMIZE	Use minimized resources (scripts, CSS, etc.)
+	 *		MODE_PROFILE	Enable profile
+	 *		MODE_CACHE	Enable caching where it can
+	 */
 	public function setDevMode($mode)
 	{
 		$this->devMode = $mode;
@@ -731,6 +772,13 @@ class ccApp
 	/**
 	 * Php error handler directs output to destinations determined by ccTrace. This also 
 	 * will output to stdout based on the app's devMode setting.
+	 * 
+	 * @param  integer $errno     Error number
+	 * @param  string $errstr     Error text
+	 * @param  string $errfile    Filename containing error
+	 * @param  integer $errline   Line number of error occurance in $errfile 
+//	 * @param  [type] $errcontext [description]
+	 * 
 	 * @todo Consider throwing exception (caveat, flow of control does not continue)
 	 * @todo Add distinction between dev and production modes of output.
 	 * @todo Consider moving to separate Trace class
@@ -812,6 +860,9 @@ class ccApp
 	/**
 	 * Default exception handler. Works in conjunction with ccTrace to produce
 	 * formatted output to the right destination.
+	 *
+	 * @param  Exception $exception Exceptio object to report
+	 * 
 	 * @todo Add distinction between dev and production modes of output.
 	 * @todo See php.net on tips for proper handling of this handler.
 	 * @todo Consider moving to separate Trace class
@@ -836,7 +887,10 @@ class ccApp
 
 	/**
 	 * Redirect to a different URL. 
-	 * @param string $url Send rediret to browser
+	 * @param  string $url Send rediret to browser
+	 * @param  integer $status  HTTP status code #
+	 * @param  string  $message Status code text message
+	 * 
 	 * @todo Forward qstring, post  variables, and cookies. 
 	 * @todo Allow "internal" redirect that does not return to the client.
 	 * @todo Consider using ccHttpStatusException
@@ -861,6 +915,7 @@ EOD;
 
 	/**
 	 * For whatever reason, display 404 page response.
+	 * @param  ccRequest $request Current HTTP/ccPhp request
 	 */
 	protected function show404(ccRequest $request)
 	{
@@ -905,10 +960,18 @@ EOD;
 		return call_user_func_array(array('ccTrace','tr'),func_get_args());
 	} // tr()
 
+	/**
+	 * serializable implementation to save instance.
+	 * @return [type] Serialized object
+	 */
 	public function serialize ( )
 	{
 		return serialize($this);
 	}
+	/**
+	 * serializable implementation to restore object.
+	 * @param  [type] $serialized Serialized object.
+	 */
 	public function unserialize ( $serialized )
 	{
 		self::$_me = $this;
@@ -956,8 +1019,8 @@ set_exception_handler(Array(__NAMESPACE__.'\ccApp','onException'));
  * handling functions, e.g., fatal and parsing errors.
  * @todo Activate only for debug mode.
  */
-// register_shutdown_function(function ()
 function cc_onShutdown()
+// register_shutdown_function(function ()
 {
     $err=error_get_last();
 	switch ($err['type'])
