@@ -1,7 +1,7 @@
 <?php
-/** 
+/**
  * File: ccApp.php
- * 
+ *
  * The ccApp class represents the application. It is a singleton.
  *
  * @todo Look into using AutoLoad package (by the Doctrine and Symfony folks)
@@ -12,25 +12,25 @@
  * @todo Add setLogFile(), setAppDir(js)
  * @todo Consider a separate "site" object (to allow site specific configuration),
  *       currently part of the "app" object.
- * 
- * @todo Consider moving most of this code to index.php? No. Keep most of this 
+ *
+ * @todo Consider moving most of this code to index.php? No. Keep most of this
  *       out of public/hacking view
  * Things I need to do soon:
  *  @todo Add example of DB/model component (Doctrine? RedBean?)
  *  @todo Add internal "redirection" support
- *  @todo Allow site paths to auto-generate paths. 
+ *  @todo Allow site paths to auto-generate paths.
  *  @todo Debugging/tracing component (work in progress: ccTrace
  *	@todo Move error handling ccError class and refer through ccApp?
  *
  * Things I dunno how to do:
  *  @todo Need for session support?
- *  @todo Page caching 
+ *  @todo Page caching
  *  @todo ob_start() support
  *  @todo Create structure of simple front-end event mapping to support here.
- *  @todo CSS and JS compression/minimization support for production mode. 
+ *  @todo CSS and JS compression/minimization support for production mode.
  *  @todo Single ccApp.setDebug() setting that will cascade thru components.
  *	@todo Logging support.
- * 	@todo Reconsider DevMode handling (rename to AppMode). 
+ * 	@todo Reconsider DevMode handling (rename to AppMode).
  * 	@todo Need a way to set "debug" setting that will cascade thru components.
  *	@todo Look into using AutoLoad package (by the Doctrine and Symfony folks)?
  *  @todo MODE_PRODUCITON should prevent revealing errors (hide path info)
@@ -48,13 +48,13 @@
  * 			- Renamed createSiteDir() to createAppDir() and protected it.
  * 			- Added createWorkingDir()
  * 2013-09-12 Remove getPage()
- */	
+ */
 //******************************************************************************\
 namespace {
 // [BEGIN] Portability settings
-// @see http://www.php.net/manual/en/function.phpversion.php 
+// @see http://www.php.net/manual/en/function.phpversion.php
 // @see http://www.php.net/manual/en/reserved.constants.php#reserved.constants.core
-if (!defined('PHP_VERSION_ID')) 
+if (!defined('PHP_VERSION_ID'))
 {
     $_version = explode('.', PHP_VERSION);
 
@@ -63,13 +63,13 @@ if (!defined('PHP_VERSION_ID'))
 if (PHP_VERSION_ID < 50400) {
 	if (PHP_VERSION_ID < 50300)
 	{
-		if (PHP_VERSION_ID < 50207) 
+		if (PHP_VERSION_ID < 50207)
 		{
 			if (PHP_VERSION_ID < 50200)
 				define('E_RECOVERABLE_ERROR',4096);
 		    define('PHP_MAJOR_VERSION', $_version[0]);
 		    define('PHP_MINOR_VERSION', $_version[1]);
-			
+
 			$_version = explode('-', $_version[2]);
 			define('PHP_EXTRA_VERSION', $_version[0]);
 			define('PHP_RELEASE_VERSION', isset($_version[1]) ? $_version[1] : '');
@@ -77,7 +77,7 @@ if (PHP_VERSION_ID < 50400) {
 		define('E_DEPRECATED', 8092);
 		define('E_USER_DEPRECATED', 16384);
 		define('__DIR__', dirname(__FILE__));
-	}			
+	}
 	define('PHP_SESSION_DISABLED',0);
 	define('PHP_SESSION_NONE',1);
 	define('PHP_SESSION_ACTIVE',2);
@@ -94,7 +94,7 @@ if (PHP_VERSION_ID < 50400) {
 unset($_version);	// Not needed any longer
 // [END] Portability settings
 } // namespace
-namespace //! ccPhp 
+namespace //! ccPhp
 {
 // include 'ccPhp.inc';
 //!use ccPhp\core\ccTrace;
@@ -115,27 +115,27 @@ namespace //! ccPhp
 class ccApp
 	implements \Serializable
 {								/** Debugging output */
-	const MODE_DEBUG	= 1;	
+	const MODE_DEBUG	= 1;
 								/** PHP info msgs */
-	const MODE_INFO		= 6;	
+	const MODE_INFO		= 6;
 								/** PHP warnings */
-	const MODE_WARN		= 2;	
+	const MODE_WARN		= 2;
 								/** PHP errors */
-	const MODE_ERR		= 4;	
+	const MODE_ERR		= 4;
 								/** Show tracebacks */
-	const MODE_TRACEBACK= 8;	
+	const MODE_TRACEBACK= 8;
 								/** Reveal paths */
-	const MODE_REVEAL	= 16;	
+	const MODE_REVEAL	= 16;
 								/** Use minimized resources (scripts, CSS, etc.) */
-	const MODE_MINIMIZE	= 32;	
+	const MODE_MINIMIZE	= 32;
 								/** Enable profile */
-	const MODE_PROFILE	= 64;	
+	const MODE_PROFILE	= 64;
 								/** Enable caching where it can */
-	const MODE_CACHE	= 128;	
+	const MODE_CACHE	= 128;
 								/** @var ccApp Reference to singleton self */
-	protected static $_me=NULL;			
+	protected static $_me=NULL;
 								// Configuration array
-//	protected $config=Array();			
+//	protected $config=Array();
 								/** @var string URL path offset to base of this app;
 								 * path from domain root for the site.
 								 */
@@ -161,7 +161,7 @@ class ccApp
 	protected $current_request;
 
 	/**
-	 * Save $_me as a singularity and (hack). 
+	 * Save $_me as a singularity and (hack).
 	 */
 	protected function __construct()	// As a singleton: block public allocation
 	{
@@ -169,8 +169,8 @@ class ccApp
 		$callstack = (PHP_VERSION_ID < 50400) ? debug_backtrace(0) : debug_backtrace(0,2);
 
 		// Hack: look up the call-stack to pull 1st arg from createApp()
-		foreach ($callstack as $caller)	
-			if ($caller['function'] == 'createApp') 
+		foreach ($callstack as $caller)
+			if ($caller['function'] == 'createApp')
 			{
 				$this->sitepath = $caller['args'][0];
 				if (substr($this->sitepath, -1) != DIRECTORY_SEPARATOR)
@@ -180,11 +180,11 @@ class ccApp
 	} // __construct()
 
 	/**
-	 * Search for class definition from framework folders. 
-	 * If there is an instance of the app, call its autoload first where 
-	 * site specific searches will take precedence. 
+	 * Search for class definition from framework folders.
+	 * If there is an instance of the app, call its autoload first where
+	 * site specific searches will take precedence.
 	 *
-	 * This method is appropriate to call this from __autoload() or 
+	 * This method is appropriate to call this from __autoload() or
 	 * register via spl_autoload_register()
 	 * @param  string $className Name of class to load.
 	 */
@@ -206,7 +206,7 @@ class ccApp
 			if (__NAMESPACE__ != '' && __NAMESPACE__ == substr($className, 0, strlen(__NAMESPACE__)))
 			{
 				$className = explode('\\', $className);
-//				// If __NAMESPACE__ in effect and namespace is not part of name 
+//				// If __NAMESPACE__ in effect and namespace is not part of name
 //				// or no NS specified, return (not request a ccFramework class)
 //				if ( $className[0] != __NAMESPACE__ || count($className) < 2)
 //					return;
@@ -214,22 +214,22 @@ class ccApp
 			}
 //			$classFilename = str_replace('_', DIRECTORY_SEPARATOR, $className).'.php';
 			$classFilename = $className.'.php';
-			if (file_exists(self::getFrameworkPath() . 'classes' . DIRECTORY_SEPARATOR . $classFilename)) 
+			if (file_exists(self::getFrameworkPath() . 'classes' . DIRECTORY_SEPARATOR . $classFilename))
 				include(self::getFrameworkPath() . 'classes' . DIRECTORY_SEPARATOR . $classFilename);
-			elseif (file_exists(self::getFrameworkPath() . $classFilename)) 
+			elseif (file_exists(self::getFrameworkPath() . $classFilename))
 				include(self::getFrameworkPath() . $classFilename);
 		}
 	} // _autoload()
 
 	/**
-	 * Add a path to the list of site-specific paths to search when 
-	 * loading site-specific classes. 
+	 * Add a path to the list of site-specific paths to search when
+	 * loading site-specific classes.
 	 * @param string $path Is the path to be included in the search
 	 *        or, if $classname is specified, then the full fliepath. If the first
 	 *        char is not '/' (or '\', as appropriate) then the site dir is
 	 *        assumed.
 	 * @param string $classname is an optional class name that, when sought, will
-	 *        load the specified file specified by $path. 
+	 *        load the specified file specified by $path.
 	 * @example
 	 *    define('DS',DIRECTORY_SEPARATOR);
 	 *	  $app->addClassPath('classes')		// Search app's directory
@@ -292,7 +292,7 @@ class ccApp
 // ccTrace::tr('&nbsp;&nbsp;&nbsp;'.$this->sitepath.$classFilename);
 
 		// Check app paths, first
-		if ($this->sitepath && file_exists($this->sitepath . $classFilename)) 
+		if ($this->sitepath && file_exists($this->sitepath . $classFilename))
 		{
 			include($this->sitepath . $classFilename);
 			return;
@@ -308,8 +308,8 @@ class ccApp
 				if (require($path))
 					return;
 			}
-			elseif (file_exists($path . $classFilename)) 
-//			elseif (@include($path . $classFilename)) 
+			elseif (file_exists($path . $classFilename))
+//			elseif (@include($path . $classFilename))
 			{							// Else if assumed name exists...
 				include($path . $classFilename);
 				return;
@@ -323,10 +323,10 @@ class ccApp
 	} // autoload()
 
 	/**
-	 * Create singleton instance of the app. 
-	 * 
+	 * Create singleton instance of the app.
+	 *
 	 * @param string $appPath   Absolute path to the app's code.
-	 * @param string $className By default instance of ccApp is created, but 
+	 * @param string $className By default instance of ccApp is created, but
 	 *                          the name of a derived class can be instantiated.
 	 * @return ccApp  App object.
 	 * @todo Consider consolidating into getApp()
@@ -361,11 +361,11 @@ class ccApp
 
 		return self::$_me;
 	} // createApp()
-		
+
 	/**
-	 * Create site-specific directory, if it doesn't exist. 
+	 * Create site-specific directory, if it doesn't exist.
 	 *
-	 * @param string $dir Directory name (relative to site-path), if not an 
+	 * @param string $dir Directory name (relative to site-path), if not an
 	 *		  absolute path.
 	 *
 	 * @return string Semi-normalized path name (suffixed with '/' prefixed w/
@@ -386,7 +386,7 @@ class ccApp
 	/**
 	 * Create a directory under the app's working directory.
 	 * @param  string $dir The name of a directory to be created under the working dir
-	 * @return string The path to the directory created. 
+	 * @return string The path to the directory created.
 	 */
 	public function createWorkingDir($dir)
 	{
@@ -400,10 +400,10 @@ class ccApp
 	} // createWorkingDir()
 
 	/**
-	 * This method is called to render pages for the web site. It invokes the 
-	 * "main page" (which is usually a dispatcher or controller) to render 
+	 * This method is called to render pages for the web site. It invokes the
+	 * "main page" (which is usually a dispatcher or controller) to render
 	 * content. If render() returns false, implies no content is rendered then
-	 * 404, Page Not Found. handling is invoked. 
+	 * 404, Page Not Found. handling is invoked.
 	 * @param  ccRequest $request Current HTTP/ccPhp request
 	 * @throws ccHttpStatusException If false, since this is the end of the line.
 	 */
@@ -421,12 +421,12 @@ class ccApp
 		{
 			switch ($e->getCode())
 			{
-				case 300: case 301: case 302: case 303: 
-				case 305: case 306: case 307: 
+				case 300: case 301: case 302: case 303:
+				case 305: case 306: case 307:
 					header($_SERVER['SERVER_PROTOCOL'].' '.$e->getCode().' '.$e->getMessage(), TRUE, $e->getCode());
 					$this->redirect($e->getLocation(), $e->getCode(), $e->getMessage());
 					break;
-				case 304: 
+				case 304:
 					header($_SERVER['SERVER_PROTOCOL'].' '.$e->getCode().' '.$e->getMessage(), TRUE, $e->getCode());
 					break;
 				case 404: $this->show404($request);
@@ -473,7 +473,7 @@ class ccApp
 	 * @param ccPageInterface|string $error404page The object or classname that
 	 *        would render a 404 page.
 	 * @see show404() on404()
-	 * @todo Add support for string name of class. 
+	 * @todo Add support for string name of class.
 	 */
 	function set404Page(ccPageInterface $error404page)
 	{
@@ -491,13 +491,13 @@ class ccApp
 	} // getApp()
 
 	/**
-	 * Default cookie setting to URL Offset. If the path is not specified or 
+	 * Default cookie setting to URL Offset. If the path is not specified or
 	 * not an absolute path, then the base is assumed to be the URL offset to
 	 * the site.
 	 *
 	 * @param string  $name     Cookie name
 	 * @param string  $value    Cookie value
-	 * @param integer $expire   Expiration 
+	 * @param integer $expire   Expiration
 	 * @param string  $path     URI sub-path
 	 * @param string  $domain   Domain
 	 * @param boolean $secure   https only?
@@ -507,12 +507,12 @@ class ccApp
 	 * @see getUrlOffset()
 	 */
 	function setCookie(
-		$name, 
-		$value=NULL, 
-		$expire = 0, 
-		$path=NULL, 
-		$domain=NULL, 
-		$secure=false, 
+		$name,
+		$value=NULL,
+		$expire = 0,
+		$path=NULL,
+		$domain=NULL,
+		$secure=false,
 		$httponly=false )
 	{
 		if ($path === NULL)
@@ -536,7 +536,7 @@ class ccApp
 //		$this->bDebug = $bDebug;
 //		return $this;
 //	}
-	
+
 	/**
 	 * Get/set app's disposition mask.
 	 */
@@ -545,7 +545,7 @@ class ccApp
 		return $this->devMode;
 	}
 	/**
-	 * Set "how" the app should behave based on the $mode bit-mask. 
+	 * Set "how" the app should behave based on the $mode bit-mask.
 	 * @param integer $mode [description]
 	 *		MODE_DEBUG	Debugging output
 	 *		MODE_INFO	PHP info msgs
@@ -567,8 +567,8 @@ class ccApp
 	 * Set the error handler; a convenience method for stylistic consistency.
 	 * @param callback $function The name of the callback function or array,
 	 *        when the callback is a class or object method.
-	 * The callback function should look like: 
-	 *   handler ( int $errno , string $errstr [, 
+	 * The callback function should look like:
+	 *   handler ( int $errno , string $errstr [,
 	 *             string $errfile [, int $errline [, array $errcontext ]]] )
 	 * @see http://www.php.net/manual/en/function.set-error-handler.php
 	 * @todo Probably don't need this if errors are chained to exceptions.
@@ -583,7 +583,7 @@ class ccApp
 	 * Set the exception handler; a convenience method for stylistic consistency.
 	 * @param callback $function The name of the callback function or array,
 	 *        when the callback is a class or object method.
-	 * The callback function should look like: 
+	 * The callback function should look like:
 	 *   handler ( Exception $e )
 	 * @see http://www.php.net/manual/en/function.set-error-handler.php
 	 */
@@ -629,10 +629,10 @@ class ccApp
 	{
 		return $this->current_request;
 	} // getRequest()
-		
+
 	/**
-	 * Get the part of the URL which points to the root of this app, i.e., the 
-	 * start of where this app resides. 
+	 * Get the part of the URL which points to the root of this app, i.e., the
+	 * start of where this app resides.
 	 * @return string The URI
 	 * @see getUrlOffset()
 	 * @todo Handle case where URL does not have a scheme
@@ -640,10 +640,10 @@ class ccApp
 	 */
 	function getRootUrl()
 	{
-		$path = isset($_SERVER['REDIRECT_SCRIPT_URI']) 
+		$path = isset($_SERVER['REDIRECT_SCRIPT_URI'])
 			? $_SERVER['REDIRECT_SCRIPT_URI']
 			: $_SERVER['SCRIPT_URI'];
-			
+
 		$p = strpos($path,'//');	// Offset past the protocol scheme spec
 		if ($p === FALSE)			// No protocol scheme.
 		{							// Don't know what to do here... bad input.
@@ -653,16 +653,16 @@ class ccApp
 			$p = strpos($path,'/',$p+2);	// First path separator past the scheme
 			if ($p === FALSE)				// No '/': this app is at the root.
 				$path .= '/';				// Ensure it ends with a '/'
-			else 
+			else
 				$path = substr($path,0,$p+1);	// Ignore path after the domain portion.
 		}
-		
+
 		return $path . substr($this->getUrlOffset(),1);
 	} // getRootUrl()
 
 	/**
 	 * Get the server path to site's files (not the URL)
-	 * @param string $path Full, absolute path (e.g., dirname(__FILE__) 
+	 * @param string $path Full, absolute path (e.g., dirname(__FILE__)
 	 *        of caller)
 	 */
 	public function getAppPath()
@@ -672,8 +672,8 @@ class ccApp
 //	/**
 //	 * Get/set server path to site's files (not the URL). This method also sets
 //	 * this path as the current directory so that all subsequent relative
-//	 * paths are from a normalized location. 
-//	 * @param string $path Full, absolute path (e.g., dirname(__FILE__) 
+//	 * paths are from a normalized location.
+//	 * @param string $path Full, absolute path (e.g., dirname(__FILE__)
 //	 *        of caller)
 //	 */
 //	public function setAppPath($path)
@@ -687,7 +687,7 @@ class ccApp
 //	} // setAppPath()
 
 	/**
-	 * The path part of the URL starting from '/' up to the path where this 
+	 * The path part of the URL starting from '/' up to the path where this
 	 * app's "root" starts; e.g., "/" or "/index.php/".
 	 *
 	 * @see getRootUrl()
@@ -695,27 +695,27 @@ class ccApp
 	 */
 	public function getUrlOffset()
 	{
-		if (!$this->UrlOffset)			// If not set, 
-			$this->initUrlOffset(); 	//    Ensure init'd 
+		if (!$this->UrlOffset)			// If not set,
+			$this->initUrlOffset(); 	//    Ensure init'd
 // echo __METHOD__.'#'.__LINE__.' "'.$this->UrlOffset.'"<br/>';
 		return $this->UrlOffset;
 	} // getUrlOffset()
 	/**
-	 * This returns the part of the url that is the "root" of this app. 
+	 * This returns the part of the url that is the "root" of this app.
 	 * This value is inferred from env settings, so shouldn't be public.
 	 */
 	private function initUrlOffset()
 	{
 		$UrlOffset = dirname($_SERVER['SCRIPT_NAME']);
-		if ($UrlOffset != '/') 
+		if ($UrlOffset != '/')
 			$UrlOffset .= '/';
 		$this->UrlOffset = $UrlOffset;
 	} // initUrlOffset()
-		
+
 	/**
-	 * Set the application's working directory relative to the app's code. It 
+	 * Set the application's working directory relative to the app's code. It
 	 * is created, if necessary.
-	 * @param string $dir Directory name, relative to app's path (unless an 
+	 * @param string $dir Directory name, relative to app's path (unless an
 	 *        absolute path-spec).
 	 * @see createAppDir();
 	 */
@@ -734,8 +734,8 @@ class ccApp
 	 */
 	public function getWorkingPath()
 	{
-		return ($this->temppath[0] == DIRECTORY_SEPARATOR) 
-				? $this->temppath 
+		return ($this->temppath[0] == DIRECTORY_SEPARATOR)
+				? $this->temppath
 				: $this->sitepath.$this->temppath;
 	}
 
@@ -756,7 +756,7 @@ class ccApp
 		<?php print $request->getUrl() ?>
 		<h1>404 Not Found</h1>
 		This is not the page you are looking for.<hr/>
-		<?php 
+		<?php
 		if ($this->getDevMode() & self::MODE_TRACEBACK)
 		{
 			$trace = debug_backtrace();		// Get whole stack list
@@ -770,15 +770,15 @@ class ccApp
 	} // on404()
 
 	/**
-	 * Php error handler directs output to destinations determined by ccTrace. This also 
+	 * Php error handler directs output to destinations determined by ccTrace. This also
 	 * will output to stdout based on the app's devMode setting.
-	 * 
+	 *
 	 * @param  integer $errno     Error number
 	 * @param  string $errstr     Error text
 	 * @param  string $errfile    Filename containing error
-	 * @param  integer $errline   Line number of error occurance in $errfile 
+	 * @param  integer $errline   Line number of error occurance in $errfile
 //	 * @param  [type] $errcontext [description]
-	 * 
+	 *
 	 * @todo Consider throwing exception (caveat, flow of control does not continue)
 	 * @todo Add distinction between dev and production modes of output.
 	 * @todo Consider moving to separate Trace class
@@ -786,7 +786,7 @@ class ccApp
 	 */
 	static function onError($errno, $errstr, $errfile, $errline, $errcontext)
 	{
-		if (ini_get('error_reporting') & $errno)
+		if (error_reporting() & $errno)
 		{
 			$errortype = Array(
 				E_ERROR			=> 'Error',			// 1
@@ -809,7 +809,7 @@ class ccApp
 				{
 					$errortype[E_DEPRECATED] = 'Deprecated';			// 8092
 					$errortype[E_USER_DEPRECATED] = 'User Deprecated'; 	// 16384
-				}			
+				}
 			}
 			if (!isset($errortype[$errno]))
 				$errortype[$errno] = "Error($errno)";
@@ -817,11 +817,11 @@ class ccApp
 			global $bred,$ered,$bb,$eb, $bi,$ei, $btt,$ett, $rarr,$ldquo,$rdquo,$hellip,$nbsp,$nl;
 			error_log("$errortype[$errno]: $errstr in $errfile#$errline",0);
 			$msg = "$bb$bred$errortype[$errno]$ered: $errstr$eb$nl"
-//				 . "        in $errfile#$errline"; 
-				 . "        in ".ccTrace::fmtPath($errfile,$errline); 
+//				 . "        in $errfile#$errline";
+				 . "        in ".ccTrace::fmtPath($errfile,$errline);
 			$self = self::getApp();
 			if ($self)					// In case this is invoked before constructor
-				switch ($errno) 
+				switch ($errno)
 				{
 					case E_COMPILE_ERROR:
 					case E_ERROR:
@@ -862,7 +862,7 @@ class ccApp
 	 * formatted output to the right destination.
 	 *
 	 * @param  Exception $exception Exceptio object to report
-	 * 
+	 *
 	 * @todo Add distinction between dev and production modes of output.
 	 * @todo See php.net on tips for proper handling of this handler.
 	 * @todo Consider moving to separate Trace class
@@ -886,12 +886,12 @@ class ccApp
 	} // onException()
 
 	/**
-	 * Redirect to a different URL. 
+	 * Redirect to a different URL.
 	 * @param  string $url Send rediret to browser
 	 * @param  integer $status  HTTP status code #
 	 * @param  string  $message Status code text message
-	 * 
-	 * @todo Forward qstring, post  variables, and cookies. 
+	 *
+	 * @todo Forward qstring, post  variables, and cookies.
 	 * @todo Allow "internal" redirect that does not return to the client.
 	 * @todo Consider using ccHttpStatusException
 	 */
@@ -904,7 +904,7 @@ class ccApp
 			echo "Redirecting to {$url} via header&hellip;";
 		}
 		else
-		{ 
+		{
 			echo <<<EOD
 			Redirecting to {$url} via scripting&hellip;
 			<script>window.top.location.href="$url"</script>
@@ -923,7 +923,7 @@ EOD;
 		{
 			if (is_string($this->error404))
 				$this->error404 = new $this->error404;
-			if (($this->getDevMode() & CCAPP_DEVELOPMENT) 
+			if (($this->getDevMode() & CCAPP_DEVELOPMENT)
 				&& !($this->error404 instanceof ccPageInterface))
 			{
 				trigger_error(get_class($this->error404).' does not implement ccPageInterface', E_WARNING);
@@ -934,7 +934,7 @@ EOD;
 			$this->on404($request);	// Perform local 404 rendering
 	} // show404()
 
-	
+
 	// static function out($string)
 	// {
 		// if (!(ccApp::$_me->devMode & CCAPPE_DEVELOPMENT))
@@ -942,7 +942,7 @@ EOD;
 //		//error_log($string,3,'/home/wrlee/htd.log');
 		// echo $string;
 	// }
-	
+
 	/**
 	 * Output to log file.
 	 * options: HTML, log, stderr, stdout, formatted, timestamp
@@ -952,7 +952,7 @@ EOD;
 		return call_user_func_array(array('ccTrace','log'),func_get_args());
 	} // tr()
 	/**
-	 * Output debug output. 
+	 * Output debug output.
 	 * options: HTML, log, stderr, stdout, formatted, timestamp
 	 */
 	static function tr()
@@ -992,9 +992,9 @@ EOD;
 // We are using spl_autoload_* features to simplify search for class files. If
 // the app has defined an __autoload() of their own without chaining it with
 // the spl_autoload_register() call, then this will add it automatically.
-if (function_exists('__autoload')) 
+if (function_exists('__autoload'))
 {
-	spl_autoload_register('__autoload', true, true); 
+	spl_autoload_register('__autoload', true, true);
 }
 spl_autoload_register(array(__NAMESPACE__.'\ccApp','_autoload'), true);
 
@@ -1005,7 +1005,7 @@ spl_autoload_register(array(__NAMESPACE__.'\ccApp','_autoload'), true);
 
 set_error_handler(Array(__NAMESPACE__.'\ccApp','onError'));
 set_exception_handler(Array(__NAMESPACE__.'\ccApp','onException'));
-/*public function errorHandlerCallback($code, $string, $file, $line, $context) 
+/*public function errorHandlerCallback($code, $string, $file, $line, $context)
 {
 	$e = new Excpetion($string, $code);
 	$e->line = $line;
@@ -1032,7 +1032,7 @@ function cc_onShutdown()
 		case E_USER_NOTICE:
 			return FALSE;
 		break;
-		
+
 		case E_COMPILE_ERROR:
 		case E_PARSE:
 		default:
@@ -1043,9 +1043,8 @@ function cc_onShutdown()
 // });
 register_shutdown_function(__NAMESPACE__.'\cc_onShutdown');
 
-// Just because PHP doesn't support setting class-consts via expressions, had to 
+// Just because PHP doesn't support setting class-consts via expressions, had to
 // create global consts :-(
 define('CCAPP_DEVELOPMENT',(ccApp::MODE_DEBUG|ccApp::MODE_INFO|ccApp::MODE_WARN|ccApp::MODE_ERR|ccApp::MODE_TRACEBACK|ccApp::MODE_REVEAL));
 define('CCAPP_PRODUCTION',(ccApp::MODE_CACHE*2)|ccApp::MODE_CACHE);
 } // ccPhp
-
