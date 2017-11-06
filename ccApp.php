@@ -414,6 +414,7 @@ class ccApp
 			$this->current_request = &$request;
 			if (!$this->page->render($request))
 			{
+//          ccTrace::tr(getallheaders());
 				throw new ccHttpStatusException(404);
 			}
 		}
