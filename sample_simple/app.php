@@ -60,10 +60,9 @@
 //    RewriteCond %{REQUEST_FILENAME} !-d
 //    RewriteRule .* index.php
 
-// error_reporting(E_ALL);
 error_reporting(E_ALL|E_STRICT);
 // error_reporting(E_STRICT);
-// error_reporting(ini_get('error_reporting')|E_STRICT);
+
 // session_start();	// Req'd by Facebook (start session now to avoid output/header errors).
 
 //****
@@ -100,51 +99,17 @@ ccTrace::setLogging($logfile);	// Log to file.
 // 3. Create and configure stuff before attempting to include "local" settings.
 //	  This allows a local file to reconfigure app during development
 //	  (or production) to distiguish between those separate distributions.
-$dispatch = new ccChainDispatcher();		// Allocate before local.php inclusion
-
-//****
-// To set values that won't be deployed in production mode, create a local file
-// (that is not deployed to production--probably not checked into source control)
-@include 'local.php';	//<*********		// If exists, load overridable settings
-@include '../production.php';	//<***		// Common production settings (shared by all installations)
 
 //****
 // 4. Configure plugins or other stuff you want to use.
-/*
 // Config RedBean DB module
 $debug = ($app->getDevMode() & CCAPP_DEVELOPMENT);
 //ccTrace::setSuppress(!($app->getDevMode() & CCAPP_DEVELOPMENT));
 
-if (!isset($rb_db_server) || !is_array($rb_db_server) || count($rb_db_server) != 3)
-{
-	throw new Exception('$db_server not properly set');
-}
-else
-{
-	R::setup($rb_db_server[0],$rb_db_server[1],$rb_db_server[2]);
-	R::freeze( true );	// Freeze database, for now.
-}
-
-// R::debug($debug);
-// $smarty->setDebug($debug);
-*/
 //****
 // 5. Set the app's main "page" and "run" the app.
-$dispatch									// Add controller pages to chain
-	->addPage(new ccSmartyController()) 	// Simple Smarty template support
-	->addPage(new ccLessCssController()) 	// Less CSS support
-//	->addPage('FacebookNotificationController')	// FB notifications
-//	->addPage('FacebookAppController')		// FB App (should be last)
-	;
-$app->setPage($dispatch);					// Set dispatcher as app's "page"
+$app->setPage(new MyPage())		// Set dispatcher as app's "page"
+    ->dispatch();						// Process request
 
-/* If you want to take explicit control over the request (perhaps to interrogate it)
-	$request = new ccRequest();
-	ccTrace::log((isset($_SERVER['REMOTE_ADDR']) ? $_SERVER['REMOTE_ADDR'].' ' : '')
-	            .(isset($_COOKIE['PHPSESSID']) ? $_COOKIE['PHPSESSID'].' ' : '')
-	            .'"'.$request->getUserAgent().'" '.$request->getUrl() );
-	$app->dispatch($request);
-*/
-$app->dispatch();
-
+//**** END OF FILE ****//
 // Return to index.php //

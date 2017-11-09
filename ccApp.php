@@ -48,6 +48,7 @@
  * 			- Renamed createSiteDir() to createAppDir() and protected it.
  * 			- Added createWorkingDir()
  * 2013-09-12 Remove getPage()
+ * 2017-11-07 If no ccRequest is passed to dispatch(), it is created.
  */
 //******************************************************************************\
 namespace {
@@ -339,13 +340,13 @@ class ccApp
 	{
 //		$sessActive = (session_status() == PHP_SESSION_ACTIVE);
 //	    if (!$sessActive)					// If session support not running
-//	    	session_start();				//   turn on to presist browser info
+//	    	session_start();				   //   turn on to presist browser info
 //
 //	    if ( isset($_SESSION['ccApp']) ) 	// If already cached, return info
 //	    {
 //	    	self::$_me = unserialize($_SESSION['ccApp']);
 //		    if ( !$sessActive )				// Session wasn't running
-//		    	session_commit();			//   So turn back off
+//		    	session_commit();			   //   So turn back off
 //	    	return self::$_me;				// Return serialized object
 //	    }
 //
@@ -378,9 +379,9 @@ class ccApp
 			$dir .= DIRECTORY_SEPARATOR;
 		if ( $dir[0] != DIRECTORY_SEPARATOR )			// Not absolute path?
 			$dir = $this->sitepath . $dir;				// Prefix with site's path
-		if (!is_dir($dir))								// Path does not exist?
-			mkdir($dir,0744,TRUE);						// Create path
-		return $dir;									// Return modified path
+		if (!is_dir($dir))							      // Path does not exist?
+			mkdir($dir,0744,TRUE);                    // Create path
+		return $dir;									      // Return modified path
 	} // createAppDir()
 
 	/**
@@ -401,14 +402,16 @@ class ccApp
 
 	/**
 	 * This method is called to render pages for the web site. It invokes the
-	 * "main page" (which is usually a dispatcher or controller) to render
-	 * content. If render() returns false, implies no content is rendered then
-	 * 404, Page Not Found. handling is invoked.
+	 * "page" (which is usually a dispatcher or controller) to render
+	 * content. ccPageInterface::render() returning false implies no content was
+    * rendered then 404, Page Not Found. handling is invoked.
 	 * @param  ccRequest $request Current HTTP/ccPhp request
 	 * @throws ccHttpStatusException If false, since this is the end of the line.
 	 */
-	public function dispatch(ccRequest $request)
+	public function dispatch(ccRequest $request=NULL)
 	{
+      ($request === NULL) && $request = new ccRequest();
+
 		try
 		{
 			$this->current_request = &$request;
