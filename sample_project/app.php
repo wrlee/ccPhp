@@ -60,41 +60,55 @@
 //    RewriteCond %{REQUEST_FILENAME} !-d
 //    RewriteRule .* index.php
 
-// error_reporting(E_ALL);
-error_reporting(E_ALL|E_STRICT);
-// error_reporting(E_STRICT);
-// error_reporting(ini_get('error_reporting')|E_STRICT);
+// !defined('DEV_MODE') && define('DEV_MODE',1);
+if (!defined('DEV_MODE') || DEV_MODE != 0)	// Conservative, default to dev-mode
+	error_reporting(E_ALL); 		// Dev/debug?  Include all (use E_ALL|E_STRICT for PHP < 5.4)
+else
+// error_reporting(error_reporting()|E_STRICT);	// Add "strict"
+	error_reporting(E_STRICT);			// Relative quiet mode (production?)
+
 // session_start();	// Req'd by Facebook (start session now to avoid output/header errors).
 
 //****
 // 1. "Activate" the ccPhp Framework from its directory, by including its primary
-//    class, ccApp.
-require(dirname(dirname(__FILE__)).DIRECTORY_SEPARATOR.'ccFramework'.DIRECTORY_SEPARATOR.'ccApp.php');
-// ccTrace::setHtml(TRUE);
-// ccTrace::setSuppress();					// Ensure no accidental output
-// ccTrace::setOutput('/home/wrlee/htd.log');	// Output to file.
-// ccTrace::setLogging('/home/wrlee/htd.log');	// Log to file.
+//    class, ccApp. CCPHP_DIR can be set, separately, in a installation-specific
+//		setting.
+if ( defined('CCPHP_DIR') )
+	require(CCPHP_DIR . DIRECTORY_SEPARATOR . 'ccApp.php');
+else
+	require(dirname(dirname(__FILE__)) . DIRECTORY_SEPARATOR . 'ccPhp' . DIRECTORY_SEPARATOR . 'ccApp.php');
 
 //****
 // 2. Create and configure the Application object (singleton)
-$app = ccApp::createApp(dirname(__FILE__));	// Tell app where the site code is.
+$app = ccApp::createApp(__DIR__);	// Tell app where the site code is.
 $app
 	->setDevMode( 							// Set app mode flags (PRODUCTION, DEVELOPMENT, STAGING, TESTING)
 		CCAPP_DEVELOPMENT
 	)
-	->setWorkingDir('.var')					// Set working dir (default 'working')
+	->setWorkingDir('.var')				// Set working dir (default, app directory)
 
-//	->addClassPath('classes')				// Site's support files (base-class)
-											// Add classname->file mappings
+//	->addClassPath('classes')			// Site's support files (base-class)
+												// Add classname->file mappings
 //	->addClassPath('..'.DIRECTORY_SEPARATOR.'RedBeanPHP'.DIRECTORY_SEPARATOR.'rb.php','R')
 //	->addClassPath($app->getFrameworkPath().'..'.DIRECTORY_SEPARATOR.'LessPhp'.DIRECTORY_SEPARATOR.'lessc.inc.php', 'lessc')
 //	->addClassPath('..'.DIRECTORY_SEPARATOR.'Facebook'.DIRECTORY_SEPARATOR.'facebook.php','Facebook')
 //	->addPhpPath('/home/wrlee/php')			// My common library files
 	;
-											// Log directory.
-$logfile = $app->createWorkingDir('logs').basename($app->getUrlOffset()).'.log';
-ccTrace::setOutput($logfile);	// Output to file.
-ccTrace::setLogging($logfile);	// Log to file.
+// Set log output location. Logname based on public URL root
+{
+	$logfile = basename($app->getUrlOffset());
+//	$logfile = $app->createWorkingDir('logs').basename($app->getUrlOffset()).'.log';
+	$logfile = $app->createWorkingDir('logs').($logfile  ? $logfile : 'root' ).'.log';
+	ccTrace::setOutput($logfile);					// Output to file.
+	ccTrace::setLogging($logfile);				// Log to file.
+}
+
+// Move the following before createApp() if we need to debug ccApp's creation
+//   but leave it here, if we want to debug other ccApp::* calls
+//ccTrace::setHtml(TRUE);
+//ccTrace::setSuppress();					// Ensure no accidental output
+//ccTrace::setOutput('/home/wrlee/htd.log');	// Output to file.
+//ccTrace::setLogging('/home/wrlee/htd.log');	// Log to file.
 
 //****
 // 3. Create and configure stuff before attempting to include "local" settings.

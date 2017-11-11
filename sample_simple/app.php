@@ -60,15 +60,16 @@
 //    RewriteCond %{REQUEST_FILENAME} !-d
 //    RewriteRule .* index.php
 
-error_reporting(E_ALL|E_STRICT);
-// error_reporting(E_STRICT);
+error_reporting(E_ALL); 			// Include all (use E_ALL|E_STRICT for PHP < 5.4)
+// error_reporting(E_STRICT);			// Relative quiet mode
+// error_reporting(error_reporting()|E_STRICT);	// Add "strict"
 
 // session_start();	// Req'd by Facebook (start session now to avoid output/header errors).
 
 //****
 // 1. "Activate" the ccPhp Framework from its directory, by including its primary
 //    class, ccApp.
-require(dirname(dirname(__FILE__)).DIRECTORY_SEPARATOR.'ccFramework'.DIRECTORY_SEPARATOR.'ccApp.php');
+require(dirname(dirname(__FILE__)).DIRECTORY_SEPARATOR.'ccPhp'.DIRECTORY_SEPARATOR.'ccApp.php');
 // ccTrace::setHtml(TRUE);
 // ccTrace::setSuppress();					// Ensure no accidental output
 // ccTrace::setOutput('/home/wrlee/htd.log');	// Output to file.
@@ -76,24 +77,21 @@ require(dirname(dirname(__FILE__)).DIRECTORY_SEPARATOR.'ccFramework'.DIRECTORY_S
 
 //****
 // 2. Create and configure the Application object (singleton)
-$app = ccApp::createApp(dirname(__FILE__));	// Tell app where the site code is.
+$app = ccApp::createApp(__DIR__);	// Tell app where the site code is.
 $app
 	->setDevMode( 							// Set app mode flags (PRODUCTION, DEVELOPMENT, STAGING, TESTING)
 		CCAPP_DEVELOPMENT
 	)
-	->setWorkingDir('.var')					// Set working dir (default 'working')
+	->setWorkingDir('.var')				// Set working dir (default, app directory)
 
-//	->addClassPath('classes')				// Site's support files (base-class)
-											// Add classname->file mappings
-//	->addClassPath('..'.DIRECTORY_SEPARATOR.'RedBeanPHP'.DIRECTORY_SEPARATOR.'rb.php','R')
-//	->addClassPath($app->getFrameworkPath().'..'.DIRECTORY_SEPARATOR.'LessPhp'.DIRECTORY_SEPARATOR.'lessc.inc.php', 'lessc')
-//	->addClassPath('..'.DIRECTORY_SEPARATOR.'Facebook'.DIRECTORY_SEPARATOR.'facebook.php','Facebook')
-//	->addPhpPath('/home/wrlee/php')			// My common library files
+//	->addClassPath('classes')			// Site's support files (base-class)
 	;
-											// Log directory.
-$logfile = $app->createWorkingDir('logs').basename($app->getUrlOffset()).'.log';
-ccTrace::setOutput($logfile);	// Output to file.
-ccTrace::setLogging($logfile);	// Log to file.
+// Set log output location.
+{
+	$logfile = $app->createWorkingDir('logs').'app.log';
+	ccTrace::setOutput($logfile);		// Output to file.
+	ccTrace::setLogging($logfile);	// Log to file.
+}
 
 //****
 // 3. Create and configure stuff before attempting to include "local" settings.
@@ -104,12 +102,24 @@ ccTrace::setLogging($logfile);	// Log to file.
 // 4. Configure plugins or other stuff you want to use.
 // Config RedBean DB module
 $debug = ($app->getDevMode() & CCAPP_DEVELOPMENT);
-//ccTrace::setSuppress(!($app->getDevMode() & CCAPP_DEVELOPMENT));
+
+/**
+ * Sample "page" for ccPhp
+ */
+ class MyPage
+ 	implements ccPageInterface
+ {
+ 	public function render(ccRequest $request)
+ 	{
+ 		echo "Your first page content.".PHP_EOL;
+ 		return true;		// Request "handled"
+ 	} // render()
+ } // class MyPage
+
 
 //****
 // 5. Set the app's main "page" and "run" the app.
 $app->setPage(new MyPage())		// Set dispatcher as app's "page"
     ->dispatch();						// Process request
 
-//**** END OF FILE ****//
 // Return to index.php //

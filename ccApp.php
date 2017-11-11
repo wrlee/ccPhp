@@ -204,7 +204,8 @@ class ccApp
 											// Check instance specific autoload
 		if (!class_exists($className))		// Check framework directories
 		{
-			if (__NAMESPACE__ != '' && __NAMESPACE__ == substr($className, 0, strlen(__NAMESPACE__)))
+			if (   __NAMESPACE__ != ''
+				 && __NAMESPACE__ == substr($className, 0, strlen(__NAMESPACE__)))
 			{
 				$className = explode('\\', $className);
 //				// If __NAMESPACE__ in effect and namespace is not part of name
@@ -242,21 +243,15 @@ class ccApp
 	 */
 	function addClassPath($path,$classname=NULL)
 	{
+		if ($path[0] != DIRECTORY_SEPARATOR)
+			$path = $this->sitepath.$path;
 		if ($classname)
-		{
-			if ($path[0] != DIRECTORY_SEPARATOR)
-				$this->classpath[$classname] = $this->sitepath.$path;
-			else
-				$this->classpath[$classname] = $path;
-		}
+			$this->classpath[$classname] = $path;
 		else
 		{
 			if (substr($path,-1) != DIRECTORY_SEPARATOR)
 				$path .= DIRECTORY_SEPARATOR;
-			if ($path[0] != DIRECTORY_SEPARATOR)
-				$this->classpath[] = $this->sitepath.$path;
-			else
-				$this->classpath[] = $path;
+			$this->classpath[] = $path;
 		}
 		return $this;
 	} // addClassPath()
@@ -268,13 +263,16 @@ class ccApp
 	 *        false, append new path to the end of the search path.
 	 * @see set_include_path()
 	 * @todo If not absolute path, prefix with site path.
+	 * @todo Automatically convert '/' or '\' to the correct DIRECTORY_SEPARATOR
+	 *			for the current OS.
 	 */
 	public function addPhpPath($path,$prefix=FALSE)
 	{
-		if ($prefix)
-			set_include_path($path . PATH_SEPARATOR . get_include_path());
-		else
-			set_include_path(get_include_path() . PATH_SEPARATOR . $path);
+		set_include_path(
+			$prefix
+				? $path . PATH_SEPARATOR . get_include_path()
+				: get_include_path() . PATH_SEPARATOR . $path
+		);
 		return $this;
 	} // addPhpPath()
 
@@ -734,7 +732,7 @@ class ccApp
 
 	/**
 	 * Get the full path to the working directory.
-	 * @return [type] [description]
+	 * @return string Absolute path of working directory
 	 */
 	public function getWorkingPath()
 	{
@@ -853,7 +851,7 @@ class ccApp
 				echo "errno($errno): $msg<br/>";
 //			self::log($msg);
 			$trace = debug_backtrace();		// Get whole stack list
-			array_shift($trace);			// Ignore this function
+			array_shift($trace);					// Ignore this function
 			ccTrace::showTrace($trace);		// Display stack.
 			return TRUE;
 		}
@@ -865,7 +863,7 @@ class ccApp
 	 * Default exception handler. Works in conjunction with ccTrace to produce
 	 * formatted output to the right destination.
 	 *
-	 * @param  Exception $exception Exceptio object to report
+	 * @param  Exception $exception Exception object to report
 	 *
 	 * @todo Add distinction between dev and production modes of output.
 	 * @todo See php.net on tips for proper handling of this handler.
