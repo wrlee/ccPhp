@@ -235,7 +235,7 @@ class ccApp
 	 * @param string $classname is an optional class name that, when sought, will
 	 *        load the specified file specified by $path. If prefixed with a '\',
 	 *        then it represents a namespace. In this case, $path represents a
-	 *        source directory for files of that namespace. 
+	 *        source directory for files of that namespace.
 	 * @example
 	 *    define('DS',DIRECTORY_SEPARATOR);
 	 *	  $app->addClassPath('classes')		// Search app's directory
@@ -781,9 +781,9 @@ class ccApp
 		<?php
 		if ($this->getDevMode() & self::MODE_TRACEBACK)
 		{
-			$trace = debug_backtrace();		// Get whole stack list
-			array_shift($trace);			// Ignore this function
-			ccTrace::showTrace($trace);		// Display stack.
+			$trace = debug_backtrace();	// Get whole stack list
+			array_shift($trace);				// Ignore this function
+			ccTrace::showTrace($trace);	// Display stack.
 		}
 		?>
 		</body></html>
@@ -795,18 +795,19 @@ class ccApp
 	 * Php error handler directs output to destinations determined by ccTrace. This also
 	 * will output to stdout based on the app's devMode setting.
 	 *
-	 * @param  integer $errno     Error number
-	 * @param  string $errstr     Error text
-	 * @param  string $errfile    Filename containing error
-	 * @param  integer $errline   Line number of error occurance in $errfile
-//	 * @param  [type] $errcontext [description]
+	 * @param  integer 	$errno		Error number
+	 * @param  string 	$errstr     Error text
+	 * @param  string 	$errfile    Filename containing error
+	 * @param  integer 	$errline   	Line number of error occurance in $errfile
+	 * @param  array 		$errcontext Symbol table state when error occurred
+	 *											(Deprecated as of v7.2.0)
 	 *
 	 * @todo Consider throwing exception (caveat, flow of control does not continue)
 	 * @todo Add distinction between dev and production modes of output.
 	 * @todo Consider moving to separate Trace class
 	 * @todo Display error to page based on display_errors setting
 	 */
-	static function onError($errno, $errstr, $errfile, $errline, $errcontext)
+	static function onError($errno, $errstr, $errfile, $errline, $errcontext=NULL)
 	{
 		if (error_reporting() & $errno)
 		{
@@ -826,11 +827,11 @@ class ccApp
 			);
 			if ( PHP_VERSION_ID >= 50200 )
 			{
-				$errortype[E_RECOVERABLE_ERROR] = 'Recoverable Error'; 	// 4096
+				$errortype[E_RECOVERABLE_ERROR] = 'Recoverable Error';// 4096
 				if ( PHP_VERSION_ID >= 50300 )
 				{
-					$errortype[E_DEPRECATED] = 'Deprecated';			// 8092
-					$errortype[E_USER_DEPRECATED] = 'User Deprecated'; 	// 16384
+					$errortype[E_DEPRECATED] = 'Deprecated';				// 8092
+					$errortype[E_USER_DEPRECATED] = 'User Deprecated'; // 16384
 				}
 			}
 			if (!isset($errortype[$errno]))
