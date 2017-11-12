@@ -95,12 +95,14 @@ if (PHP_VERSION_ID < 50400) {
 unset($_version);	// Not needed any longer
 // [END] Portability settings
 } // namespace
+
 namespace //! ccPhp
 {
 // include 'ccPhp.inc';
 //!use ccPhp\core\ccTrace;
 //!use ccPhp\core\ccRequest;
 //!use ccPhp\core\ccPageInterface;
+// include('ccTrace.php');			// @todo Remove
 
 //******************************************************************************
 
@@ -231,7 +233,9 @@ class ccApp
 	 *        char is not '/' (or '\', as appropriate) then the site dir is
 	 *        assumed.
 	 * @param string $classname is an optional class name that, when sought, will
-	 *        load the specified file specified by $path.
+	 *        load the specified file specified by $path. If prefixed with a '\',
+	 *        then it represents a namespace. In this case, $path represents a
+	 *        source directory for files of that namespace. 
 	 * @example
 	 *    define('DS',DIRECTORY_SEPARATOR);
 	 *	  $app->addClassPath('classes')		// Search app's directory
@@ -243,7 +247,9 @@ class ccApp
 	 */
 	function addClassPath($path,$classname=NULL)
 	{
-		if ($path[0] != DIRECTORY_SEPARATOR)
+		if (!$path)
+			$path = $this->sitepath;
+		elseif ($path[0] != DIRECTORY_SEPARATOR)
 			$path = $this->sitepath.$path;
 		if ($classname)
 			$this->classpath[$classname] = $path;
@@ -283,10 +289,11 @@ class ccApp
 	public function autoload($className)
 	{
 		$classFilename = str_replace('_', DIRECTORY_SEPARATOR, $className).'.php';
+		$classFilename = str_replace('\\', DIRECTORY_SEPARATOR, $className).'.php';
 // global $bb,$eb, $bi,$ei, $btt,$ett, $rarr,$ldquo,$rdquo,$hellip,$nbsp,$nl;
 // ccTrace::s_out( '#'.__LINE__.' '.ccTrace::getCaller(0,dirname(self::getApp()->getAppPath())).': '.$className." $rarr ".$classFilename.$nl);
 // ccTrace::s_out( '#'.__LINE__.' '.ccTrace::getCaller(3).': '.$className." $rarr ".$classFilename.$nl);
-// echo '#'.__LINE__.' '.$className." $rarr ".$classFilename.$nl;
+// echo '#'.__LINE__." $className $rarr $classFilename".$nl;
 // self::tr('&nbsp;&nbsp;&nbsp;'.$this->sitepath.$classFilename);
 // ccTrace::tr('&nbsp;&nbsp;&nbsp;'.$this->sitepath.$classFilename);
 
@@ -307,9 +314,22 @@ class ccApp
 				if (require($path))
 					return;
 			}
-			elseif (file_exists($path . $classFilename))
+			// If class-association registered w/ccApp is a namespace, check whether
+			// class to load has a namespace; if namespace names match, then use
+			// registered path as source.
+			if (   $class[0] === '\\' && strpos($className,'\\') !== FALSE
+				 && substr($class,1).'\\' === substr($className,0,strlen($class)) )
+			{
+// echo '#'.__LINE__." class=$class path=$path$nl";
+				$namespaceClassName = substr($className,strlen($class)).'.php';
+// echo '#'.__LINE__.' '.$className." $rarr ".$path.$namespaceClassName.$nl;
+				if (include($path . $namespaceClassName))
+					return;
+			}
+			if (file_exists($path . $classFilename))
 //			elseif (@include($path . $classFilename))
 			{							// Else if assumed name exists...
+// echo '#'.__LINE__." Exists=$path$classFilename$nl";
 				include($path . $classFilename);
 				return;
 			}
