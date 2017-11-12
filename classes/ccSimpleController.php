@@ -17,7 +17,17 @@
 abstract class ccSimpleController
 	extends ccController
 {
+	/**
+	 * @var string If no method matches the next component of the URL and this is set,
+	 * 	  it is invoked. It can preempt the default 404 handling.
+	 */
 	private $defaultHandler=NULL;
+	/**
+	 * @var bool If true, automatically calling begin()/after() is skipped and left
+	 *		  to the defaultHandler to invoke, if necessary. This allows the handler
+	 *		  to exit, false, if desired.
+	 */
+	private $defaultHandlerSuppressAuto=FALSE;
 	/**
 	 * If set then assume it's a URL offset. If the left-most path component matches,
 	 * then this object is given control. The next path component is then matched
@@ -52,7 +62,7 @@ abstract class ccSimpleController
 
 		$method = $this->getMethodFromRequest($request);
 
-		if ( ! $method )
+		if (!$method && !$this->defaultHandlerSuppressAuto)
 			$method = $this->defaultHandler;
 
 		if ( $method )
@@ -67,29 +77,35 @@ abstract class ccSimpleController
 				call_user_func(array($this,'after'), $request);
 			return $rc;
 		}
-/*		elseif (method_exists($this,'notfound'))
+		// In the default case, handler is reponsibile for calling begin/after
+		elseif ($this->defaultHandler)
 		{
-			if (method_exists($this,'begin'))
-				if (!call_user_func(array($this,'begin'), $request))
-					return FALSE;
-
-			$rc = call_user_func(array($this,'notfound'), $request);
-
-			if ($rc && method_exists($this,'after'))
-				call_user_func(array($this,'after'), $request);
-			return $rc;
+			return call_user_func(array($this,$this->defaultHandler),$request);
 		}
-*/		else
+		else
 			return NULL;		// Method not found.
 	} // render()
 
 	/**
-	 * Set default handler when action-specific method name does not exist. This
-	 * defaults to
-	 * @param method $method A method point
+	 * Set a default handler when action-specific method name does not exist.
+	 * This allows the class to take control when method does not match the
+	 * rules according to getMethodFromRequest(), rather than lead to a 404.
+	 * Still, the handler might need to determine whether to process or not and
+	 * may need to circumvent begin()/after() processing; so, supporessing those
+	 * automatic invocations can be suppressed. Then it is up to the default
+	 * handler to make those calls, if desired.
+	 * @param string $method A method name to invoke when nothing matches a URL component.
+	 * @param bool $suppressAuto Suppress execution of begin()/after() when
+	 *						default case is to be invoked. This allows the default
+	 *						handler to determine whether to process (by returning false)
+	 *						rather than assuming it will do something useful.
+	 * @todo Allow $method to be actual function/method (rather than string)
 	 */
-	protected function setDefaultHandler($method)
+	protected function setDefaultHandler($method, $suppressAuto=FALSE)
 	{
-		$this->defaultHandler = $method;
+		if (method_exists($this,$method)) {
+			$this->defaultHandler = $method;
+			$this->defaultHandlerSuppressAuto = true;
+		}
 	} // setDefaultHandler
 } // class ccSimpleController
