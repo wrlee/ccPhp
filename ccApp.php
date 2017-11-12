@@ -747,10 +747,10 @@ class ccApp
 	 */
 	protected function on404(ccRequest $request)
 	{
-//		http_response_code(404);
 		if (!headers_sent())
 		{
-			header($_SERVER['SERVER_PROTOCOL'].' 404 Not Found', TRUE, 404);
+			http_response_code(404);
+//			header($_SERVER['SERVER_PROTOCOL'].' 404 Not Found', TRUE, 404);
 			header('Content-type: text/html');
 		}
 		?>
@@ -921,6 +921,7 @@ EOD;
 	 */
 	protected function show404(ccRequest $request)
 	{
+		ccTrace::log($request->getUrl());
 		if ($this->error404)	// If 404 page defined
 		{
 			if (is_string($this->error404))
