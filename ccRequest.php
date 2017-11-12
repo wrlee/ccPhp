@@ -1,4 +1,4 @@
-<?php 
+<?php
 /**
  *
  * @package ccPhp
@@ -15,14 +15,14 @@
 
 /**
  * This is a holding place for request specific properties. It can be thought of
- * as a "parameter block." This object (there is usually only one for any 
- * iteration, i.e., request) is passed to the dispatcher and on to 
+ * as a "parameter block." This object (there is usually only one for any
+ * iteration, i.e., request) is passed to the dispatcher and on to
  * filters (which can change this object) and then to controllers that process
  * on behalf of the request.
  *
  * The URL components are parsed into an array that can be retrieved via
- * getUrlPath(). The first element can be pulled out of the list via 
- * shiftUrlPath(). 
+ * getUrlPath(). The first element can be pulled out of the list via
+ * shiftUrlPath().
  *
  * @package ccPhp
  * @todo Rather than rely on globals,use constructor's $URI value.
@@ -30,10 +30,10 @@
  * @todo Add Cookie functions (consider secure-only cookies)
  * @todo Add getRequestValues ($_GET+$_POST or $_POST-only, for secure, non-debug)
  */
-class ccRequest implements \ArrayAccess, \IteratorAggregate 
+class ccRequest implements \ArrayAccess, \IteratorAggregate
 {
 	protected $defaultDoc = 'index';	// Default document name
-	protected $userAgentInfo;			// Array of client characteristics 
+	protected $userAgentInfo;			// Array of client characteristics
 	protected $components = NULL;		// Relative path parsed as an array
 	protected $truename = NULL;			// Full document name (potentially)
 	protected $format; 					// Data request type: html|json|xml|text
@@ -42,7 +42,7 @@ class ccRequest implements \ArrayAccess, \IteratorAggregate
 	/**
 	 * Since the dispatcher passes copies of this to each controller (to insulate
 	 * the request object from any changes made by any controller from another),
-	 * cloning needs to be supported. 
+	 * cloning needs to be supported.
 	 */
 	function __clone()
 	{
@@ -51,11 +51,11 @@ class ccRequest implements \ArrayAccess, \IteratorAggregate
 	} // __clone()
 
 	/**
-	 * The constructor parses the "relative path" to the "resource". 
-	 * 
-	 * @param string $URI Create a request object 
-	 * @todo Fix: Set other values for this object, here based on $URI rather 
-	 *       than referring to late binding to globals. 
+	 * The constructor parses the "relative path" to the "resource".
+	 *
+	 * @param string $URI Create a request object
+	 * @todo Fix: Set other values for this object, here based on $URI rather
+	 *       than referring to late binding to globals.
 	 */
 	function __construct($URI=NULL)
 	{
@@ -85,7 +85,7 @@ class ccRequest implements \ArrayAccess, \IteratorAggregate
 	/**
 	 * @returns string 'get'|'post'|'put'|'delete'
 	 */
-	function getHttpMethod() 
+	function getHttpMethod()
 	{
 		return strtolower($_SERVER['REQUEST_METHOD']);
 	}
@@ -100,15 +100,15 @@ class ccRequest implements \ArrayAccess, \IteratorAggregate
 		       ? substr($_SERVER['SCRIPT_URL'], strlen(ccApp::getApp()->getUrlOffset()))
 			   : $_SERVER['SCRIPT_URL'];
 	} // getRelativeUrl()
-	
+
 	/**
-	 * Return the request parameters, a combination of $_GET and/or $_POST. In 
+	 * Return the request parameters, a combination of $_GET and/or $_POST. In
 	 * development mode, this is a combination of the two. In production mode,
-	 * POST requests will only return $_POST. 
+	 * POST requests will only return $_POST.
 	 * @return Array Associative array of request variables.
 	 *
-	 * @todo The set of values should be either $_POST or $_GET, dependent on 
-	 *       the request http method (get or post) and the development mode.  
+	 * @todo The set of values should be either $_POST or $_GET, dependent on
+	 *       the request http method (get or post) and the development mode.
 	 */
 	function getRequestVars()
 	{
@@ -116,8 +116,8 @@ class ccRequest implements \ArrayAccess, \IteratorAggregate
 	}
 
 	/**
-	 * Get the part of the URL which points to the root of this app, i.e., the 
-	 * start of where this app resides. 
+	 * Get the part of the URL which points to the root of this app, i.e., the
+	 * start of where this app resides.
 	 * @return string The URI
 	 * @see getUrlOffset()
 	 * @todo Handle case where URL does not have a scheme
@@ -125,7 +125,7 @@ class ccRequest implements \ArrayAccess, \IteratorAggregate
 	function getRootUrl()
 	{
 		$path = $this->getUrl();
-			
+
 		$p = strpos($path,'//');	// Offset past the protocol scheme spec
 		if ($p === FALSE)			// No protocol scheme.
 		{							// Don't know what to do here... bad input.
@@ -135,10 +135,10 @@ class ccRequest implements \ArrayAccess, \IteratorAggregate
 			$p = strpos($path,'/',$p+2);	// First path separator past the scheme
 			if ($p === FALSE)				// No '/': this app is at the root.
 				$path .= '/';				// Ensure it ends with a '/'
-			else 
+			else
 				$path = substr($path,0,$p+1);	// Ignore path after the domain portion.
 		}
-		
+
 		return $path . substr(ccApp::getApp()->getUrlOffset(),1);
 	} // getRootUrl()
 
@@ -157,7 +157,7 @@ class ccRequest implements \ArrayAccess, \IteratorAggregate
 	function getUrl()
 	{
 		$url =
-		 isset($_SERVER['REDIRECT_SCRIPT_URI']) 
+		 isset($_SERVER['REDIRECT_SCRIPT_URI'])
 			? $_SERVER['REDIRECT_SCRIPT_URI']
 			: isset($_SERVER['SCRIPT_URI'])
 			  ? $_SERVER['SCRIPT_URI']
@@ -166,7 +166,7 @@ class ccRequest implements \ArrayAccess, \IteratorAggregate
 		return $url;
 	} // getUrl()
 
-	function getUrlPort() 
+	function getUrlPort()
 	{
 		return $_SERVER['SERVER_PORT'];
 	} // getUrlPort()
@@ -188,9 +188,9 @@ class ccRequest implements \ArrayAccess, \IteratorAggregate
 	/**
 	 * @returns string 'http'|'https' (and, in theory, a bunch of other schemes)
 	 */
-	function getUrlScheme() 
+	function getUrlScheme()
 	{
-		$scheme = isset($_SERVER['REQUEST_SCHEME']) 
+		$scheme = isset($_SERVER['REQUEST_SCHEME'])
 					? $_SERVER['REQUEST_SCHEME']
 					: substr($_SERVER['SCRIPT_URI'],0,strpos($_SERVER['SCRIPT_URI'],':'));
 //		$scheme = strstr($_SERVER['SCRIPT_URI'],':',true); // PHP 5.3+
@@ -198,12 +198,16 @@ class ccRequest implements \ArrayAccess, \IteratorAggregate
 	} // getUrlScheme()
 
 	/**
-	 * @returns array URL components; each component, the part delimited by '/'
+	 * Get array representation of URL components
+	 * @return array URL components; each component, the part delimited by '/'
 	 */
 	function getUrlPath()
 	{
 		return $this->components;
 	}
+	/**
+	 * Return last (rightmost) component of URL and remove it from list.
+	 */
 	function popUrlPath()
 	{
 		if ($this->components)				// If array not empty
@@ -215,9 +219,9 @@ class ccRequest implements \ArrayAccess, \IteratorAggregate
 		return $rval;
 	} // popUrlPath()
 	/**
-	 * Shift the component list "left", deleting the first component and 
+	 * Shift the component list "left", deleting the first component and
 	 * returning that component.
-	 * @returns string The first component of the URL.
+	 * @return string The first component of the URL.
 	 */
 	function shiftUrlPath()
 	{
@@ -230,6 +234,10 @@ class ccRequest implements \ArrayAccess, \IteratorAggregate
 		return $rval;
 	} // shiftUrlPath()
 
+	/**
+	 * Get Usage-Agent string.
+	 * @return string Usage-Agent string
+	 */
 	function getUserAgent()
 	{
 		return isset($_SERVER['HTTP_USER_AGENT']) ? $_SERVER['HTTP_USER_AGENT'] : '';
@@ -240,42 +248,66 @@ class ccRequest implements \ArrayAccess, \IteratorAggregate
 	}
 
 	/**
-	 * Is the current request an AJAX request? This may not be reliable. 
+	 * Is the current request an AJAX request? This may not be reliable.
 	 * @return boolean [description]
 	 */
 	function isAjax()
 	{
 		// Windows: Firefox 20, IE 7-10, Safari 5.1
-		if (!isset($_SERVER['HTTP_X_REQUESTED_WITH']) || $_SERVER['HTTP_X_REQUESTED_WITH'] != 'XMLHttpRequest') 
+		if (!isset($_SERVER['HTTP_X_REQUESTED_WITH']) || $_SERVER['HTTP_X_REQUESTED_WITH'] != 'XMLHttpRequest')
 			return false;
 		else
 			return true;
 	}
+	/**
+	 * Is request/connection from Internet Explorer?
+	 * @return bool
+	 */
 	function isIE()
 	{
-		return isset($this->userAgentInfo['browser']) && $this->userAgentInfo['browser'] == 'IE' 
+		return isset($this->userAgentInfo['browser']) && $this->userAgentInfo['browser'] == 'IE'
 			|| isset($this->userAgentInfo['Browser']) && $this->userAgentInfo['Browser'] == 'IE';
 	}
 
+	/**
+	 * Is request/connection from mobile device?
+	 * @return bool
+	 */
 	function isMobile()
 	{
 		return $this->userAgentInfo['isMobileDevice'];
 	}
+	/**
+	 * Is request/connection from iOS?
+	 * @return bool
+	 */
 	function isiOS()
 	{
 		return isset($this->userAgentInfo['Platform'])  && $this->userAgentInfo['Platform']
-			|| isset($this->userAgentInfo['Platform']) && $this->userAgentInfo['Platform'] == 'iPhone OSX' 
-			|| $this->isiPhone() 
+			|| isset($this->userAgentInfo['Platform']) && $this->userAgentInfo['Platform'] == 'iPhone OSX'
+			|| $this->isiPhone()
 			|| $this->isiPad();
 	}
+	/**
+	 * Is request/connection from iPad?
+	 * @return bool
+	 */
 	function isiPad()
 	{
 		return isset($this->userAgentInfo['Browser']) && $this->userAgentInfo['Browser'] == 'iPad';
 	}
+	/**
+	 * Is request/connection from iPhone?
+	 * @return bool
+	 */
 	function isiPhone()
 	{
 		return isset($this->userAgentInfo['Browser']) && $this->userAgentInfo['Browser'] == 'iPhone';
 	}
+	/**
+	 * Is request/connection SSL?
+	 * @return bool
+	 */
 	function isSecure()
 	{
 		return (isset($_SERVER['HTTPS']) &&  $_SERVER['HTTPS'] == 'on');
@@ -284,7 +316,7 @@ class ccRequest implements \ArrayAccess, \IteratorAggregate
 
 	/**
 	 * Mimics browscap and get_browser() functionality when get_browser() is not
-	 * supported. 
+	 * supported.
 	 *
 	 * @todo Check that get_browser() won't work before doing our own processing.
 	 * @todo Pass .ini file in as a parameter.
@@ -292,7 +324,7 @@ class ccRequest implements \ArrayAccess, \IteratorAggregate
 	 */
 	protected function parseUserAgent()
 	{
-		$err = error_reporting(E_ERROR | E_PARSE);	// Turn off potential warnings 
+		$err = error_reporting(E_ERROR | E_PARSE);	// Turn off potential warnings
 			$ini = ini_get( 'browscap' );			// generated by this statement
 		error_reporting($err);						// Then restore error settings
 		if ($ini) {
@@ -359,6 +391,9 @@ class ccRequest implements \ArrayAccess, \IteratorAggregate
 	} // parseUserAgent()
 
 	/**
+	 * Find length of string of initial matching characters.
+	 * @param string $string1 First string to match
+	 * @param string $string1 Second string to match
 	 * @return offset to beginning of non-matching part of strings
 	 */
 	private static function len_of_common_initial($string1, $string2) {
@@ -370,6 +405,7 @@ class ccRequest implements \ArrayAccess, \IteratorAggregate
 	/**
 	 * Overridable callback to parse the URL and set the components
 	 * and format values.
+	 * @param string $url The URL to decode.
 	 * @todo Remove successive '/'s (remove blank entries in component array)
 	 * @todo Untangle REDIRECT_URL hack. This accommodates .htaccess UrlRewrites
 	 */
@@ -401,7 +437,7 @@ class ccRequest implements \ArrayAccess, \IteratorAggregate
 			$pathinfo = pathinfo($components['path']);
 		}
 */
-		$pathinfo = pathinfo(isset($_SERVER['REDIRECT_URL'])	// WRL HACK! Circumvents 
+		$pathinfo = pathinfo(isset($_SERVER['REDIRECT_URL'])	// WRL HACK! Circumvents
 			? $_SERVER['REDIRECT_URL'] 							// $url setting
 			: $components['path']);
 
@@ -427,7 +463,7 @@ class ccRequest implements \ArrayAccess, \IteratorAggregate
 //			array_shift($this->components);							//   ignore it.
 
 								// Determine format requested
-		if (isset($pathinfo['extension'])) 
+		if (isset($pathinfo['extension']))
 			$this->format = strtolower($pathinfo['extension']);
 //		elseif (isset($_SERVER['CONTENT_TYPE']))
 		elseif (isset($_SERVER['HTTP_ACCEPT']))
@@ -458,11 +494,14 @@ class ccRequest implements \ArrayAccess, \IteratorAggregate
 	} // parseUrl()
 
 	/**
-	 * "Serialize" to an array. This is particluarly useful for passing to 
+	 * @var Synthetic instance properties.
+	 */
+	protected $properties = Array();
+	/**
+	 * "Serialize" to an array. This is particluarly useful for passing to
 	 * template processors.
 	 * @returns Array array of values representing current state.
 	 */
-	protected $properties = Array();
 	protected function initProperties()
 	{
 		$this->properties['defaultDocument'] = $this->getDefaultDocument();
@@ -483,31 +522,49 @@ class ccRequest implements \ArrayAccess, \IteratorAggregate
 		$this->properties['method'] = $this->getHttpMethod();
 		$this->properties['url_path'] = implode(DIRECTORY_SEPARATOR, $this->getUrlPath());
 	} // initProperties()
-	
+
 	/***************************************************************************
 	 * ArrayAccess, IteratorAggregate interface implementation
 	 */
+ 	/**
+ 	 * Return whether element exists at... Satisfy interface requirements
+ 	 * @param $offset Index offset
+	 * @return bool Element exists?
+ 	 */
 	public function offsetExists( $offset )
 	{
 		if (!$this->properties)
 			$this->initProperties();
 		return isset($this->properties[$offset]) || isset($this->userAgentInfo[$offset]);
 	}
+	/**
+	 * Return element at... Satisfy interface requirements
+	 * @param $offset Index offset
+	 * @return element
+	 */
 	public function offsetGet( $offset )
 	{
 		if (!$this->properties)
 			$this->initProperties();
-		return isset($this->properties[$offset]) 
-			? $this->properties[$offset] 
+		return isset($this->properties[$offset])
+			? $this->properties[$offset]
 			: $this->userAgentInfo[$offset];
 	}
-	public function offsetSet( $offset, $value )
-	{
-	}
-	public function offsetUnset( $offset )
-	{
-	}
-    public function getIterator() 
+	/**
+	 * Satisfy interface requirements (unused)
+	 * @param $offset Element offset
+	 * @param $value value to set at element
+	 */
+	public function offsetSet( $offset, $value ) { }
+	/**
+	 * Satisfy interface requirements (unused)
+	 * @param $offset Element offset
+	 */
+	public function offsetUnset( $offset ) { }
+	/**
+	 * Return iterator to satisfy interface requirements.
+	 */
+   public function getIterator()
 	{
 		if (!$this->properties)
 			$this->initProperties();

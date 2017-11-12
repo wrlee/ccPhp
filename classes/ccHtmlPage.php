@@ -1,8 +1,11 @@
 <?php
-
+/**
+ * Implements ccHtmlPage class.
+ * @author Bill Lee bill@cachecrew.com
+ */
 /**
  * Class to output to a page, implement the following:
- * 
+ *
  * 1. Define elements of the page: title meta tags, script & CSS inclusion, etc.
  *    This can be done in constructor.
  * 2. Implement onContent()
@@ -12,34 +15,47 @@
  * - Add any content to preface or epilog
  * - Implement content generator (e.g., onContent())
  *
- * 
- * 
- * @todo Reimplement use of begin()/after() to free those up for normal 
+ *
+ *
+ * @todo Reimplement use of begin()/after() to free those up for normal
  * 		 derived-class overriding (call onPreface()/onEpilog() separately, explicitly)
  * @todo Define packages, e.g., jQuery, Bootstrap, etc. which will perform the appropriate
  *       setup for the corresponding package (include CSS, JS)
  * @todo Add meta tag support
  * @todo Consider abstracting this by eliminating making body an explicit part
  *       of the interface, describing only: preface, content, and epilog. Then allowing
- *       augmentation of those three elements by inserting to top and bottom of each. 
+ *       augmentation of those three elements by inserting to top and bottom of each.
  */
 class ccHtmlPage
 	extends ccSimpleController
 {
-	protected $request;						// Current request
-	protected $title;						// Page title (in head)
-	protected $GoogleAnalyticsTrackingID;	// GA tracking ID
-	protected $head=[];						// <head> content
+											/** @var Current request */
+	protected $request;
+											/** @var Page title (in head) */
+	protected $title;
+											/** @var GA tracking ID */
+	protected $GoogleAnalyticsTrackingID;
+											/** @var <head> content */
+	protected $head=[];
+											/** @var Content for top */
 	protected $htmlHeadSources=[];
+											/** @var Content for bottom */
 	protected $htmlTailSources=[];
-	protected $scripts=[];					// Array of scripts and locations
-	protected $preface=[];					// Preface suffix content
-	protected $epilog=[];					// Epilog prefix content
+											/** @var Array of scripts and locations */
+	protected $scripts=[];
+											/** @var Preface suffix content */
+	protected $preface=[];
+											/** @var Epilog prefix content */
+	protected $epilog=[];
 //	protected $packages; 					// List of packages to include
 //		public const PKG_BOOTSTRAP='bootstrap';	// Implies jquery
-//		public const PKG_JQUERY='jquery';	
-//	protected $meta;						// Meta tag info
+//		public const PKG_JQUERY='jquery';
+//	protected $meta;						/** Meta tag info */
 
+/**
+ * If method found, this will be called before method.
+ * @param ccRequest $request HTTP request object
+ */
 	protected function begin($request)
 	{
 		$this->request = $request;
@@ -49,6 +65,10 @@ class ccHtmlPage
 		return true;
 	} // begin()
 
+	/**
+	 * If method found, this will be called after method.
+	 * @param ccRequest $request HTTP request object
+	 */
 	protected function after($request)
 	{
 		$this->onEpilog();
@@ -57,6 +77,7 @@ class ccHtmlPage
 
 	/**
 	 * Get/set Google Analytics tracking ID
+	 * @param string $tracking_id Google tracking ID to set.
 	 */
 	protected function googleAnalytics($tracking_id=NULL)
 	{
@@ -79,16 +100,18 @@ GA_SCRIPT
 	} // googleAnalytics()
 
 	/**
-	 * Add stuff to file by category:
+	 * Add reference to file by category:
 	 * - title
-	 * - meta 
+	 * - meta
 	 * - google analytics
 	 * - CSS reference
 	 * - Script reference
 	 * - CSS?
 	 * - Script content?
+	 * @param string $uri Resource path
+	 * @param bool $head Add to top or not. Default for css is top, js is bottom
 	 */
-	protected function addUriSource($uri, bool $head=NULL)
+	protected function addUriSource($uri, bool $head=false)
 	{
 		$type = pathinfo( $uri, PATHINFO_EXTENSION );
 		if ($type == 'css')
@@ -122,19 +145,28 @@ GA_SCRIPT
 	{
 		$this->head[] = $head;
 	}
+	/**
+	 * Submit content to add to preface, later.
+	 * @param string|function $content Content text or function
+	 */
 	protected function addPreface($content)
 	{
 		$this->preface[] = $content;
 	}
+	/**
+	 * Submit content to add to epilog, later.
+	 * @param string|function $content Content text or function
+	 */
 	protected function addEpilog($content)
 	{
 		$this->epilog[] = $content;
 	}
 
 	/**
-	 * Include CSS, script, etc. Type is inferred by extension. Scripts are added to bottom, by 
-	 * default unless $head is TRUE. 
-	 * 
+	 * Include CSS, script, etc. Type is inferred by extension. Scripts are
+	 * added to bottom, by default unless $head is TRUE.
+	 * @param string $uri Path to resource.
+	 * @param string $type Identifies the type of resource (if not discernable)
 	 * @todo Support for <script>'s' async="async", defer="defer", type="text/javascript"
 	 * 	     see http://www.w3schools.com/tags/tag_script.asp
 	 */
@@ -143,7 +175,7 @@ GA_SCRIPT
 		if (! $type )
 			$type = pathinfo( $uri, PATHINFO_EXTENSION );
 		$CH_TAB = "\x9";
-		switch ($type) 
+		switch ($type)
 		{
 			case 'css':
 			case 'style':
@@ -168,12 +200,12 @@ GA_SCRIPT
 			case 'gif':		// Does not work in IE
 			case 'png':		// Does not work in IE
 			case 'jpg':		// Does not work in IE
-			case 'jpeg':	// Does not work in IE	
+			case 'jpeg':	// Does not work in IE
 			case 'svg':		// Only works in Opera
 			case 'icon':
 				if ($uri[0] != '/' && strpos($uri,':') === false)
 					$uri = ccApp::getApp()->getUrlOffset().$uri;
-				echo '<link rel="shortcut icon"'.$media.$mime.' href="'.$uri.'"/>'.PHP_EOL;			
+				echo '<link rel="shortcut icon"'.$media.$mime.' href="'.$uri.'"/>'.PHP_EOL;
 				break;
 //			default:
 //				throw new SmartyCompilerException('Unexpected or unspecified type \''.$type.'\'');
@@ -194,7 +226,7 @@ GA_SCRIPT
 				if (!$wrapper) {
 					echo '<script type="text/javascript">'.PHP_EOL;
 					$wrapper = true;
-				}						
+				}
 				if (is_callable($script[0]))
 					$script[0]();
 				else {
@@ -210,11 +242,11 @@ GA_SCRIPT
 					if (!$wrapper) {
 						echo '<script type="text/javascript">'.PHP_EOL;
 						$wrapper = true;
-					}						
+					}
 					if (!$loaded) {
 						echo '$(function() {'.PHP_EOL;
 						$loaded = true;
-					}						
+					}
 					if (is_callable($script[0]))
 						$script[0]();
 					else {
@@ -229,12 +261,12 @@ GA_SCRIPT
 			echo '</script>'.PHP_EOL;
 	} // insertScripts()
 
-	// Implement these as if you were being called, live. The content of each is captured then 
-	// output by the base-class so it can be performed in the correct order (e.g., onHeaders 
+	// Implement these as if you were being called, live. The content of each is captured then
+	// output by the base-class so it can be performed in the correct order (e.g., onHeaders
 	// output is sent first).
 // 	protected function onPage() {}	// Output page (this calls the subsequent)
 // //	protected function before() {} // Common stuff to do before each action (ccSimpleController)
-// 	protected function onHeaders() {} // HTTP Header output 
+// 	protected function onHeaders() {} // HTTP Header output
 // 	protected function onHead() {} // Things within the head tag
 // 	protected function onBody()	{} // Things within the body tags
 // 	protected function onContent() {} // Core content, called by onBody()
@@ -242,8 +274,17 @@ GA_SCRIPT
 // //	protected function after() {} // Common stuff to do before each action (ccSimpleController)
 
 //	protected function before() {} // Common stuff to do before each action (ccSimpleController)
-	protected function onHeaders() {} // HTTP Header output 
 
+	/**
+	 * Output html headers
+	 * @todo Implement or get rid of this.
+	 */
+	protected function onHeaders() {} // HTTP Header output
+
+	/**
+	 * Output "preface", i.e., HTML standard start, <head> content via onHead(),
+	 * and beginning of body.
+	 */
 	protected function onPreface()
 	{	?>
 <!DOCTYPE html>
@@ -255,10 +296,12 @@ GA_SCRIPT
 	} // onPreface()
 
 	/**
+	 * Output HTML <head> content.
+	 * @param function $content Optional function called just before </head>
 	 * @todo Add IE settings that determine IE compatibility level and other conditional statements
 	 * @todo Add charset overrides
 	 */
-	protected function onHead($content=NULL) 
+	protected function onHead($content=NULL)
 	{
 		?>
 <head>
@@ -268,7 +311,7 @@ GA_SCRIPT
 	<title><?= $this->title ?></title>
 <?php
 		// onTitle();
-		
+
 		$this->insert($this->head);
 
 		// Inclusions css & scripts
@@ -280,16 +323,17 @@ GA_SCRIPT
 		if (is_callable($content))
 			$content();
 	?>
-</head> 
+</head>
 <?php
 	} // onHead()
 
 //	protected function after() {} // Common stuff to do before each action (ccSimpleController)
 
 	/**
-	 * Define common "template for top of output". 
-	 *
+	 * Output "epilog" content.
+	 * Define common "template for top of output".
 	 * - <doctype><hteml><head>...</head><body>
+	 * @param function $content Optional function called after epilog's output
 	 *
 	 * @see footerTemplate()
 	 */
@@ -301,7 +345,7 @@ GA_SCRIPT
 			$this->insertUriSource($uri);
 		$this->insertScripts(self::INSERT_BOTTOM);
 		?>
-</body> 
+</body>
 <?php
 		if ($content)
 			$content();
@@ -309,6 +353,15 @@ GA_SCRIPT
 		<?php
 	} // onEpilog()
 
+
+	/**
+	 * Output content from array elements of text or functions, calling
+	 * functions to output content.
+	 *
+	 * @param Array $contentArray Array of content to be inserted.
+	 * @param function $onEach Function will process ea array element, instead
+	 *
+	 */
 	private function insert(Array $contentArray, $onEach=NULL)
 	{
 		foreach ($contentArray as $content) {
@@ -317,7 +370,7 @@ GA_SCRIPT
 			else
 				if (is_callable($content))
 					$content();
-				else 
+				else
 					echo $content.PHP_EOL;
 		}
 	} // insert()
