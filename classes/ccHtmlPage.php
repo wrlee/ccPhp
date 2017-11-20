@@ -29,23 +29,23 @@
 class ccHtmlPage
 	extends ccSimpleController
 {
-											/** @var Current request */
+											/** @var ccRequest Current request */
 	protected $request;
-											/** @var Page title (in head) */
+											/** @var string Page title (in head) */
 	protected $title;
-											/** @var GA tracking ID */
+											/** @var string GA tracking ID */
 	protected $GoogleAnalyticsTrackingID;
-											/** @var <head> content */
+											/** @var array <head> content */
 	protected $head=[];
-											/** @var Content for top */
+											/** @var array Content for top */
 	protected $htmlHeadSources=[];
-											/** @var Content for bottom */
+											/** @var array Content for bottom */
 	protected $htmlTailSources=[];
 											/** @var Array of scripts and locations */
 	protected $scripts=[];
-											/** @var Preface suffix content */
+											/** @var array Preface suffix content */
 	protected $preface=[];
-											/** @var Epilog prefix content */
+											/** @var array Epilog prefix content */
 	protected $epilog=[];
 //	protected $packages; 					// List of packages to include
 //		public const PKG_BOOTSTRAP='bootstrap';	// Implies jquery
@@ -128,7 +128,7 @@ GA_SCRIPT
 
 	/**
 	 * Pass text or function to generate text of script to be inserted in content.
-	 * @param string|function $script Content to be inserted, a function returning text or text
+	 * @param string|method $script Content to be inserted, a function returning text or text
 	 * @param $location Where to insert content
 	 * @see  insertScript()
 	 */
@@ -138,7 +138,7 @@ GA_SCRIPT
 	}
 	/**
 	 * Pass text or function to generate text of script to be inserted in content.
-	 * @param string|function $head Content to be inserted, a function return text or text
+	 * @param string|method $head Content to be inserted, a function return text or text
 	 * @see  insertScript()
 	 */
 	protected function addHead($head)
@@ -147,7 +147,7 @@ GA_SCRIPT
 	}
 	/**
 	 * Submit content to add to preface, later.
-	 * @param string|function $content Content text or function
+	 * @param string|method $content Content text or function
 	 */
 	protected function addPreface($content)
 	{
@@ -155,7 +155,7 @@ GA_SCRIPT
 	}
 	/**
 	 * Submit content to add to epilog, later.
-	 * @param string|function $content Content text or function
+	 * @param string|method $content Content text or function
 	 */
 	protected function addEpilog($content)
 	{
@@ -297,7 +297,7 @@ GA_SCRIPT
 
 	/**
 	 * Output HTML <head> content.
-	 * @param function $content Optional function called just before </head>
+	 * @param method $content Optional function called just before </head>
 	 * @todo Add IE settings that determine IE compatibility level and other conditional statements
 	 * @todo Add charset overrides
 	 */
@@ -327,13 +327,13 @@ GA_SCRIPT
 <?php
 	} // onHead()
 
-//	protected function after() {} // Common stuff to do before each action (ccSimpleController)
+//	protected function after() {} // Common stuff to do after each action (ccSimpleController)
 
 	/**
 	 * Output "epilog" content.
 	 * Define common "template for top of output".
 	 * - <doctype><hteml><head>...</head><body>
-	 * @param function $content Optional function called after epilog's output
+	 * @param method $content Optional function called after epilog's output
 	 *
 	 * @see footerTemplate()
 	 */
@@ -353,13 +353,12 @@ GA_SCRIPT
 		<?php
 	} // onEpilog()
 
-
 	/**
 	 * Output content from array elements of text or functions, calling
 	 * functions to output content.
 	 *
 	 * @param Array $contentArray Array of content to be inserted.
-	 * @param function $onEach Function will process ea array element, instead
+	 * @param method $onEach Function will process ea array element, instead
 	 *
 	 */
 	private function insert(Array $contentArray, $onEach=NULL)

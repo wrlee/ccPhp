@@ -105,7 +105,7 @@ abstract class ccSimpleController
 	{
 		if (method_exists($this,$method)) {
 			$this->defaultHandler = $method;
-			$this->defaultHandlerSuppressAuto = true;
+			$this->defaultHandlerSuppressAuto = $suppressAuto;
 		}
 	} // setDefaultHandler
 } // class ccSimpleController
