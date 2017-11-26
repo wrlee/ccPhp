@@ -26,6 +26,8 @@
  *       of the interface, describing only: preface, content, and epilog. Then allowing
  *       augmentation of those three elements by inserting to top and bottom of each.
  */
+namespace ccPhp;
+
 class ccHtmlPage
 	extends ccSimpleController
 {

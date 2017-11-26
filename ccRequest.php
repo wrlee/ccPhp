@@ -3,7 +3,7 @@
  *
  * @package ccPhp
  */
-//!namespace ccPhp\core;
+namespace ccPhp;
 //!use ccPhp\ccApp;
 
 /*

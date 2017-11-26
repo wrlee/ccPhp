@@ -1,5 +1,5 @@
 <?php
-//!namespace ccPhp;
+namespace ccPhp;
 
 // use ccPhp\ccController;
 //! use ccPhp\core\ccRequest;

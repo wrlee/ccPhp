@@ -96,12 +96,12 @@ unset($_version);	// Not needed any longer
 // [END] Portability settings
 } // namespace
 
-namespace //! ccPhp
+namespace ccPhp
 {
 // include 'ccPhp.inc';
-//!use ccPhp\core\ccTrace;
-//!use ccPhp\core\ccRequest;
-//!use ccPhp\core\ccPageInterface;
+use ccPhp\ccTrace;
+//!use ccPhp\ccRequest;
+// use ccPhp\ccPageInterface as ccPageInterface;
 // include('ccTrace.php');			// @todo Remove
 
 //******************************************************************************
@@ -193,7 +193,8 @@ class ccApp
 	 */
 	public static function _autoload($className)
 	{
-// echo __METHOD__.'#'.__LINE__."($className) ".__NAMESPACE__.' '.__CLASS__. " <br>";
+// if (headers_sent() && strpos($className, 'PicturesToc') > -1)
+// echo __FUNCTION__.'#'.__LINE__."($className) "." <br>";
 		if (self::$_me && method_exists(self::$_me,'autoload'))
 		{
 			self::$_me->autoload($className); // Using spl_autoload_register()?
@@ -203,8 +204,10 @@ class ccApp
 // var_dump(debug_backtrace());
 // echo '</pre>';
 // }
+
+// echo __FUNCTION__.'#'.__LINE__."($className) class? ".(class_exists($className,false)?1:0)." trait? ".(trait_exists($className,false)?1:0)." <br>";
 											// Check instance specific autoload
-		if (!class_exists($className))		// Check framework directories
+		if (!class_exists($className,false) && !trait_exists($className,false))		// Check framework directories
 		{
 			if (   __NAMESPACE__ != ''
 				 && __NAMESPACE__ == substr($className, 0, strlen(__NAMESPACE__)))
@@ -289,11 +292,12 @@ class ccApp
 	public function autoload($className)
 	{
 		$classFilename = str_replace('_', DIRECTORY_SEPARATOR, $className).'.php';
-		$classFilename = str_replace('\\', DIRECTORY_SEPARATOR, $className).'.php';
+//		$classFilename = str_replace('\\', DIRECTORY_SEPARATOR, $className).'.php';
 // global $bb,$eb, $bi,$ei, $btt,$ett, $rarr,$ldquo,$rdquo,$hellip,$nbsp,$nl;
 // ccTrace::s_out( '#'.__LINE__.' '.ccTrace::getCaller(0,dirname(self::getApp()->getAppPath())).': '.$className." $rarr ".$classFilename.$nl);
 // ccTrace::s_out( '#'.__LINE__.' '.ccTrace::getCaller(3).': '.$className." $rarr ".$classFilename.$nl);
-// echo '#'.__LINE__." $className $rarr $classFilename".$nl;
+// if (strpos($className, 'PicturesToc') > -1)
+// echo __FUNCTION__.'#'.__LINE__." $className $rarr $classFilename".$nl;
 // self::tr('&nbsp;&nbsp;&nbsp;'.$this->sitepath.$classFilename);
 // ccTrace::tr('&nbsp;&nbsp;&nbsp;'.$this->sitepath.$classFilename);
 
@@ -317,19 +321,21 @@ class ccApp
 			// If class-association registered w/ccApp is a namespace, check whether
 			// class to load has a namespace; if namespace names match, then use
 			// registered path as source.
+// echo __METHOD__.'#'.__LINE__.' '.substr($class,1).'\\'." === ".substr($className,0,strlen($class)).$nl;
 			if (   $class[0] === '\\' && strpos($className,'\\') !== FALSE
 				 && substr($class,1).'\\' === substr($className,0,strlen($class)) )
 			{
-// echo '#'.__LINE__." class=$class path=$path$nl";
+// echo __METHOD__.'#'.__LINE__." class=$class path=$path$nl";
 				$namespaceClassName = substr($className,strlen($class)).'.php';
-// echo '#'.__LINE__.' '.$className." $rarr ".$path.$namespaceClassName.$nl;
+// echo __METHOD__.'#'.__LINE__.' '.$className." $rarr ".$path.$namespaceClassName.$nl;
 				if (include($path . $namespaceClassName))
 					return;
 			}
+// echo __METHOD__.'#'.__LINE__." still here$nl";
 			if (file_exists($path . $classFilename))
 //			elseif (@include($path . $classFilename))
 			{							// Else if assumed name exists...
-// echo '#'.__LINE__." Exists=$path$classFilename$nl";
+// echo __METHOD__.'#'.__LINE__." Exists=$path$classFilename$nl";
 				include($path . $classFilename);
 				return;
 			}

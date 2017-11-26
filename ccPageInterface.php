@@ -1,7 +1,5 @@
 <?php
-
-//!namespace ccPhp\core;
-
+namespace ccPhp;
 /**
  * This interface represents an object that can render a page, callable by the
  * framework's dispatcher. Likely controllers will implement this interface and
