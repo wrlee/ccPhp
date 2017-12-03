@@ -40,7 +40,6 @@ interface ccLoggerInterface							// Class implements log output
 
 /**
  * Trace output class.
- * @package ccPhp
  */
 class ccTrace
 //	implements ccTraceInterface, ccLoggerInterface, ccDebugSourceInterface

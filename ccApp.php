@@ -99,7 +99,7 @@ unset($_version);	// Not needed any longer
 namespace ccPhp
 {
 // include 'ccPhp.inc';
-use ccPhp\ccTrace;
+// use ccPhp\ccTrace;
 //!use ccPhp\ccRequest;
 // use ccPhp\ccPageInterface as ccPageInterface;
 // include('ccTrace.php');			// @todo Remove

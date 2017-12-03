@@ -1,9 +1,6 @@
-<?php 
+<?php
 namespace ccPhp;
 use \lessc;
-
-use ccPhp\core\ccPageInterface;
-use ccPhp\core\ccRequest;
 
 /**
  * @package ccPhp
@@ -39,10 +36,10 @@ class ccLessCssController
 		}
 	}
 	/**
-	 * Process request for CSS from the CSS directory performing Less compiling, 
-	 * if necessary. 
-	 * @param  ccRequest $request 
-	 * @return true/false processed or not. 
+	 * Process request for CSS from the CSS directory performing Less compiling,
+	 * if necessary.
+	 * @param  ccRequest $request
+	 * @return true/false processed or not.
 	 * @todo  Check whether compiled CSS is older than source.
 	 */
 	function render(ccRequest $request)
@@ -72,16 +69,16 @@ ccTrace::tr($file);
 // ccTrace::tr($this->last_modified.'='.date("r",$this->last_modified));
 // ccTrace::tr($_SERVER);
 
-		// If ETag matches, then we can just return. 
-		if ((   isset($_SERVER['HTTP_IF_NONE_MATCH']) 
-			 && $_SERVER['HTTP_IF_NONE_MATCH'] == $this->last_modified) 
+		// If ETag matches, then we can just return.
+		if ((   isset($_SERVER['HTTP_IF_NONE_MATCH'])
+			 && $_SERVER['HTTP_IF_NONE_MATCH'] == $this->last_modified)
 //			||
 		// If conditional header and less has not been modified since req't
 		// then redirect 304 and circumvent content transfer.
-//		  (   isset($_SERVER['HTTP_IF_MODIFIED_SINCE']) 
-//			&& strtotime($_SERVER['HTTP_IF_MODIFIED_SINCE']) >= $this->last_modified) 
+//		  (   isset($_SERVER['HTTP_IF_MODIFIED_SINCE'])
+//			&& strtotime($_SERVER['HTTP_IF_MODIFIED_SINCE']) >= $this->last_modified)
 		   )
-		{	
+		{
 			header('Cache-Control: public');
 			throw new ccHttpStatusException(304, 'Not Modified');
 //			header($_SERVER['SERVER_PROTOCOL'].' 304 Not Modified', TRUE, 304);
@@ -95,7 +92,7 @@ ccTrace::tr($file);
 	}
 
 	protected function display($content)
-	{		
+	{
 		header('Content-type: text/css');
 		header('Cache-Control: public');
 		header('Last-Modified: '.date("r",$this->last_modified));
@@ -111,12 +108,12 @@ ccTrace::tr($file);
 	 * @return NULL|string CSS file. If NULL, then none found.
 	 * @todo  Use MEMCACHE
 	 */
-	function autoCompileLess($iFilename, $outputFile=NULL) 
-	{		
+	function autoCompileLess($iFilename, $outputFile=NULL)
+	{
 		$cacheFile = $this->working_dir.$this->cache_dir.$iFilename;	// load the cache
 		ccTrace::tr($cacheFile);
 
-		if (file_exists($cacheFile)) 
+		if (file_exists($cacheFile))
 			$cache = unserialize(file_get_contents($cacheFile));
 		else
 			$cache = $this->app->getAppPath().$this->source_dir.$iFilename;
@@ -128,7 +125,7 @@ ccTrace::tr($file);
 
 		// If no cache-file or new cache is newer than old one, save the cache-file
 		// and save generated CSS.
-		if (!is_array($cache) || $newCache["updated"] > $cache["updated"]) 
+		if (!is_array($cache) || $newCache["updated"] > $cache["updated"])
 		{
 			ccTrace::tr($cacheFile);
 			ccTrace::tr($newCache);
@@ -151,5 +148,5 @@ ccTrace::tr($file);
 			return NULL;
 		}
 	}
-	
+
 } // class ccLesCssController

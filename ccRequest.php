@@ -24,7 +24,6 @@ namespace ccPhp;
  * getUrlPath(). The first element can be pulled out of the list via
  * shiftUrlPath().
  *
- * @package ccPhp
  * @todo Rather than rely on globals,use constructor's $URI value.
  * @todo Enable the isAjax() method to be easily overridden or augmented.
  * @todo Add Cookie functions (consider secure-only cookies)

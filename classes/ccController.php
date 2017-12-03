@@ -6,7 +6,7 @@
  * 		 to adorn the method name that corresponds to the path component.
  */
 namespace ccPhp;
-use ccPhp\ccPageInterface;
+// use ccPhp\ccPageInterface;
 //!use ccPhp\ccRequest;
 
 /**
