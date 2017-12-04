@@ -1,0 +1,12 @@
+{
+    "name": "cachecrew/ccphp",
+    "description": "PHP \"page-oriented\" micro-framework.",
+    "license": "LGPL-3.0",
+    "authors": [
+        {
+            "name": "Bill Lee",
+            "email": "ccphp@cachecrew.com"
+        }
+    ],
+    "require": {}
+}
