@@ -1,5 +1,5 @@
 {
-    "name": "cachecrew/ccphp",
+    "name": "wrlee/ccPhp",
     "description": "PHP \"page-oriented\" micro-framework.",
     "license": "LGPL-3.0",
     "authors": [
@@ -8,5 +8,20 @@
             "email": "ccphp@cachecrew.com"
         }
     ],
-    "require": {}
+	"repositories": [
+		{
+			"type": "vcs",
+			"url": "https://github.com/wrlee/ccPhp"
+		}
+	],
+    "require": {
+    },
+    "suggest": {
+        "oyejorge/less.php": "v1.7.0.14",
+        "smarty/smarty": "~3.1"
+    },
+	"autoload": {
+		"psr-4": {"": ["", "classes/"] }
+	}
+
 }
