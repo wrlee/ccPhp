@@ -258,21 +258,20 @@ class ccRequest implements \ArrayAccess, \IteratorAggregate
 		else
 			return true;
 	}
+
 	/**
 	 * Is request/connection from Internet Explorer?
 	 * @return bool
 	 */
 	function isIE()
 	{
-//		ccTrace::tr($this->userAgentInfo);
 		return isset($this->userAgentInfo['browser'])
 				 ? $this->userAgentInfo['browser'] == 'IE'
 				 	? $this->userAgentInfo['version']
 					: false
-			    : isset($this->userAgentInfo['Browser'])
-				 	? $this->userAgentInfo['Browser'] == 'IE'
-					  ? $this->userAgentInfo['version']
-					  : false;
+			    : isset($this->userAgentInfo['Browser']) && $this->userAgentInfo['Browser'] == 'IE'
+					? $this->userAgentInfo['version']
+					: false;
 	}
 
 	/**
