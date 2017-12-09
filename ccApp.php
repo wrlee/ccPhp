@@ -49,6 +49,7 @@
  * 			- Added createWorkingDir()
  * 2013-09-12 Remove getPage()
  * 2017-11-07 If no ccRequest is passed to dispatch(), it is created.
+ * 2017-12-07 Renamed $sitepath --> $apppath to better reflect its purpose.
  */
 //******************************************************************************\
 namespace {
@@ -99,9 +100,9 @@ unset($_version);	// Not needed any longer
 namespace //! ccPhp
 {
 // include 'ccPhp.inc';
-//!use ccPhp\core\ccTrace;
-//!use ccPhp\core\ccRequest;
-//!use ccPhp\core\ccPageInterface;
+//!use ccPhp\ccTrace;
+//!use ccPhp\ccRequest;
+//!use ccPhp\ccPageInterface as ccPageInterface;
 // include('ccTrace.php');			// @todo Remove
 
 //******************************************************************************
@@ -148,14 +149,14 @@ class ccApp
 								/** @var boolean Central place to hold debug status */
 //	protected $bDebug = FALSE;
 								/** @var string Path to site specific files. */
-	protected $sitepath=NULL;
+	protected $apppath=NULL;
 								/** @var string Path to working directory (for cache, etc) */
 	protected $temppath='';
 								/** @var ccPageInterface Main page object for app */
 	protected $page=NULL;
 								/** @var string|ccPageInterface class that renders 404 pages. */
 	protected $error404 = NULL;
-								// The following are rel to sitepath:
+								// The following are rel to apppath:
 								/** @var array List of site paths to search for classes */
 	protected $classpath=array();
 								/** @var SplClassLoader reference */
@@ -175,9 +176,9 @@ class ccApp
 		foreach ($callstack as $caller)
 			if ($caller['function'] == 'createApp')
 			{
-				$this->sitepath = $caller['args'][0];
-				if (substr($this->sitepath, -1) != DIRECTORY_SEPARATOR)
-					$this->sitepath .= DIRECTORY_SEPARATOR;
+				$this->apppath = $caller['args'][0];
+				if (substr($this->apppath, -1) != DIRECTORY_SEPARATOR)
+					$this->apppath .= DIRECTORY_SEPARATOR;
 				break;
 			}
 	} // __construct()
@@ -193,7 +194,8 @@ class ccApp
 	 */
 	public static function _autoload($className)
 	{
-// echo __METHOD__.'#'.__LINE__."($className) ".__NAMESPACE__.' '.__CLASS__. " <br>";
+// if (headers_sent() && strpos($className, 'PicturesToc') > -1)
+// echo __FUNCTION__.'#'.__LINE__."($className) "." <br>";
 		if (self::$_me && method_exists(self::$_me,'autoload'))
 		{
 			self::$_me->autoload($className); // Using spl_autoload_register()?
@@ -203,8 +205,10 @@ class ccApp
 // var_dump(debug_backtrace());
 // echo '</pre>';
 // }
+
+// echo __FUNCTION__.'#'.__LINE__."($className) class? ".(class_exists($className,false)?1:0)." trait? ".(trait_exists($className,false)?1:0)." <br>";
 											// Check instance specific autoload
-		if (!class_exists($className))		// Check framework directories
+		if (!class_exists($className,false) && !trait_exists($className,false))		// Check framework directories
 		{
 			if (   __NAMESPACE__ != ''
 				 && __NAMESPACE__ == substr($className, 0, strlen(__NAMESPACE__)))
@@ -248,9 +252,9 @@ class ccApp
 	function addClassPath($path,$classname=NULL)
 	{
 		if (!$path)
-			$path = $this->sitepath;
+			$path = $this->apppath;
 		elseif ($path[0] != DIRECTORY_SEPARATOR)
-			$path = $this->sitepath.$path;
+			$path = $this->apppath.$path;
 		if ($classname)
 			$this->classpath[$classname] = $path;
 		else
@@ -289,18 +293,19 @@ class ccApp
 	public function autoload($className)
 	{
 		$classFilename = str_replace('_', DIRECTORY_SEPARATOR, $className).'.php';
-		$classFilename = str_replace('\\', DIRECTORY_SEPARATOR, $className).'.php';
+//		$classFilename = str_replace('\\', DIRECTORY_SEPARATOR, $className).'.php';
 // global $bb,$eb, $bi,$ei, $btt,$ett, $rarr,$ldquo,$rdquo,$hellip,$nbsp,$nl;
 // ccTrace::s_out( '#'.__LINE__.' '.ccTrace::getCaller(0,dirname(self::getApp()->getAppPath())).': '.$className." $rarr ".$classFilename.$nl);
 // ccTrace::s_out( '#'.__LINE__.' '.ccTrace::getCaller(3).': '.$className." $rarr ".$classFilename.$nl);
-// echo '#'.__LINE__." $className $rarr $classFilename".$nl;
-// self::tr('&nbsp;&nbsp;&nbsp;'.$this->sitepath.$classFilename);
-// ccTrace::tr('&nbsp;&nbsp;&nbsp;'.$this->sitepath.$classFilename);
+// if (strpos($className, 'PicturesToc') > -1)
+// echo __FUNCTION__.'#'.__LINE__." $className $rarr $classFilename".$nl;
+// self::tr('&nbsp;&nbsp;&nbsp;'.$this->apppath.$classFilename);
+// ccTrace::tr('&nbsp;&nbsp;&nbsp;'.$this->apppath.$classFilename);
 
 		// Check app paths, first
-		if ($this->sitepath && file_exists($this->sitepath . $classFilename))
+		if ($this->apppath && file_exists($this->apppath . $classFilename))
 		{
-			include($this->sitepath . $classFilename);
+			include($this->apppath . $classFilename);
 			return;
 		}
 		else foreach ($this->classpath as $class => $path)
@@ -317,19 +322,21 @@ class ccApp
 			// If class-association registered w/ccApp is a namespace, check whether
 			// class to load has a namespace; if namespace names match, then use
 			// registered path as source.
+// echo __METHOD__.'#'.__LINE__.' '.substr($class,1).'\\'." === ".substr($className,0,strlen($class)).$nl;
 			if (   $class[0] === '\\' && strpos($className,'\\') !== FALSE
 				 && substr($class,1).'\\' === substr($className,0,strlen($class)) )
 			{
-// echo '#'.__LINE__." class=$class path=$path$nl";
+// echo __METHOD__.'#'.__LINE__." class=$class path=$path$nl";
 				$namespaceClassName = substr($className,strlen($class)).'.php';
-// echo '#'.__LINE__.' '.$className." $rarr ".$path.$namespaceClassName.$nl;
+// echo __METHOD__.'#'.__LINE__.' '.$className." $rarr ".$path.$namespaceClassName.$nl;
 				if (include($path . $namespaceClassName))
 					return;
 			}
+// echo __METHOD__.'#'.__LINE__." still here$nl";
 			if (file_exists($path . $classFilename))
 //			elseif (@include($path . $classFilename))
 			{							// Else if assumed name exists...
-// echo '#'.__LINE__." Exists=$path$classFilename$nl";
+// echo __METHOD__.'#'.__LINE__." Exists=$path$classFilename$nl";
 				include($path . $classFilename);
 				return;
 			}
@@ -396,7 +403,7 @@ class ccApp
 		if ( substr($dir, -1) != DIRECTORY_SEPARATOR )	// Ensure suffixed w/'/'
 			$dir .= DIRECTORY_SEPARATOR;
 		if ( $dir[0] != DIRECTORY_SEPARATOR )			// Not absolute path?
-			$dir = $this->sitepath . $dir;				// Prefix with site's path
+			$dir = $this->apppath . $dir;				// Prefix with site's path
 		if (!is_dir($dir))							      // Path does not exist?
 			mkdir($dir,0744,TRUE);                    // Create path
 		return $dir;									      // Return modified path
@@ -412,7 +419,7 @@ class ccApp
 		if ( substr($dir, -1) != DIRECTORY_SEPARATOR )	// Ensure suffixed w/'/'
 			$dir .= DIRECTORY_SEPARATOR;
 		if ( $dir[0] != DIRECTORY_SEPARATOR )			// Not absolute path?
-			$dir = $this->sitepath.$this->temppath.$dir;// Prefix with site's working path
+			$dir = $this->apppath.$this->temppath.$dir;// Prefix with site's working path
 		if (!is_dir($dir))								// Path does not exist?
 			mkdir($dir,0744,TRUE);						// Create path
 		return $dir;									// Return modified path
@@ -689,7 +696,7 @@ class ccApp
 	 */
 	public function getAppPath()
 	{
-		return $this->sitepath;
+		return $this->apppath;
 	} // getAppPath()
 //	/**
 //	 * Get/set server path to site's files (not the URL). This method also sets
@@ -703,7 +710,7 @@ class ccApp
 //		if (substr($path,-1) != DIRECTORY_SEPARATOR)	// Ensure path-spec
 //			$path .= DIRECTORY_SEPARATOR;				// suffixed w/'/'
 //
-//		$this->sitepath = $path;						// Save path
+//		$this->apppath = $path;						// Save path
 //		chdir($path);									// Set cd to "known" place
 //		return $this;
 //	} // setAppPath()
@@ -758,7 +765,7 @@ class ccApp
 	{
 		return ($this->temppath[0] == DIRECTORY_SEPARATOR)
 				? $this->temppath
-				: $this->sitepath.$this->temppath;
+				: $this->apppath.$this->temppath;
 	}
 
 	/**
@@ -1004,7 +1011,7 @@ EOD;
 		$this->UrlOffset = $temp->UrlOffset;
 		$this->devMode = $temp->devMode;
 //		$this->bDebug = $temp->bDebug;
-		$this->sitepath = $temp->sitepath;
+		$this->apppath = $temp->apppath;
 		$this->temppath = $temp->temppath;
 		$this->page = $temp->page;
 		$this->error404 = $temp->error404;

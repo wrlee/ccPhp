@@ -1,16 +1,16 @@
 <?php
 /**
- *
- * @package ccPhp
+ * @author Bill Lee <github@cachecrew.com>
+ * @copyright (c) LGPLv3
  */
-//!namespace ccPhp\core;
-//!use ccPhp\ccApp;
+//!namespace ccPhp;
 
 /*
  * 2010-10-23 Better handling of path parsing into components and document values
  *          - Easier to override by implementing parseUrl()
  * 2013-08-30 Added isAjax(), getRequestVars()
  * 2013-09-01 Added getFormat() [tentatively?]
+ * 2017-12-07 Updated is*() logic.
  */
 
 /**
@@ -24,7 +24,6 @@
  * getUrlPath(). The first element can be pulled out of the list via
  * shiftUrlPath().
  *
- * @package ccPhp
  * @todo Rather than rely on globals,use constructor's $URI value.
  * @todo Enable the isAjax() method to be easily overridden or augmented.
  * @todo Add Cookie functions (consider secure-only cookies)
@@ -266,10 +265,14 @@ class ccRequest implements \ArrayAccess, \IteratorAggregate
 	function isIE()
 	{
 //		ccTrace::tr($this->userAgentInfo);
-		return (   isset($this->userAgentInfo['browser']) && $this->userAgentInfo['browser'] == 'IE'
-			     || isset($this->userAgentInfo['Browser']) && $this->userAgentInfo['Browser'] == 'IE')
-			? $this->userAgentInfo['version']
-			: false;
+		return isset($this->userAgentInfo['browser'])
+				 ? $this->userAgentInfo['browser'] == 'IE'
+				 	? $this->userAgentInfo['version']
+					: false
+			    : isset($this->userAgentInfo['Browser'])
+				 	? $this->userAgentInfo['Browser'] == 'IE'
+					  ? $this->userAgentInfo['version']
+					  : false;
 	}
 
 	/**
@@ -278,7 +281,19 @@ class ccRequest implements \ArrayAccess, \IteratorAggregate
 	 */
 	function isMobile()
 	{
-		return $this->userAgentInfo['isMobileDevice'];
+		return isset($this->userAgentInfo['ismobiledevice'])
+				 ? $this->userAgentInfo['ismobiledevice']
+				 : (isset($this->userAgentInfo['isMobileDevice']) && $this->userAgentInfo['isMobileDevice']);
+	}
+	/**
+	 * Is request/connection from mobile device?
+	 * @return bool
+	 */
+	function isTablet()
+	{
+		return isset($this->userAgentInfo['istablet'])
+				 ? $this->userAgentInfo['istablet']
+			    : (isset($this->userAgentInfo['isTablet']) && $this->userAgentInfo['isTablet']);
 	}
 	/**
 	 * Is request/connection from iOS?
@@ -286,10 +301,9 @@ class ccRequest implements \ArrayAccess, \IteratorAggregate
 	 */
 	function isiOS()
 	{
-		return isset($this->userAgentInfo['Platform'])  && $this->userAgentInfo['Platform']
-			|| isset($this->userAgentInfo['Platform']) && $this->userAgentInfo['Platform'] == 'iPhone OSX'
-			|| $this->isiPhone()
-			|| $this->isiPad();
+		return isset($this->userAgentInfo['platform'])
+				 ? ($this->userAgentInfo['platform'] == 'iOS')
+				 : (isset($this->userAgentInfo['Platform']) && $this->userAgentInfo['Platform'] == 'iOS');
 	}
 	/**
 	 * Is request/connection from iPad?
@@ -297,7 +311,7 @@ class ccRequest implements \ArrayAccess, \IteratorAggregate
 	 */
 	function isiPad()
 	{
-		return isset($this->userAgentInfo['Browser']) && $this->userAgentInfo['Browser'] == 'iPad';
+		return $this->isiOS() && $this->isTablet();
 	}
 	/**
 	 * Is request/connection from iPhone?
@@ -305,7 +319,7 @@ class ccRequest implements \ArrayAccess, \IteratorAggregate
 	 */
 	function isiPhone()
 	{
-		return isset($this->userAgentInfo['Browser']) && $this->userAgentInfo['Browser'] == 'iPhone';
+		return $this->isiOS() && ! $this->isTablet();
 	}
 	/**
 	 * Is request/connection SSL?
