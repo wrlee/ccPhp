@@ -95,15 +95,21 @@ if (PHP_VERSION_ID < 50400) {
 }
 unset($_version);	// Not needed any longer
 // [END] Portability settings
+
+	if (file_exists(__DIR__.DIRECTORY_SEPARATOR.'vendor/autoload.php')) {
+		require(__DIR__.DIRECTORY_SEPARATOR.'vendor/autoload.php');
+	}
 } // namespace
+
 
 namespace //! ccPhp
 {
 // include 'ccPhp.inc';
 //!use ccPhp\ccTrace;
 //!use ccPhp\ccRequest;
-//!use ccPhp\ccPageInterface as ccPageInterface;
+//!use ccPhp\ccPageInterface;
 // include('ccTrace.php');			// @todo Remove
+
 
 //******************************************************************************
 
@@ -378,12 +384,12 @@ class ccApp
 		if (substr($appPath,-1) != DIRECTORY_SEPARATOR)	// Ensure path-spec
 			$appPath .= DIRECTORY_SEPARATOR;			// suffixed w/'/'
 
-		chdir($appPath);								// Set cd to "known" place
+		chdir($appPath);						// Set cd to "known" place
 		$className ? new $className : new self;
 
 //		$_SESSION['ccApp'] = serialize(self::$_me);
 //	    if ( !$sessActive )					// Session wasn't running
-//	    	session_commit();				//   So turn back off
+//	    	session_commit();					//   So turn back off
 
 		return self::$_me;
 	} // createApp()
@@ -403,7 +409,7 @@ class ccApp
 		if ( substr($dir, -1) != DIRECTORY_SEPARATOR )	// Ensure suffixed w/'/'
 			$dir .= DIRECTORY_SEPARATOR;
 		if ( $dir[0] != DIRECTORY_SEPARATOR )			// Not absolute path?
-			$dir = $this->apppath . $dir;				// Prefix with site's path
+			$dir = $this->apppath . $dir;					// Prefix with site's path
 		if (!is_dir($dir))							      // Path does not exist?
 			mkdir($dir,0744,TRUE);                    // Create path
 		return $dir;									      // Return modified path

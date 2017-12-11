@@ -15,6 +15,7 @@
 		}
 	],
     "require": {
+		 "psr/log": "^1.0"
     },
     "suggest": {
         "oyejorge/less.php": "v1.7.0.14",
