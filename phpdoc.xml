@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <phpdoc>
-  <title>ccPhp Framework</title>
+  <title>ccPhp Micro-framework</title>
   <parser>
     <default-package-name>ccPhp</default-package-name>
     <target>docs</target>
@@ -10,5 +10,7 @@
   </transformer>
   <files>
     <directory>.</directory>
+	<ignore>composer.json</ignore>
+	<ignore>vendor/*</ignore>
   </files>
 </phpdoc>
