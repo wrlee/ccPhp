@@ -53,49 +53,8 @@
  */
 //******************************************************************************\
 namespace {
-// [BEGIN] Portability settings
-// @see http://www.php.net/manual/en/function.phpversion.php
-// @see http://www.php.net/manual/en/reserved.constants.php#reserved.constants.core
-if (!defined('PHP_VERSION_ID'))
-{
-    $_version = explode('.', PHP_VERSION);
-
-    define('PHP_VERSION_ID', ($_version[0] * 10000 + $_version[1] * 100 + $_version[2]));
-}
-if (PHP_VERSION_ID < 50400) {
-	if (PHP_VERSION_ID < 50300)
-	{
-		if (PHP_VERSION_ID < 50207)
-		{
-			if (PHP_VERSION_ID < 50200)
-				define('E_RECOVERABLE_ERROR',4096);
-		    define('PHP_MAJOR_VERSION', $_version[0]);
-		    define('PHP_MINOR_VERSION', $_version[1]);
-
-			$_version = explode('-', $_version[2]);
-			define('PHP_EXTRA_VERSION', $_version[0]);
-			define('PHP_RELEASE_VERSION', isset($_version[1]) ? $_version[1] : '');
-		}
-		define('E_DEPRECATED', 8092);
-		define('E_USER_DEPRECATED', 16384);
-		define('__DIR__', dirname(__FILE__));
-	}
-	define('PHP_SESSION_DISABLED',0);
-	define('PHP_SESSION_NONE',1);
-	define('PHP_SESSION_ACTIVE',2);
-	/**
-	 * Return $status of session. Built-in available in 5.4
-	 * @return int enum of $status
-	 * @see php.net
-	 */
-	function session_status()
-	{
-		return \session_id() === '' ? PHP_SESSION_NONE : PHP_SESSION_ACTIVE;
-	}
-}
-unset($_version);	// Not needed any longer
-// [END] Portability settings
-
+	include __DIR__.DIRECTORY_SEPARATOR.'inc/portable.php';
+	// Load composer's autoloader
 	if (file_exists(__DIR__.DIRECTORY_SEPARATOR.'vendor/autoload.php')) {
 		require(__DIR__.DIRECTORY_SEPARATOR.'vendor/autoload.php');
 	}
@@ -381,6 +340,61 @@ class ccApp
 //	    	return self::$_me;				// Return serialized object
 //	    }
 //
+// [BEGIN] Global hooks
+// We are using spl_autoload_* features to simplify search for class files. If
+// the app has defined an __autoload() of their own without chaining it with
+// the spl_autoload_register() call, then this will add it automatically.
+if (function_exists('__autoload'))
+{
+	spl_autoload_register('__autoload', true, true);
+}
+spl_autoload_register('self::_autoload', true);
+
+//set_include_path(get_include_path().PATH_SEPARATOR.__DIR__);
+// require dirname(__DIR__).DIRECTORY_SEPARATOR.'SplClassLoader.php';
+// $classLoader = new \SplClassLoader(__NAMESPACE__, dirname(__DIR__));
+// $classLoader->register();
+
+set_error_handler('self::onError');
+set_exception_handler('self::onException');
+/*public function errorHandlerCallback($code, $string, $file, $line, $context)
+{
+	$e = new Excpetion($string, $code);
+	$e->line = $line;
+	$e->file = $file;
+	throw $e;
+}
+*/
+/**
+ * Shutdown handler.
+ * Capture last error to report errors that are not normally trapped by error-
+ * handling functions, e.g., fatal and parsing errors.
+ * @todo Activate only for debug mode.
+ */
+// function cc_onShutdown()
+register_shutdown_function(function ()
+{
+    $err=error_get_last();
+	switch ($err['type'])
+	{
+		case E_WARNING:
+		case E_NOTICE:
+		case E_USER_ERROR:
+		case E_USER_WARNING:
+		case E_USER_NOTICE:
+			return FALSE;
+		break;
+
+		case E_COMPILE_ERROR:
+		case E_PARSE:
+		default:
+			return ccApp::onError($err['type'], $err['message'], $err['file'], $err['line'], $GLOBALS);
+	}
+//	trigger_error($err['message'],$err['type']);
+}
+); // register_shutdown_function()
+// register_shutdown_function(__NAMESPACE__.'\cc_onShutdown');
+// [END] Global hooks
 		if (substr($appPath,-1) != DIRECTORY_SEPARATOR)	// Ensure path-spec
 			$appPath .= DIRECTORY_SEPARATOR;			// suffixed w/'/'
 
@@ -1026,62 +1040,8 @@ EOD;
 	}
 } // class ccApp
 
-// We are using spl_autoload_* features to simplify search for class files. If
-// the app has defined an __autoload() of their own without chaining it with
-// the spl_autoload_register() call, then this will add it automatically.
-if (function_exists('__autoload'))
-{
-	spl_autoload_register('__autoload', true, true);
-}
-spl_autoload_register(array(__NAMESPACE__.'\ccApp','_autoload'), true);
-
-//set_include_path(get_include_path().PATH_SEPARATOR.__DIR__);
-// require dirname(__DIR__).DIRECTORY_SEPARATOR.'SplClassLoader.php';
-// $classLoader = new \SplClassLoader(__NAMESPACE__, dirname(__DIR__));
-// $classLoader->register();
-
-set_error_handler(Array(__NAMESPACE__.'\ccApp','onError'));
-set_exception_handler(Array(__NAMESPACE__.'\ccApp','onException'));
-/*public function errorHandlerCallback($code, $string, $file, $line, $context)
-{
-	$e = new Excpetion($string, $code);
-	$e->line = $line;
-	$e->file = $file;
-	throw $e;
-}
-*/
-/**
- * Shutdown handler.
- * Capture last error to report errors that are not normally trapped by error-
- * handling functions, e.g., fatal and parsing errors.
- * @todo Activate only for debug mode.
- */
-function cc_onShutdown()
-// register_shutdown_function(function ()
-{
-    $err=error_get_last();
-	switch ($err['type'])
-	{
-		case E_WARNING:
-		case E_NOTICE:
-		case E_USER_ERROR:
-		case E_USER_WARNING:
-		case E_USER_NOTICE:
-			return FALSE;
-		break;
-
-		case E_COMPILE_ERROR:
-		case E_PARSE:
-		default:
-			return ccApp::onError($err['type'], $err['message'], $err['file'], $err['line'], $GLOBALS);
-	}
-//	trigger_error($err['message'],$err['type']);
-}
-// });
-register_shutdown_function(__NAMESPACE__.'\cc_onShutdown');
-
 // Just because PHP doesn't support setting class-consts via expressions, had to
 // create global consts :-(
 define('CCAPP_DEVELOPMENT',(ccApp::MODE_DEBUG|ccApp::MODE_INFO|ccApp::MODE_WARN|ccApp::MODE_ERR|ccApp::MODE_TRACEBACK|ccApp::MODE_REVEAL));
 define('CCAPP_PRODUCTION',(ccApp::MODE_CACHE*2)|ccApp::MODE_CACHE);
-} // ccPhp
+} // namespace ccPhp

@@ -3,10 +3,10 @@
   <title>ccPhp Framework</title>
   <parser>
     <default-package-name>ccPhp</default-package-name>
-    <target>documentation</target>
+    <target>docs</target>
   </parser>
   <transformer>
-    <target>documentation</target>
+    <target>docs</target>
   </transformer>
   <files>
     <directory>.</directory>
