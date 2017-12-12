@@ -1,35 +1,33 @@
-<?php 
-namespace ccPhp;
+<?php
+//namespace ccPhp;
 
-use ccPhp\ccSimpleController;
-use ccPhp\core\ccRequest;
+// use ccPhp\ccSimpleController;
+// use ccPhp\ccRequest;
 
 /**
- * This controller processes page requests that map to Smarty templates. By 
+ * This controller processes page requests that map to Smarty templates. By
  * default, this does not assume the Smarty object should be created. This gives
- * implemenation flexibility to instantiate Smarty as needed. Presuably not all 
- * methods need to use Smarty, so they can instantiate them as needed, keeping 
- * related smarty and non-smarty code in the same implementation. 
+ * implemenation flexibility to instantiate Smarty as needed. Presuably not all
+ * methods need to use Smarty, so they can instantiate them as needed, keeping
+ * related smarty and non-smarty code in the same implementation.
  *
- * @see  ccSmartyController for an implementation which simply enables 
+ * @see  ccSmartyController for an implementation which simply enables
  *       templates (but leverages the features of this class)
- * 
- * @package ccPhp
  */
 abstract class ccSmartyBaseController
 	extends ccSimpleController
 {
 	/**
-	 * Reference to Smarty object. 
+	 * Reference to Smarty object.
 	 */
 	protected $smarty;
 	/**
 	 * Default template name.
 	 */
 	protected $ext = '.tpl';
-	
+
 	/**
-	 * Create Smarty object.  Rather than calling this automatically in the 
+	 * Create Smarty object.  Rather than calling this automatically in the
 	 * constructor, there may be many action-methods for which Smarty is not needed,
 	 * so this should be called explicitly, when needed, from an action-method.
 	 */
@@ -38,10 +36,10 @@ abstract class ccSmartyBaseController
 		if (!$this->smarty)
 		{
 			$this->smarty = new ccSmarty();
-			
+
 			if (!isset($this->templateBase))
 				$this->templateBase = isset($this->base) ? $this->base : '';
-				
+
 			if (isset($this->templateBase))
 			{
 //				$this->smarty->base = $this->base;
@@ -50,14 +48,14 @@ abstract class ccSmartyBaseController
 				array_unshift($dirs, $dir . $this->templateBase);
 				$this->smarty->setTemplateDir( $dirs );
 			}
-			
+
 // ccApp::tr($this->smarty->getPluginsDir());
 //			$this->smarty->default_template_handler_func = 'ccSmartyController::onNotFound';
 		}
-		return $this->smarty; 
+		return $this->smarty;
 	}
-	
-	static function onNotFound($type, $name, &$content, &$modified, Smarty_Internal_Template $smarty) 
+
+	static function onNotFound($type, $name, &$content, &$modified, Smarty_Internal_Template $smarty)
 	{
 		ccApp::tr('"'.$name.'" not found.');
 		// ccApp::tr($type);
@@ -66,9 +64,9 @@ abstract class ccSmartyBaseController
 		// ccApp::tr($modified);
 		// echo '<pre>'; var_dump($smarty);
 
-		if ($type == 'file' 
+		if ($type == 'file'
 			&& isset($smarty->parent->smarty->base)
-			// && call_user_func(array( $smarty->parent->smarty, 'parent::templateExists'),$smarty->parent->smarty->base.DIRECTORY_SEPARATOR.$name) ) 
+			// && call_user_func(array( $smarty->parent->smarty, 'parent::templateExists'),$smarty->parent->smarty->base.DIRECTORY_SEPARATOR.$name) )
 			&& $smarty->templateExists($smarty->parent->smarty->base.DIRECTORY_SEPARATOR.$name) )
 			// && $smarty->templateExists($s->template_dir[0].$smarty->parent->smarty->base.DIRECTORY_SEPARATOR.$name) )
 		{
@@ -79,15 +77,15 @@ abstract class ccSmartyBaseController
 		else
 			return false;
 	}
-	
+
 	/**
-	 * Render pages based on Smarty templates. 
+	 * Render pages based on Smarty templates.
 	 *
 	 * Derivations of this class can implement methods just as for ccSimpleController,
 	 * presumably to prep for displaying via Smarty. But, if no method exists
-	 * but there is a template with a matching name, it is displayed. As in the 
+	 * but there is a template with a matching name, it is displayed. As in the
 	 * base-class, if any processing is to take place, then any existing begin()
-	 * will be called first. 
+	 * will be called first.
 	 *
 	 * @todo Consider, rather than pathing deeper to look for template, passing
 	 *       remaining path components as a 'params' argument to the template.
@@ -95,7 +93,7 @@ abstract class ccSmartyBaseController
 	// 2011-10-24 Call begin() only if method or template will be rendered.
 	function render(ccRequest $request)
 	{
-		// Check to see if method exists based and run it. 
+		// Check to see if method exists based and run it.
 		$rv = parent::render($request);
 		if ( $rv !== NULL )				// If method found and executed,
 			return $rv;					//    return method's return value
@@ -125,13 +123,13 @@ abstract class ccSmartyBaseController
 				if ( $this->display($request,$template) )
 					return TRUE;			// Template found, return
 			}
-		}		
+		}
 		return FALSE;						// No method and no template
 	} // render()
-	
+
 	/**
-	 * Convenience method to call ccSmarty's display function. This adds 
-	 * the current request block and assumes a default extension to the template. 
+	 * Convenience method to call ccSmarty's display function. This adds
+	 * the current request block and assumes a default extension to the template.
 	 */
 	protected function display(ccRequest $request, $template, $args=NULL)
 	{
