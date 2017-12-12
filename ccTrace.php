@@ -15,24 +15,24 @@ array('<b>','</b>','<i>','</i>','<tt>','</tt>','&rarr;','&ldquo;','&rdquo;','&he
 
 /*
 interface ccDebugSourceInterface					// Class supports developer
-{													// support functions
-	function getCaller($depth, $path);				// Get caller label
+{															// support functions
+	function getCaller($depth, $path);			// Get caller label
 	function showSource($file,$line=0,$context=-1);	// Display PHP sourcefile
 	function showStack(Array $traceback=NULL);  	// Renamed from showTrace()
 } // interface ccDebugSourceInterface
 
 interface ccTraceInterface							// Class implements trace output
 {
-	function setOutput($path=NULL);					// bool|string ON|OFF|destination
+	function setOutput($path=NULL);				// bool|string ON|OFF|destination
 //	function setHtml($bEnable=TRUE);				// Enale/disable HTML formatting
-//	function setSuppress($bSuppress=TRUE);			// Suppress output
-	function tr(...);								// Trace output
+//	function setSuppress($bSuppress=TRUE);		// Suppress output
+	function tr(...);									// Trace output
 	function out($string);							// Unbuffered output
 } // interface ccTraceInterface
 
-interface ccLoggerInterface							// Class implements log output
+interface ccLoggerInterface						// Class implements log output
 {
-	function setLogging($path);						// bool|string ON|OFF|destination
+	function setLogging($path);					// bool|string ON|OFF|destination
 	function log(...);								// Log output
 	function out($string);							// Unbuffered output
 } // interface ccLoggerInterface
@@ -44,9 +44,11 @@ interface ccLoggerInterface							// Class implements log output
 class ccTrace
 //	implements ccTraceInterface, ccLoggerInterface, ccDebugSourceInterface
 {
-	protected $DefaultLevel = 9;// Default output level of detail
+	use \Psr\Log\LoggerAwareTrait;		//setLogger()
+
+	protected $DefaultLevel = 9;			// Default output level of detail
 	protected $ThresholdLevel=5;
-	static protected $bHtml=TRUE;		// Format for HTML?
+	static protected $bHtml=TRUE;			// Format for HTML?
 	static protected $Output=NULL;		// Destination
 	static protected $bSuppress=FALSE;	// Suppress output?
 	static protected $log=TRUE;			// bool|string

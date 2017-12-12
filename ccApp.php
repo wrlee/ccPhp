@@ -49,59 +49,23 @@
  * 			- Added createWorkingDir()
  * 2013-09-12 Remove getPage()
  * 2017-11-07 If no ccRequest is passed to dispatch(), it is created.
+ * 2017-12-07 Renamed $sitepath --> $apppath to better reflect its purpose.
  */
 //******************************************************************************\
 namespace {
-// [BEGIN] Portability settings
-// @see http://www.php.net/manual/en/function.phpversion.php
-// @see http://www.php.net/manual/en/reserved.constants.php#reserved.constants.core
-if (!defined('PHP_VERSION_ID'))
-{
-    $_version = explode('.', PHP_VERSION);
-
-    define('PHP_VERSION_ID', ($_version[0] * 10000 + $_version[1] * 100 + $_version[2]));
-}
-if (PHP_VERSION_ID < 50400) {
-	if (PHP_VERSION_ID < 50300)
-	{
-		if (PHP_VERSION_ID < 50207)
-		{
-			if (PHP_VERSION_ID < 50200)
-				define('E_RECOVERABLE_ERROR',4096);
-		    define('PHP_MAJOR_VERSION', $_version[0]);
-		    define('PHP_MINOR_VERSION', $_version[1]);
-
-			$_version = explode('-', $_version[2]);
-			define('PHP_EXTRA_VERSION', $_version[0]);
-			define('PHP_RELEASE_VERSION', isset($_version[1]) ? $_version[1] : '');
-		}
-		define('E_DEPRECATED', 8092);
-		define('E_USER_DEPRECATED', 16384);
-		define('__DIR__', dirname(__FILE__));
+	include __DIR__.DIRECTORY_SEPARATOR.'inc/portable.php';
+	// Load composer's autoloader
+	if (file_exists(__DIR__.DIRECTORY_SEPARATOR.'vendor/autoload.php')) {
+		require(__DIR__.DIRECTORY_SEPARATOR.'vendor/autoload.php');
 	}
-	define('PHP_SESSION_DISABLED',0);
-	define('PHP_SESSION_NONE',1);
-	define('PHP_SESSION_ACTIVE',2);
-	/**
-	 * Return $status of session. Built-in available in 5.4
-	 * @return int enum of $status
-	 * @see php.net
-	 */
-	function session_status()
-	{
-		return \session_id() === '' ? PHP_SESSION_NONE : PHP_SESSION_ACTIVE;
-	}
-}
-unset($_version);	// Not needed any longer
-// [END] Portability settings
 } // namespace
 
 namespace ccPhp
 {
 // include 'ccPhp.inc';
 // use ccPhp\ccTrace;
-//!use ccPhp\ccRequest;
-// use ccPhp\ccPageInterface as ccPageInterface;
+// use ccPhp\ccRequest;
+// use ccPhp\ccPageInterface;
 // include('ccTrace.php');			// @todo Remove
 
 //******************************************************************************
@@ -148,14 +112,14 @@ class ccApp
 								/** @var boolean Central place to hold debug status */
 //	protected $bDebug = FALSE;
 								/** @var string Path to site specific files. */
-	protected $sitepath=NULL;
+	protected $apppath=NULL;
 								/** @var string Path to working directory (for cache, etc) */
 	protected $temppath='';
 								/** @var ccPageInterface Main page object for app */
 	protected $page=NULL;
 								/** @var string|ccPageInterface class that renders 404 pages. */
 	protected $error404 = NULL;
-								// The following are rel to sitepath:
+								// The following are rel to apppath:
 								/** @var array List of site paths to search for classes */
 	protected $classpath=array();
 								/** @var SplClassLoader reference */
@@ -175,9 +139,9 @@ class ccApp
 		foreach ($callstack as $caller)
 			if ($caller['function'] == 'createApp')
 			{
-				$this->sitepath = $caller['args'][0];
-				if (substr($this->sitepath, -1) != DIRECTORY_SEPARATOR)
-					$this->sitepath .= DIRECTORY_SEPARATOR;
+				$this->apppath = $caller['args'][0];
+				if (substr($this->apppath, -1) != DIRECTORY_SEPARATOR)
+					$this->apppath .= DIRECTORY_SEPARATOR;
 				break;
 			}
 	} // __construct()
@@ -251,9 +215,9 @@ class ccApp
 	function addClassPath($path,$classname=NULL)
 	{
 		if (!$path)
-			$path = $this->sitepath;
+			$path = $this->apppath;
 		elseif ($path[0] != DIRECTORY_SEPARATOR)
-			$path = $this->sitepath.$path;
+			$path = $this->apppath.$path;
 		if ($classname)
 			$this->classpath[$classname] = $path;
 		else
@@ -298,13 +262,13 @@ class ccApp
 // ccTrace::s_out( '#'.__LINE__.' '.ccTrace::getCaller(3).': '.$className." $rarr ".$classFilename.$nl);
 // if (strpos($className, 'PicturesToc') > -1)
 // echo __FUNCTION__.'#'.__LINE__." $className $rarr $classFilename".$nl;
-// self::tr('&nbsp;&nbsp;&nbsp;'.$this->sitepath.$classFilename);
-// ccTrace::tr('&nbsp;&nbsp;&nbsp;'.$this->sitepath.$classFilename);
+// self::tr('&nbsp;&nbsp;&nbsp;'.$this->apppath.$classFilename);
+// ccTrace::tr('&nbsp;&nbsp;&nbsp;'.$this->apppath.$classFilename);
 
 		// Check app paths, first
-		if ($this->sitepath && file_exists($this->sitepath . $classFilename))
+		if ($this->apppath && file_exists($this->apppath . $classFilename))
 		{
-			include($this->sitepath . $classFilename);
+			include($this->apppath . $classFilename);
 			return;
 		}
 		else foreach ($this->classpath as $class => $path)
@@ -374,15 +338,70 @@ class ccApp
 //	    	return self::$_me;				// Return serialized object
 //	    }
 //
+// [BEGIN] Global hooks
+// We are using spl_autoload_* features to simplify search for class files. If
+// the app has defined an __autoload() of their own without chaining it with
+// the spl_autoload_register() call, then this will add it automatically.
+if (function_exists('__autoload'))
+{
+	spl_autoload_register('__autoload', true, true);
+}
+spl_autoload_register('self::_autoload', true);
+
+//set_include_path(get_include_path().PATH_SEPARATOR.__DIR__);
+// require dirname(__DIR__).DIRECTORY_SEPARATOR.'SplClassLoader.php';
+// $classLoader = new \SplClassLoader(__NAMESPACE__, dirname(__DIR__));
+// $classLoader->register();
+
+set_error_handler('self::onError');
+set_exception_handler('self::onException');
+/*public function errorHandlerCallback($code, $string, $file, $line, $context)
+{
+	$e = new Excpetion($string, $code);
+	$e->line = $line;
+	$e->file = $file;
+	throw $e;
+}
+*/
+/**
+ * Shutdown handler.
+ * Capture last error to report errors that are not normally trapped by error-
+ * handling functions, e.g., fatal and parsing errors.
+ * @todo Activate only for debug mode.
+ */
+// function cc_onShutdown()
+register_shutdown_function(function ()
+{
+    $err=error_get_last();
+	switch ($err['type'])
+	{
+		case E_WARNING:
+		case E_NOTICE:
+		case E_USER_ERROR:
+		case E_USER_WARNING:
+		case E_USER_NOTICE:
+			return FALSE;
+		break;
+
+		case E_COMPILE_ERROR:
+		case E_PARSE:
+		default:
+			return ccApp::onError($err['type'], $err['message'], $err['file'], $err['line'], $GLOBALS);
+	}
+//	trigger_error($err['message'],$err['type']);
+}
+); // register_shutdown_function()
+// register_shutdown_function(__NAMESPACE__.'\cc_onShutdown');
+// [END] Global hooks
 		if (substr($appPath,-1) != DIRECTORY_SEPARATOR)	// Ensure path-spec
 			$appPath .= DIRECTORY_SEPARATOR;			// suffixed w/'/'
 
-		chdir($appPath);								// Set cd to "known" place
+		chdir($appPath);						// Set cd to "known" place
 		$className ? new $className : new self;
 
 //		$_SESSION['ccApp'] = serialize(self::$_me);
 //	    if ( !$sessActive )					// Session wasn't running
-//	    	session_commit();				//   So turn back off
+//	    	session_commit();					//   So turn back off
 
 		return self::$_me;
 	} // createApp()
@@ -402,7 +421,7 @@ class ccApp
 		if ( substr($dir, -1) != DIRECTORY_SEPARATOR )	// Ensure suffixed w/'/'
 			$dir .= DIRECTORY_SEPARATOR;
 		if ( $dir[0] != DIRECTORY_SEPARATOR )			// Not absolute path?
-			$dir = $this->sitepath . $dir;				// Prefix with site's path
+			$dir = $this->apppath . $dir;					// Prefix with site's path
 		if (!is_dir($dir))							      // Path does not exist?
 			mkdir($dir,0744,TRUE);                    // Create path
 		return $dir;									      // Return modified path
@@ -418,7 +437,7 @@ class ccApp
 		if ( substr($dir, -1) != DIRECTORY_SEPARATOR )	// Ensure suffixed w/'/'
 			$dir .= DIRECTORY_SEPARATOR;
 		if ( $dir[0] != DIRECTORY_SEPARATOR )			// Not absolute path?
-			$dir = $this->sitepath.$this->temppath.$dir;// Prefix with site's working path
+			$dir = $this->apppath.$this->temppath.$dir;// Prefix with site's working path
 		if (!is_dir($dir))								// Path does not exist?
 			mkdir($dir,0744,TRUE);						// Create path
 		return $dir;									// Return modified path
@@ -695,7 +714,7 @@ class ccApp
 	 */
 	public function getAppPath()
 	{
-		return $this->sitepath;
+		return $this->apppath;
 	} // getAppPath()
 //	/**
 //	 * Get/set server path to site's files (not the URL). This method also sets
@@ -709,7 +728,7 @@ class ccApp
 //		if (substr($path,-1) != DIRECTORY_SEPARATOR)	// Ensure path-spec
 //			$path .= DIRECTORY_SEPARATOR;				// suffixed w/'/'
 //
-//		$this->sitepath = $path;						// Save path
+//		$this->apppath = $path;						// Save path
 //		chdir($path);									// Set cd to "known" place
 //		return $this;
 //	} // setAppPath()
@@ -764,7 +783,7 @@ class ccApp
 	{
 		return ($this->temppath[0] == DIRECTORY_SEPARATOR)
 				? $this->temppath
-				: $this->sitepath.$this->temppath;
+				: $this->apppath.$this->temppath;
 	}
 
 	/**
@@ -1010,7 +1029,7 @@ EOD;
 		$this->UrlOffset = $temp->UrlOffset;
 		$this->devMode = $temp->devMode;
 //		$this->bDebug = $temp->bDebug;
-		$this->sitepath = $temp->sitepath;
+		$this->apppath = $temp->apppath;
 		$this->temppath = $temp->temppath;
 		$this->page = $temp->page;
 		$this->error404 = $temp->error404;
@@ -1019,62 +1038,8 @@ EOD;
 	}
 } // class ccApp
 
-// We are using spl_autoload_* features to simplify search for class files. If
-// the app has defined an __autoload() of their own without chaining it with
-// the spl_autoload_register() call, then this will add it automatically.
-if (function_exists('__autoload'))
-{
-	spl_autoload_register('__autoload', true, true);
-}
-spl_autoload_register(array(__NAMESPACE__.'\ccApp','_autoload'), true);
-
-//set_include_path(get_include_path().PATH_SEPARATOR.__DIR__);
-// require dirname(__DIR__).DIRECTORY_SEPARATOR.'SplClassLoader.php';
-// $classLoader = new \SplClassLoader(__NAMESPACE__, dirname(__DIR__));
-// $classLoader->register();
-
-set_error_handler(Array(__NAMESPACE__.'\ccApp','onError'));
-set_exception_handler(Array(__NAMESPACE__.'\ccApp','onException'));
-/*public function errorHandlerCallback($code, $string, $file, $line, $context)
-{
-	$e = new Excpetion($string, $code);
-	$e->line = $line;
-	$e->file = $file;
-	throw $e;
-}
-*/
-/**
- * Shutdown handler.
- * Capture last error to report errors that are not normally trapped by error-
- * handling functions, e.g., fatal and parsing errors.
- * @todo Activate only for debug mode.
- */
-function cc_onShutdown()
-// register_shutdown_function(function ()
-{
-    $err=error_get_last();
-	switch ($err['type'])
-	{
-		case E_WARNING:
-		case E_NOTICE:
-		case E_USER_ERROR:
-		case E_USER_WARNING:
-		case E_USER_NOTICE:
-			return FALSE;
-		break;
-
-		case E_COMPILE_ERROR:
-		case E_PARSE:
-		default:
-			return ccApp::onError($err['type'], $err['message'], $err['file'], $err['line'], $GLOBALS);
-	}
-//	trigger_error($err['message'],$err['type']);
-}
-// });
-register_shutdown_function(__NAMESPACE__.'\cc_onShutdown');
-
 // Just because PHP doesn't support setting class-consts via expressions, had to
 // create global consts :-(
 define('CCAPP_DEVELOPMENT',(ccApp::MODE_DEBUG|ccApp::MODE_INFO|ccApp::MODE_WARN|ccApp::MODE_ERR|ccApp::MODE_TRACEBACK|ccApp::MODE_REVEAL));
 define('CCAPP_PRODUCTION',(ccApp::MODE_CACHE*2)|ccApp::MODE_CACHE);
-} // ccPhp
+} // namespace ccPhp
