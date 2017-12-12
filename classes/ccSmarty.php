@@ -1,43 +1,42 @@
-<?php 
+<?php
 /**
  * ccPhp Support for Smarty integration.
- * @package Smarty
  */
 namespace ccPhp;
-use \Smarty;
+//use \Smarty;
 
 /**
  * ccSmarty derives the base Smarty class to add features for integration with ccPhp.
  * @used-by ccSmartyController
  * @package ccPhp
  */
-class ccSmarty extends Smarty
+class ccSmarty extends \Smarty
 {
 	/**
 	 * @ignore
-	 */ 
+	 */
 	function __construct()
 	{
 		parent::__construct();			// Default Smarty initialization
 		$app = ccApp::getApp();			// Common app reference
 		$smartyTempPath = $app->getWorkingPath().'smarty'.DIRECTORY_SEPARATOR;
-		
+
 //		$this->use_sub_dirs = true;
-		
+
 		$this->setCacheDir($smartyTempPath . 'cache')
 			->setCompileDir($smartyTempPath . 'compile')
 			->setConfigDir($app->getAppPath() . 'templates');
 		$this->setTemplateDir($this->config_dir);
-		
+
 		$fwpath = ccApp::getApp()->getFrameworkPath();
 		if (file_exists($fwpath.'smarty'))
 			$this->addPluginsDir($fwpath.'smarty');
 
 		$devmode = $app->getDevMode();
-		$this->debugging_ctrl = ( $devmode & ~CCAPP_PRODUCTION 
-		                          ? 'URL' 
+		$this->debugging_ctrl = ( $devmode & ~CCAPP_PRODUCTION
+		                          ? 'URL'
 								  : 'NONE' );
-		$this->setCaching($devmode & ccApp::MODE_DEBUG 
+		$this->setCaching($devmode & ccApp::MODE_DEBUG
 							? Smarty::CACHING_OFF
 							: Smarty::CACHING_LIFETIME_CURRENT);
 //		$this->setCompileCheck( ($devmode & ~(CCAPP_PRODUCTION) ) );
@@ -48,7 +47,7 @@ class ccSmarty extends Smarty
 		// $this->force_cache = TRUE;
 //		$this->testInstall();
 	} // __construct()
-	
+
 	/**
 	 * Process and display template from the templates directory.
 	 * @param string $template Template file name.
@@ -70,7 +69,7 @@ class ccSmarty extends Smarty
 		else
 			return FALSE;
 	} // render()
-	
+
 	/**
 	 * Set the debug mode for Smarty.
 	 * @param boolean $debug on or off.
@@ -80,7 +79,7 @@ class ccSmarty extends Smarty
 		$this->debugging = $debug;
 		return $this;
 	} // setDebug()
-	
+
 	/**
 	 * Create directory, if it doesn't exist.
 	 * @param string $dir Name of directory to create
@@ -110,7 +109,7 @@ class ccSmarty extends Smarty
 		else
 			return parent::setTemplateDir($this->_createDir($dirs));
 	} // setTemplateDir()
-		
+
 	/**
 	 * Add template dir(s), creating them, if they don't exist.
 	 * @param string|array $dirs Name(s) of template directory(ies)
@@ -126,7 +125,7 @@ class ccSmarty extends Smarty
 		else
 			return parent::addTemplateDir($this->_createDir($dirs));
 	} // addTemplateDir()
-	
+
 	/**
 	 * Check for template existence (appending default extension, if necessary)
 	 */

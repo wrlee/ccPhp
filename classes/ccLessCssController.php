@@ -1,16 +1,15 @@
 <?php
 namespace ccPhp;
-use \lessc;
+//use \lessc;
 
 /**
- * @package ccPhp
  * @todo  Add settings for enable/disabling caching
  * @todo  Add MEMCACHE support of caching.
  * @todo Consider propagating lessc Exceptions.
  * @todo  Consider whether/when compiled directory is needed
  */
 class ccLessCssController
-	extends lessc
+	extends \lessc
 	implements ccPageInterface
 {
 	protected $working_dir='lessphp/'; //.DIRECTORY_SEPARATOR;
