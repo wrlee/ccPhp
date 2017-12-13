@@ -54,12 +54,14 @@
 //******************************************************************************\
 namespace {
 	include __DIR__.DIRECTORY_SEPARATOR.'inc/portable.php';
+
 	// Load composer's autoloader
-	if (file_exists(__DIR__.DIRECTORY_SEPARATOR.'vendor/autoload.php')) {
-		require(__DIR__.DIRECTORY_SEPARATOR.'vendor/autoload.php');
+	if (  ! class_exists('Composer\Autoload\ClassLoader', false)
+		  && file_exists(__DIR__.DIRECTORY_SEPARATOR.'vendor/autoload.php') )
+	{
+		$composerClassloader = require(__DIR__.DIRECTORY_SEPARATOR.'vendor/autoload.php');
 	}
 } // namespace
-
 
 namespace //! ccPhp
 {
@@ -82,26 +84,28 @@ namespace //! ccPhp
  * @todo Consider that flags can be user defined, with some pre-defined meanings.
  */
 class ccApp
-	implements \Serializable
+	implements
+//		\Psr\Log\LoggerAwareInterface,// setLogger()
+		\Serializable
 {
-	use \Psr\Log\LoggerAwareTrait;		// setLogger()
-								/** Debugging output */
+	use \Psr\Log\LoggerAwareTrait;	// setLogger()
+												/** Debugging output */
 	const MODE_DEBUG	= 1;
-								/** PHP info msgs */
+												/** PHP info msgs */
 	const MODE_INFO		= 6;
-								/** PHP warnings */
+												/** PHP warnings */
 	const MODE_WARN		= 2;
-								/** PHP errors */
+												/** PHP errors */
 	const MODE_ERR		= 4;
-								/** Show tracebacks */
+												/** Show tracebacks */
 	const MODE_TRACEBACK= 8;
-								/** Reveal paths */
+												/** Reveal paths */
 	const MODE_REVEAL	= 16;
 								/** Use minimized resources (scripts, CSS, etc.) */
 	const MODE_MINIMIZE	= 32;
-								/** Enable profile */
+												/** Enable profile */
 	const MODE_PROFILE	= 64;
-								/** Enable caching where it can */
+												/** Enable caching where it can */
 	const MODE_CACHE	= 128;
 								/** @var ccApp Reference to singleton self */
 	protected static $_me=NULL;
@@ -115,7 +119,7 @@ class ccApp
 	protected $devMode = CCAPP_DEVELOPMENT;
 								/** @var boolean Central place to hold debug status */
 //	protected $bDebug = FALSE;
-								/** @var string Path to site specific files. */
+								/** @var string Path to the root of app specific files (not the web-facing ones). */
 	protected $apppath=NULL;
 								/** @var string Path to working directory (for cache, etc) */
 	protected $temppath='';
@@ -123,11 +127,11 @@ class ccApp
 	protected $page=NULL;
 								/** @var string|ccPageInterface class that renders 404 pages. */
 	protected $error404 = NULL;
+								/** @var ClassLoader|callback autoload handler */
+	protected $classLoader=NULL;
 								// The following are rel to apppath:
 								/** @var array List of site paths to search for classes */
 	protected $classpath=array();
-								/** @var SplClassLoader reference */
-//	protected $classLoader=NULL;
 								/** @var ccRequest Remember current request */
 	protected $current_request;
 
@@ -148,25 +152,38 @@ class ccApp
 					$this->apppath .= DIRECTORY_SEPARATOR;
 				break;
 			}
-//			$this->setLogger( new ccLogger() );
-////			$this->logger->enableHtml(false);
-//			$this->logger->trace('testing',1,2,3, 'end of stuff');
-//			$this->logger->info('testing',['one',2,'three']);
+
+		// Use Composer\Loader\ClassLoader, if it was found
+		global $composerClassloader;
+		if ($composerClassloader && !$this->classLoader)
+			$this->classLoader = $composerClassloader;
+
+		// Add app's root as an inclusion directory.
+		if ($this->classLoader)
+			$this->classLoader->addPsr4("", [$this->apppath], true);
+
+		$this->setLogger( new ccLogger() );
+////		$this->logger->enableHtml(false);
+//		$this->logger->trace('testing',1,2,3, 'end of stuff');
+//		$this->logger->info('testing',['one',2,'three']);
 	} // __construct()
 
 	/**
 	 * Search for class definition from framework folders.
-	 * If there is an instance of the app, call its autoload first where
-	 * site specific searches will take precedence.
+	 * If there autoload() exists, call it's autoload, first. Derivations of ccApp
+	 * can override autoload().
 	 *
 	 * This method is appropriate to call this from __autoload() or
 	 * register via spl_autoload_register()
-	 * @param  string $className Name of class to load.
+	 * @deprecated This will be subsumed by ClassLoader-style functionality,
+	 * 	separating this functionality into a separate class.
+	 * @param string $className Name of class to load.
+	 * @see createApp() where this method is registered.
 	 */
-	public static function _autoload($className)
+	public final static function _autoload($className)
 	{
-// if (headers_sent() && strpos($className, 'PicturesToc') > -1)
 // echo __FUNCTION__.'#'.__LINE__."($className) "." <br>";
+		// Check instance specific autoload. If a derived autoload exists, call it, it takes priority
 		if (self::$_me && method_exists(self::$_me,'autoload'))
 		{
 			self::$_me->autoload($className); // Using spl_autoload_register()?
@@ -178,8 +195,8 @@ class ccApp
 // }
 
 // echo __FUNCTION__.'#'.__LINE__."($className) class? ".(class_exists($className,false)?1:0)." trait? ".(trait_exists($className,false)?1:0)." <br>";
-											// Check instance specific autoload
-		if (!class_exists($className,false) && !trait_exists($className,false))		// Check framework directories
+		// Check framework-specific directories
+		if (!class_exists($className,false) && !trait_exists($className,false))
 		{
 			if (   __NAMESPACE__ != ''
 				 && __NAMESPACE__ == substr($className, 0, strlen(__NAMESPACE__)))
@@ -219,6 +236,8 @@ class ccApp
 	 *	  	  ->addClassPath('..'.DS.'Facebook'.DS.'facebook.php','Facebook');
 	 * @todo Allow array of directories to be passed in.
 	 * @todo Test for path's existence.
+	 * @deprecated This will be subsumed by ClassLoader-style functionality,
+	 * 	separating this functionality into a separate class.
 	 */
 	function addClassPath($path,$classname=NULL)
 	{
@@ -246,6 +265,8 @@ class ccApp
 	 * @todo If not absolute path, prefix with site path.
 	 * @todo Automatically convert '/' or '\' to the correct DIRECTORY_SEPARATOR
 	 *			for the current OS.
+	 * @deprecated This will be subsumed by ClassLoader-style functionality,
+	 * 	separating this functionality into a separate class.
 	 */
 	public function addPhpPath($path,$prefix=FALSE)
 	{
@@ -260,11 +281,15 @@ class ccApp
 	/**
 	 * Instance specific autoload() searches site specific paths.
 	 * @param  string $className Name of class to load.
+	 * @deprecated This will be subsumed by ClassLoader-style functionality,
+	 * 	separating this functionality into a separate class.
 	 */
 	public function autoload($className)
 	{
-		$classFilename = str_replace('_', DIRECTORY_SEPARATOR, $className).'.php';
+		$classFilename = "$className.php";
+//		$classFilename = str_replace('_', DIRECTORY_SEPARATOR, $className).'.php';
 //		$classFilename = str_replace('\\', DIRECTORY_SEPARATOR, $className).'.php';
+
 // global $bb,$eb, $bi,$ei, $btt,$ett, $rarr,$ldquo,$rdquo,$hellip,$nbsp,$nl;
 // ccTrace::s_out( '#'.__LINE__.' '.ccTrace::getCaller(0,dirname(self::getApp()->getAppPath())).': '.$className." $rarr ".$classFilename.$nl);
 // ccTrace::s_out( '#'.__LINE__.' '.ccTrace::getCaller(3).': '.$className." $rarr ".$classFilename.$nl);
@@ -347,14 +372,20 @@ class ccApp
 //	    }
 //
 // [BEGIN] Global hooks
-// We are using spl_autoload_* features to simplify search for class files. If
-// the app has defined an __autoload() of their own without chaining it with
-// the spl_autoload_register() call, then this will add it automatically.
-if (function_exists('__autoload'))
-{
-	spl_autoload_register('__autoload', true, true);
+global $composerClassloader;
+if ($composerClassloader || class_exists('Composer\Autoload\ClassLoader')) {
+//	echo __FUNCTION__.'#'.__LINE__." here<br>".PHP_EOL;
 }
-spl_autoload_register(__CLASS__.'::_autoload', true);
+else {
+	// We are using spl_autoload_* features to simplify search for class files. If
+	// the app has defined an __autoload() of their own without chaining it with
+	// the spl_autoload_register() call, then this will add it automatically.
+	if (function_exists('__autoload'))
+	{
+		spl_autoload_register('__autoload', true, true);
+	}
+	spl_autoload_register(__CLASS__.'::_autoload', true);
+}
 
 //set_include_path(get_include_path().PATH_SEPARATOR.__DIR__);
 // require dirname(__DIR__).DIRECTORY_SEPARATOR.'SplClassLoader.php';
@@ -402,7 +433,7 @@ register_shutdown_function(function ()
 // register_shutdown_function(__NAMESPACE__.'\cc_onShutdown');
 // [END] Global hooks
 		if (substr($appPath,-1) != DIRECTORY_SEPARATOR)	// Ensure path-spec
-			$appPath .= DIRECTORY_SEPARATOR;			// suffixed w/'/'
+			$appPath .= DIRECTORY_SEPARATOR;					// suffixed w/'/'
 
 		chdir($appPath);						// Set cd to "known" place
 		$className ? new $className : new self;
@@ -579,18 +610,19 @@ register_shutdown_function(function ()
 		setcookie($name, $value, $expire, $path, $domain, $secure, $httponly);
 	} // setCookie()
 
-//	/**
-//	 * Set debug setting
-//	 */
-//	public function getDebug()
-//	{
-//		return $this->bDebug;
-//	}
-//	public function setDebug($bDebug=TRUE)
-//	{
-//		$this->bDebug = $bDebug;
-//		return $this;
-//	}
+	/**
+	 * Set the autoload handler for the project. The default is to use the
+	 * locally associated Composer\Loader\ClassLoader. However, this is only
+	 * available if composer is used. There is no standard interface for
+	 * a class-loader object, we currently assume Composer\Loader\ClassLoader.
+	 *
+	 * @todo Allow classloader to be a function/method
+	 */
+	function setClassLoader(object $classLoader)
+	{
+		$this->classLoader = $classLoader;
+		return $this;
+	}
 
 	/**
 	 * Get/set app's disposition mask.
@@ -655,16 +687,18 @@ register_shutdown_function(function ()
 	 */
 	public static function getFrameworkPath()
 	{
-		return dirname(__FILE__).DIRECTORY_SEPARATOR;
+		return __DIR__.DIRECTORY_SEPARATOR;
 	} // getFrameworkPath()
 
-//	/**
-//	 * @return object app's main page (e.g., dispatcher or controller)
-//	 */
-//	public function getPage()
-//	{
-//		return $this->page;
-//	} // getPage()
+	/**
+	 * LoggerAwareInterface
+	 */
+	public function setLogger(Psr\Log\LoggerInterface $logger)
+	{
+		$this->logger = $logger;
+		return $this;
+	}
+
 	/**
 	 * Set the primary page handler for the app. This is usually a controller
 	 * that dispatches to other handlers (internally or externally; i.e., other

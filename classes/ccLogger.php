@@ -71,14 +71,14 @@ class ccLogger
 		// Build "header" info of caller
 		{
 			$trace = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS,2);
-			$trace = $trace[1];
+//			$message = print_r($trace,true);
 			$this->bHtml && $message .= '<tt>';
-			isset($trace['class']) && $message .= $trace['class'];
-			isset($trace['type']) && $trace['type'] == '->' && $this->bHtml
+			isset($trace[1]['class']) && $message .= $trace[1]['class'];
+			isset($trace[1]['type']) && $trace[1]['type'] == '->' && $this->bHtml
 				? $message .= '&rarr;'
-				: $message .= $trace['type'];
-			isset($trace['function']) && $message .= $trace['function'].'()';
-			isset($trace['line']) && $message .= '#'.$trace['line'];
+				: $message .= $trace[1]['type'];
+			isset($trace[1]['function']) && $message .= $trace[1]['function'].'()';
+			isset($trace[0]['line']) && $message .= '#'.$trace[0]['line'];
 			$message .= ':';
 			$this->bHtml && $message .= '</tt>';
 		}
