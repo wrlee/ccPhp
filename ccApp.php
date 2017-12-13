@@ -83,7 +83,9 @@ namespace //! ccPhp
  */
 class ccApp
 	implements \Serializable
-{								/** Debugging output */
+{
+	use \Psr\Log\LoggerAwareTrait;		// setLogger()
+								/** Debugging output */
 	const MODE_DEBUG	= 1;
 								/** PHP info msgs */
 	const MODE_INFO		= 6;
@@ -146,6 +148,10 @@ class ccApp
 					$this->apppath .= DIRECTORY_SEPARATOR;
 				break;
 			}
+//			$this->setLogger( new ccLogger() );
+////			$this->logger->enableHtml(false);
+//			$this->logger->trace('testing',1,2,3, 'end of stuff');
+//			$this->logger->info('testing',['one',2,'three']);
 	} // __construct()
 
 	/**
@@ -348,15 +354,15 @@ if (function_exists('__autoload'))
 {
 	spl_autoload_register('__autoload', true, true);
 }
-spl_autoload_register('self::_autoload', true);
+spl_autoload_register(__CLASS__.'::_autoload', true);
 
 //set_include_path(get_include_path().PATH_SEPARATOR.__DIR__);
 // require dirname(__DIR__).DIRECTORY_SEPARATOR.'SplClassLoader.php';
 // $classLoader = new \SplClassLoader(__NAMESPACE__, dirname(__DIR__));
 // $classLoader->register();
 
-set_error_handler('self::onError');
-set_exception_handler('self::onException');
+set_error_handler(__CLASS__.'::onError');
+set_exception_handler(__CLASS__.'::onException');
 /*public function errorHandlerCallback($code, $string, $file, $line, $context)
 {
 	$e = new Excpetion($string, $code);
