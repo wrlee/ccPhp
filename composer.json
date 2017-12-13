@@ -8,6 +8,7 @@
             "email": "ccphp@cachecrew.com"
         }
     ],
+	"minimum-stability": "dev",
 	"repositories": [
 		{
 			"type": "vcs",
