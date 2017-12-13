@@ -5,8 +5,6 @@
  *
  * @see http://logging.apache.org/log4php/docs
  * @see http://codefury.net/projects/klogger/
- *
- * @package ccPhp
  */
 namespace ccPhp;
 
@@ -29,29 +27,27 @@ interface ccTraceInterface							// Class implements trace output
 	function tr(...);									// Trace output
 	function out($string);							// Unbuffered output
 } // interface ccTraceInterface
-
-interface ccLoggerInterface						// Class implements log output
-{
-	function setLogging($path);					// bool|string ON|OFF|destination
-	function log(...);								// Log output
-	function out($string);							// Unbuffered output
-} // interface ccLoggerInterface
 */
 
 /**
  * Trace output class.
  */
 class ccTrace
-//	implements ccTraceInterface, ccLoggerInterface, ccDebugSourceInterface
+//	implements	\Psr\Log\LoggerAwareInterface// setLogger()
+//	ccTraceInterface, ccDebugSourceInterface
 {
-	use \Psr\Log\LoggerAwareTrait;		//setLogger()
+//	use \Psr\Log\LoggerAwareTrait;		//setLogger()
 
 	protected $DefaultLevel = 9;			// Default output level of detail
 	protected $ThresholdLevel=5;
-	static protected $bHtml=TRUE;			// Format for HTML?
-	static protected $Output=NULL;		// Destination
-	static protected $bSuppress=FALSE;	// Suppress output?
-	static protected $log=TRUE;			// bool|string
+
+	static protected $bSuppress=false;	// Suppress output?
+
+	static protected $bHtml=true;			// Format for HTML?
+	static protected $Output=null;		// Destination
+	static protected $log=true;			// bool|string
+
+	static protected $logger=null;		// Psr\Log\Logger
 
 	/**
 	 * Turn on/off HTML formatting. On is useful if the output is to appear
@@ -82,19 +78,39 @@ array('<b>','</b>','<i>','</i>','<tt>','</tt>','&rarr;','&ldquo;','&rdquo;','&he
 	} // setHtml()
 
 	/**
+	 * Sets a logger.
+	 *
+	 * @param Psr\Log\LoggerInterface $logger
+	 */
+	public static function setLogger(\Psr\Log\LoggerInterface $logger)
+	{
+		 self::$logger = $logger;
+//		 return $this;
+	}
+
+	/**
 	 * Turns logging output on/off and can define an output file to output to.
 	 * @param bool|string $log bool: enable|disable; string: output name
 	 * @see self::log()
+	 * @deprecated Moving output control to Psr\Log\Logger object.See ccLogger::setPhpLog()
 	 */
-	static function setLogging($log=TRUE)
+	function setLogging($log=TRUE)
 	{
-		self::$log = $log;
-		if (is_string($log))
+		if (self::$logger && self::$logger instanceof ccLogger)
 		{
-			ini_set('error_log',$log);
+			self::$logger->enablePhpLog( !! $log );
+			if (is_string($log) || $log === false)
+				self::$logger->setPhpLog($log);
 		}
-		else
-			ini_set('error_log',NULL);
+		else {
+			self::$log = $log;
+			if (is_string($log))
+			{
+				ini_set('error_log',$log);
+			}
+			else
+				ini_set('error_log',NULL);
+		}
 	} // setLogging()
 
 	/**
@@ -103,11 +119,19 @@ array('<b>','</b>','<i>','</i>','<tt>','</tt>','&rarr;','&ldquo;','&rdquo;','&he
 	 * HTML) in a text file. If HTML output is definitely wanted, setHtml() can
 	 * be explictly called after this method.
 	 * @param string $filepath Name of the output file (or NULL);
+	 * @deprecated Moving output control to Psr\Log\Logger object. See ccLogger::setFile()
 	 */
 	static function setOutput($filepath=NULL)
 	{
-		self::$Output = $filepath;
-		self::setHtml(!self::$Output);
+		if (self::$logger && self::$logger instanceof ccLogger)
+		{
+			self::$logger->setFile($filepath);
+		}
+		else
+		{
+			self::$Output = $filepath;
+			self::setHtml(!self::$Output);
+		}
 	}
 	/**
 	 * Force suppression of any output via the output methods in this class.
@@ -129,16 +153,21 @@ array('<b>','</b>','<i>','</i>','<tt>','</tt>','&rarr;','&ldquo;','&rdquo;','&he
 	 */
 	function out($msg, $bNoNewline=FALSE)
 	{
-		if ($this->Output)
-			error_log($msg,3,$this->Output);
+		if (self::$logger && self::$logger instanceof ccLogger)
+			self::$logger->debug($msg);
 		else {
-			$this->bHtml && $msg = nl2br($msg);
-			if (!$bNoNewline) {
-				$this->bHtml && $msg .= '<br/>';
-				echo $msg.PHP_EOL;
+echo __METHOD__.'#'.__LINE__.'() deprecated<br>'.PHP_EOL;
+			if ($this->Output)
+				error_log($msg,3,$this->Output);
+			else {
+				$this->bHtml && $msg = nl2br($msg);
+				if (!$bNoNewline) {
+					$this->bHtml && $msg .= '<br/>';
+					echo $msg.PHP_EOL;
+				}
+				else
+					echo $msg;
 			}
-			else
-				echo $msg;
 		}
 
 /*		if ($bNoNewline)
@@ -160,6 +189,7 @@ array('<b>','</b>','<i>','</i>','<tt>','</tt>','&rarr;','&ldquo;','&rdquo;','&he
 	/**
 	 * Format a line of the trace stack.
 	 * @param array $line Content reprsenting a stack frame.
+	 * @return string Stack trace line.
 	 *
 	 * @see debug_traceback() http://us.php.net/manual/en/function.debug-backtrace.php
 	 * @see Exception::getTrace() http://us.php.net/manual/en/exception.gettrace.php
@@ -202,7 +232,12 @@ array('<b>','</b>','<i>','</i>','<tt>','</tt>','&rarr;','&ldquo;','&rdquo;','&he
 						 || $line['function'] == 'call_user_func_array')
 						&& count($arg) == 2)
 					{
-						$out .= get_class($arg[0]);
+// $arg[0] is found to be the name of the class, a string, rather than an object...
+// did something change?
+//echo __METHOD__.'#'.__LINE__.'()<pre>';
+//var_dump($arg);
+//echo '</pre>'.PHP_EOL;
+						$out .= is_string($arg[0]) ? $arg[0] : get_class($arg[0]);
 						if (is_object($arg[0]))
 							$out .= $rarr;
 						else
@@ -271,7 +306,7 @@ array('<b>','</b>','<i>','</i>','<tt>','</tt>','&rarr;','&ldquo;','&rdquo;','&he
 	 * @param string $path Matching root path to display (ignore stack entries
 	 *        that do not match in order to show only "app" sources).
 	 *
-	 * @return  string Caller [filename][ [class{::|->}[{function}()][#{line#}]
+	 * @return string Caller [filename][ [class{::|->}[{function}()][#{line#}]
 	 */
 	static function getCaller($traceOffset = 1, $path=NULL)
 	{
@@ -402,7 +437,13 @@ EOD;
 				if (   $line['function'] == 'call_user_func'
 					 || $line['function'] == 'call_user_func_array')
 				{
-					self::s_out( $nbsp.$nbsp.$nbsp.$nbsp.self::fmtTraceLine($trace[$key-1]).$nl);
+// The following line, $key is sometimes 0, which gives an invalid index of -1.
+// I hacked a solution preventing the index from being < 0, but we should find
+// out why.
+// echo __METHOD__.'#'.__LINE__."() key=$key<pre>";
+// var_dump($trace);
+// echo '</pre>'.PHP_EOL;
+					self::s_out( $nbsp.$nbsp.$nbsp.$nbsp.self::fmtTraceLine($trace[max(0,$key-1)]).$nl);
 				}
 			}
 		}
@@ -417,10 +458,17 @@ EOD;
 	 */
 	static function log($string='')
 	{
-		if (is_string(self::$log))			// If output filename had been set,
-			error_log($string);				//   output to log file.
-		elseif (self::$log)					// If no output destination
-			self::s_out($string.PHP_EOL);	// Just send it to the default place
+		if (self::$logger && self::$logger instanceof ccLogger)
+		{
+			self::$logger->debug($string);
+		}
+		else {
+echo __METHOD__.'#'.__LINE__.'() deprecated<br>'.PHP_EOL;
+			if (is_string(self::$log))			// If output filename had been set,
+				error_log($string);				//   output to log file.
+			elseif (self::$log)					// If no output destination
+				self::s_out($string.PHP_EOL);	// Just send it to the default place
+		}
 	} // log()
 
 	/**
@@ -431,13 +479,21 @@ EOD;
 	 */
 	static function s_out($string)
 	{
-		if (self::$bSuppress)
-			return;
-// echo __METHOD__.__LINE__.' '.self::$Output.'<br/>';
-		if (self::$Output)
-			error_log($string,3,self::$Output);
+		if (self::$logger && self::$logger instanceof ccLogger)
+		{
+			self::$logger->debug($string);
+		}
 		else
-			echo $string;
+		{
+echo __METHOD__.'#'.__LINE__.'() deprecated<br>'.PHP_EOL;
+			if (self::$bSuppress)
+				return;
+	// echo __METHOD__.__LINE__.' '.self::$Output.'<br/>';
+			if (self::$Output)
+				error_log($string,3,self::$Output);
+			else
+				echo $string;
+		}
 	} // s_out()
 
 	/**

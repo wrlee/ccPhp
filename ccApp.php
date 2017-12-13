@@ -54,22 +54,18 @@
 //******************************************************************************\
 namespace {
 	include __DIR__.DIRECTORY_SEPARATOR.'inc/portable.php';
+
 	// Load composer's autoloader
-	if (file_exists(__DIR__.DIRECTORY_SEPARATOR.'vendor/autoload.php')) {
-		require(__DIR__.DIRECTORY_SEPARATOR.'vendor/autoload.php');
+	if (  ! class_exists('Composer\Autoload\ClassLoader', false)
+		  && file_exists(__DIR__.DIRECTORY_SEPARATOR.'vendor/autoload.php') )
+	{
+//		echo __FILE__.'#'.__LINE__.'<br>'.PHP_EOL;
+		$composerClassloader = require(__DIR__.DIRECTORY_SEPARATOR.'vendor/autoload.php');
 	}
 } // namespace
 
 namespace ccPhp
 {
-// include 'ccPhp.inc';
-// use ccPhp\ccTrace;
-// use ccPhp\ccRequest;
-// use ccPhp\ccPageInterface;
-// include('ccTrace.php');			// @todo Remove
-
-//******************************************************************************
-
 /**
  * Framework class representing the "application". You can derive this class, but
  * you are not allowed to instantiate it directly, use ccApp::createApp().
@@ -80,24 +76,28 @@ namespace ccPhp
  * @todo Consider that flags can be user defined, with some pre-defined meanings.
  */
 class ccApp
-	implements \Serializable
-{								/** Debugging output */
+	implements
+//		\Psr\Log\LoggerAwareInterface,// setLogger()
+		\Serializable
+{
+	use \Psr\Log\LoggerAwareTrait;	// setLogger()
+												/** Debugging output */
 	const MODE_DEBUG	= 1;
-								/** PHP info msgs */
+												/** PHP info msgs */
 	const MODE_INFO		= 6;
-								/** PHP warnings */
+												/** PHP warnings */
 	const MODE_WARN		= 2;
-								/** PHP errors */
+												/** PHP errors */
 	const MODE_ERR		= 4;
-								/** Show tracebacks */
+												/** Show tracebacks */
 	const MODE_TRACEBACK= 8;
-								/** Reveal paths */
+												/** Reveal paths */
 	const MODE_REVEAL	= 16;
 								/** Use minimized resources (scripts, CSS, etc.) */
 	const MODE_MINIMIZE	= 32;
-								/** Enable profile */
+												/** Enable profile */
 	const MODE_PROFILE	= 64;
-								/** Enable caching where it can */
+												/** Enable caching where it can */
 	const MODE_CACHE	= 128;
 								/** @var ccApp Reference to singleton self */
 	protected static $_me=NULL;
@@ -110,8 +110,8 @@ class ccApp
 								/** @var int Operation mode bitmask. See MODE_* constants */
 	protected $devMode = CCAPP_DEVELOPMENT;
 								/** @var boolean Central place to hold debug status */
-//	protected $bDebug = FALSE;
-								/** @var string Path to site specific files. */
+//	protected $bDebug = false;
+								/** @var string Path to the root of app specific files (not the web-facing ones). */
 	protected $apppath=NULL;
 								/** @var string Path to working directory (for cache, etc) */
 	protected $temppath='';
@@ -119,11 +119,11 @@ class ccApp
 	protected $page=NULL;
 								/** @var string|ccPageInterface class that renders 404 pages. */
 	protected $error404 = NULL;
+								/** @var ClassLoader|callback autoload handler */
+	protected $classLoader=NULL;
 								// The following are rel to apppath:
 								/** @var array List of site paths to search for classes */
 	protected $classpath=array();
-								/** @var SplClassLoader reference */
-//	protected $classLoader=NULL;
 								/** @var ccRequest Remember current request */
 	protected $current_request;
 
@@ -144,21 +144,38 @@ class ccApp
 					$this->apppath .= DIRECTORY_SEPARATOR;
 				break;
 			}
+
+		// Use Composer\Loader\ClassLoader, if it was found
+		global $composerClassloader;
+		if ($composerClassloader && !$this->classLoader)
+			$this->classLoader = $composerClassloader;
+
+		// Add app's root as an inclusion directory.
+		if ($this->classLoader)
+			$this->classLoader->addPsr4("", [$this->apppath], true);
+
+		$this->setLogger( new ccLogger() );
+////		$this->logger->enableHtml(false);
+//		$this->logger->trace('testing',1,2,3, 'end of stuff');
+//		$this->logger->info('testing',['one',2,'three']);
 	} // __construct()
 
 	/**
 	 * Search for class definition from framework folders.
-	 * If there is an instance of the app, call its autoload first where
-	 * site specific searches will take precedence.
+	 * If there autoload() exists, call it's autoload, first. Derivations of ccApp
+	 * can override autoload().
 	 *
 	 * This method is appropriate to call this from __autoload() or
 	 * register via spl_autoload_register()
-	 * @param  string $className Name of class to load.
+	 * @deprecated This will be subsumed by ClassLoader-style functionality,
+	 * 	separating this functionality into a separate class.
+	 * @param string $className Name of class to load.
+	 * @see createApp() where this method is registered.
 	 */
-	public static function _autoload($className)
+	public final static function _autoload($className)
 	{
-// if (headers_sent() && strpos($className, 'PicturesToc') > -1)
 // echo __FUNCTION__.'#'.__LINE__."($className) "." <br>";
+		// Check instance specific autoload. If a derived autoload exists, call it, it takes priority
 		if (self::$_me && method_exists(self::$_me,'autoload'))
 		{
 			self::$_me->autoload($className); // Using spl_autoload_register()?
@@ -170,8 +187,8 @@ class ccApp
 // }
 
 // echo __FUNCTION__.'#'.__LINE__."($className) class? ".(class_exists($className,false)?1:0)." trait? ".(trait_exists($className,false)?1:0)." <br>";
-											// Check instance specific autoload
-		if (!class_exists($className,false) && !trait_exists($className,false))		// Check framework directories
+		// Check framework-specific directories
+		if (!class_exists($className,false) && !trait_exists($className,false))
 		{
 			if (   __NAMESPACE__ != ''
 				 && __NAMESPACE__ == substr($className, 0, strlen(__NAMESPACE__)))
@@ -196,8 +213,8 @@ class ccApp
 	 * Add a path to the list of site-specific paths to search when
 	 * loading site-specific classes.
 	 * @param string $path Is the path to be included in the search
-	 *        or, if $classname is specified, then the full fliepath. If the first
-	 *        char is not '/' (or '\', as appropriate) then the site dir is
+	 *        or, if $classname is specified, then the full filepath. If the first
+	 *        char is not '/' (or '\', as appropriate) then the app dir is
 	 *        assumed.
 	 * @param string $classname is an optional class name that, when sought, will
 	 *        load the specified file specified by $path. If prefixed with a '\',
@@ -211,6 +228,8 @@ class ccApp
 	 *	  	  ->addClassPath('..'.DS.'Facebook'.DS.'facebook.php','Facebook');
 	 * @todo Allow array of directories to be passed in.
 	 * @todo Test for path's existence.
+	 * @deprecated This will be subsumed by ClassLoader-style functionality,
+	 * 	separating this functionality into a separate class.
 	 */
 	function addClassPath($path,$classname=NULL)
 	{
@@ -218,13 +237,27 @@ class ccApp
 			$path = $this->apppath;
 		elseif ($path[0] != DIRECTORY_SEPARATOR)
 			$path = $this->apppath.$path;
-		if ($classname)
-			$this->classpath[$classname] = $path;
+
+		if (    $classname && $classname[0] == '\\'
+			  && $this->classLoader && method_exists($this->classLoader,'addPsr4') )
+		{
+			$classname = substr($classname,1).$classname[0];	// Move '\' to end
+			$this->classLoader->addPsr4($classname, [$path]);
+		}
+		elseif (    $classname && $this->classLoader
+					&& method_exists($this->classLoader,'addClassMap') ) {
+			$this->classLoader->addClassMap([ $classname => [ $path ] ]);
+		}
 		else
 		{
-			if (substr($path,-1) != DIRECTORY_SEPARATOR)
-				$path .= DIRECTORY_SEPARATOR;
-			$this->classpath[] = $path;
+			if ($classname)
+				$this->classpath[$classname] = $path;
+			else
+			{
+				if (substr($path,-1) != DIRECTORY_SEPARATOR)
+					$path .= DIRECTORY_SEPARATOR;
+				$this->classpath[] = $path;
+			}
 		}
 		return $this;
 	} // addClassPath()
@@ -238,8 +271,10 @@ class ccApp
 	 * @todo If not absolute path, prefix with site path.
 	 * @todo Automatically convert '/' or '\' to the correct DIRECTORY_SEPARATOR
 	 *			for the current OS.
+	 * @deprecated This will be subsumed by ClassLoader-style functionality,
+	 * 	separating this functionality into a separate class.
 	 */
-	public function addPhpPath($path,$prefix=FALSE)
+	public function addIncludePath($path,$prefix=false)
 	{
 		set_include_path(
 			$prefix
@@ -247,16 +282,20 @@ class ccApp
 				: get_include_path() . PATH_SEPARATOR . $path
 		);
 		return $this;
-	} // addPhpPath()
+	} // addIncludePath()
 
 	/**
 	 * Instance specific autoload() searches site specific paths.
 	 * @param  string $className Name of class to load.
+	 * @deprecated This will be subsumed by ClassLoader-style functionality,
+	 * 	separating this functionality into a separate class.
 	 */
 	public function autoload($className)
 	{
-		$classFilename = str_replace('_', DIRECTORY_SEPARATOR, $className).'.php';
+		$classFilename = "$className.php";
+//		$classFilename = str_replace('_', DIRECTORY_SEPARATOR, $className).'.php';
 //		$classFilename = str_replace('\\', DIRECTORY_SEPARATOR, $className).'.php';
+
 // global $bb,$eb, $bi,$ei, $btt,$ett, $rarr,$ldquo,$rdquo,$hellip,$nbsp,$nl;
 // ccTrace::s_out( '#'.__LINE__.' '.ccTrace::getCaller(0,dirname(self::getApp()->getAppPath())).': '.$className." $rarr ".$classFilename.$nl);
 // ccTrace::s_out( '#'.__LINE__.' '.ccTrace::getCaller(3).': '.$className." $rarr ".$classFilename.$nl);
@@ -286,7 +325,7 @@ class ccApp
 			// class to load has a namespace; if namespace names match, then use
 			// registered path as source.
 // echo __METHOD__.'#'.__LINE__.' '.substr($class,1).'\\'." === ".substr($className,0,strlen($class)).$nl;
-			if (   $class[0] === '\\' && strpos($className,'\\') !== FALSE
+			if (   $class[0] === '\\' && strpos($className,'\\') !== false
 				 && substr($class,1).'\\' === substr($className,0,strlen($class)) )
 			{
 // echo __METHOD__.'#'.__LINE__." class=$class path=$path$nl";
@@ -339,22 +378,28 @@ class ccApp
 //	    }
 //
 // [BEGIN] Global hooks
-// We are using spl_autoload_* features to simplify search for class files. If
-// the app has defined an __autoload() of their own without chaining it with
-// the spl_autoload_register() call, then this will add it automatically.
-if (function_exists('__autoload'))
-{
-	spl_autoload_register('__autoload', true, true);
+global $composerClassloader;
+if ($composerClassloader || class_exists('Composer\Autoload\ClassLoader')) {
+//	echo __FUNCTION__.'#'.__LINE__." here<br>".PHP_EOL;
 }
-spl_autoload_register('self::_autoload', true);
+else {
+	// We are using spl_autoload_* features to simplify search for class files. If
+	// the app has defined an __autoload() of their own without chaining it with
+	// the spl_autoload_register() call, then this will add it automatically.
+	if (function_exists('__autoload'))
+	{
+		spl_autoload_register('__autoload', true, true);
+	}
+	spl_autoload_register(__CLASS__.'::_autoload', true);
+}
 
 //set_include_path(get_include_path().PATH_SEPARATOR.__DIR__);
 // require dirname(__DIR__).DIRECTORY_SEPARATOR.'SplClassLoader.php';
 // $classLoader = new \SplClassLoader(__NAMESPACE__, dirname(__DIR__));
 // $classLoader->register();
 
-set_error_handler('self::onError');
-set_exception_handler('self::onException');
+set_error_handler(__CLASS__.'::onError');
+set_exception_handler(__CLASS__.'::onException');
 /*public function errorHandlerCallback($code, $string, $file, $line, $context)
 {
 	$e = new Excpetion($string, $code);
@@ -380,7 +425,7 @@ register_shutdown_function(function ()
 		case E_USER_ERROR:
 		case E_USER_WARNING:
 		case E_USER_NOTICE:
-			return FALSE;
+			return false;
 		break;
 
 		case E_COMPILE_ERROR:
@@ -394,7 +439,7 @@ register_shutdown_function(function ()
 // register_shutdown_function(__NAMESPACE__.'\cc_onShutdown');
 // [END] Global hooks
 		if (substr($appPath,-1) != DIRECTORY_SEPARATOR)	// Ensure path-spec
-			$appPath .= DIRECTORY_SEPARATOR;			// suffixed w/'/'
+			$appPath .= DIRECTORY_SEPARATOR;					// suffixed w/'/'
 
 		chdir($appPath);						// Set cd to "known" place
 		$className ? new $className : new self;
@@ -423,7 +468,7 @@ register_shutdown_function(function ()
 		if ( $dir[0] != DIRECTORY_SEPARATOR )			// Not absolute path?
 			$dir = $this->apppath . $dir;					// Prefix with site's path
 		if (!is_dir($dir))							      // Path does not exist?
-			mkdir($dir,0744,TRUE);                    // Create path
+			mkdir($dir,0744,true);                    // Create path
 		return $dir;									      // Return modified path
 	} // createAppDir()
 
@@ -439,7 +484,7 @@ register_shutdown_function(function ()
 		if ( $dir[0] != DIRECTORY_SEPARATOR )			// Not absolute path?
 			$dir = $this->apppath.$this->temppath.$dir;// Prefix with site's working path
 		if (!is_dir($dir))								// Path does not exist?
-			mkdir($dir,0744,TRUE);						// Create path
+			mkdir($dir,0744,true);						// Create path
 		return $dir;									// Return modified path
 	} // createWorkingDir()
 
@@ -470,18 +515,18 @@ register_shutdown_function(function ()
 			{
 				case 300: case 301: case 302: case 303:
 				case 305: case 306: case 307:
-					header($_SERVER['SERVER_PROTOCOL'].' '.$e->getCode().' '.$e->getMessage(), TRUE, $e->getCode());
+					header($_SERVER['SERVER_PROTOCOL'].' '.$e->getCode().' '.$e->getMessage(), true, $e->getCode());
 					$this->redirect($e->getLocation(), $e->getCode(), $e->getMessage());
 					break;
 				case 304:
-					header($_SERVER['SERVER_PROTOCOL'].' '.$e->getCode().' '.$e->getMessage(), TRUE, $e->getCode());
+					header($_SERVER['SERVER_PROTOCOL'].' '.$e->getCode().' '.$e->getMessage(), true, $e->getCode());
 					break;
 				case 404: $this->show404($request);
 					break;
 				default:				// No other stati supported right now.
 //					http_response_code($e->getCode());
 					if (!headers_sent())
-						header($_SERVER['SERVER_PROTOCOL'].' '.$e->getCode().' '.$e->getMessage(), TRUE, $e->getCode());
+						header($_SERVER['SERVER_PROTOCOL'].' '.$e->getCode().' '.$e->getMessage(), true, $e->getCode());
 					throw $e;
 			}
 		}
@@ -571,18 +616,19 @@ register_shutdown_function(function ()
 		setcookie($name, $value, $expire, $path, $domain, $secure, $httponly);
 	} // setCookie()
 
-//	/**
-//	 * Set debug setting
-//	 */
-//	public function getDebug()
-//	{
-//		return $this->bDebug;
-//	}
-//	public function setDebug($bDebug=TRUE)
-//	{
-//		$this->bDebug = $bDebug;
-//		return $this;
-//	}
+	/**
+	 * Set the autoload handler for the project. The default is to use the
+	 * locally associated Composer\Loader\ClassLoader. However, this is only
+	 * available if composer is used. There is no standard interface for
+	 * a class-loader object, we currently assume Composer\Loader\ClassLoader.
+	 *
+	 * @todo Allow classloader to be a function/method
+	 */
+	function setClassLoader(object $classLoader)
+	{
+		$this->classLoader = $classLoader;
+		return $this;
+	}
 
 	/**
 	 * Get/set app's disposition mask.
@@ -647,16 +693,18 @@ register_shutdown_function(function ()
 	 */
 	public static function getFrameworkPath()
 	{
-		return dirname(__FILE__).DIRECTORY_SEPARATOR;
+		return __DIR__.DIRECTORY_SEPARATOR;
 	} // getFrameworkPath()
 
-//	/**
-//	 * @return object app's main page (e.g., dispatcher or controller)
-//	 */
-//	public function getPage()
-//	{
-//		return $this->page;
-//	} // getPage()
+	/**
+	 * LoggerAwareInterface
+	 */
+	public function setLogger(\Psr\Log\LoggerInterface $logger)
+	{
+		$this->logger = $logger;
+		return $this;
+	}
+
 	/**
 	 * Set the primary page handler for the app. This is usually a controller
 	 * that dispatches to other handlers (internally or externally; i.e., other
@@ -692,13 +740,13 @@ register_shutdown_function(function ()
 			: $_SERVER['SCRIPT_URI'];
 
 		$p = strpos($path,'//');	// Offset past the protocol scheme spec
-		if ($p === FALSE)			// No protocol scheme.
+		if ($p === false)			// No protocol scheme.
 		{							// Don't know what to do here... bad input.
 		}
 		else 								// Set $path to the part past the domain:port part
 		{									// suffixed with a '/'
 			$p = strpos($path,'/',$p+2);	// First path separator past the scheme
-			if ($p === FALSE)				// No '/': this app is at the root.
+			if ($p === false)				// No '/': this app is at the root.
 				$path .= '/';				// Ensure it ends with a '/'
 			else
 				$path = substr($path,0,$p+1);	// Ignore path after the domain portion.
@@ -795,7 +843,7 @@ register_shutdown_function(function ()
 		if (!headers_sent())
 		{
 			http_response_code(404);
-//			header($_SERVER['SERVER_PROTOCOL'].' 404 Not Found', TRUE, 404);
+//			header($_SERVER['SERVER_PROTOCOL'].' 404 Not Found', true, 404);
 			header('Content-type: text/html');
 		}
 		?>
@@ -899,10 +947,10 @@ register_shutdown_function(function ()
 			$trace = debug_backtrace();		// Get whole stack list
 			array_shift($trace);					// Ignore this function
 			ccTrace::showTrace($trace);		// Display stack.
-			return TRUE;
+			return true;
 		}
 		else
-			return FALSE; 	// chain to normal error handler
+			return false; 	// chain to normal error handler
 	} // onError()
 
 	/**
@@ -947,7 +995,7 @@ register_shutdown_function(function ()
 	{
 		if (!headers_sent())
 		{
-			header($_SERVER['SERVER_PROTOCOL'].' '.$status.' '.$message, TRUE, $status);
+			header($_SERVER['SERVER_PROTOCOL'].' '.$status.' '.$message, true, $status);
 			header('Location: '.$url);
 			echo "Redirecting to {$url} via header&hellip;";
 		}

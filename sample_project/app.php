@@ -72,8 +72,10 @@ else
 //****
 // 1. "Activate" the ccPhp Framework from its directory, by including its primary
 //    class, ccApp. CCPHP_DIR can be set, separately, in a installation-specific
-//		setting.
-if ( defined('CCPHP_DIR') )
+//		setting. Use composer's autoload, if possible.
+if ( file_exists(__DIR__.DIRECTORY_SEPARATOR.'vendor/autoload.php') )
+	require(__DIR__.DIRECTORY_SEPARATOR.'vendor/autoload.php');
+elseif ( defined('CCPHP_DIR') )
 	require(CCPHP_DIR . DIRECTORY_SEPARATOR . 'ccApp.php');
 else
 	require(dirname(dirname(__FILE__)) . DIRECTORY_SEPARATOR . 'ccPhp' . DIRECTORY_SEPARATOR . 'ccApp.php');
