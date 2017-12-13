@@ -1,1 +1,4 @@
 .remote-sync.json
+
+/vendor/
+/docs/

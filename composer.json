@@ -1,0 +1,31 @@
+{
+    "name": "cachecrew/ccphp",
+    "description": "PHP \"page-oriented\" micro-framework.",
+    "license": "LGPL-3.0",
+    "authors": [
+        {
+            "name": "Bill Lee",
+            "email": "ccphp@cachecrew.com"
+        }
+    ],
+	"repositories": [
+		{
+			"type": "vcs",
+			"url": "https://github.com/wrlee/ccPhp"
+		}
+	],
+    "require": {
+		 "psr/log": "^1.0"
+    },
+    "require-dev": {
+    },
+    "suggest": {
+        "oyejorge/less.php": "v1.7.0.14",
+        "smarty/smarty": "~3.1"
+    },
+	"autoload": {
+		"psr-4": {"": ["", "classes/"] }
+	},
+	"autoload-dev": {
+	}
+}
