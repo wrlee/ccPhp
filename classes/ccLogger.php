@@ -72,13 +72,16 @@ class ccLogger
 		{
 			$trace = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS,2);
 //			$message = print_r($trace,true);
+			isset($trace[0]['line']) && $lineno = $trace[0]['line'];
+			$trace = $trace[1];
+
 			$this->bHtml && $message .= '<tt>';
-			isset($trace[1]['class']) && $message .= $trace[1]['class'];
-			isset($trace[1]['type']) && $trace[1]['type'] == '->' && $this->bHtml
+			isset($trace['class']) && $message .= $trace['class'];
+			isset($trace['type']) && $trace['type'] == '->' && $this->bHtml
 				? $message .= '&rarr;'
-				: $message .= $trace[1]['type'];
-			isset($trace[1]['function']) && $message .= $trace[1]['function'].'()';
-			isset($trace[0]['line']) && $message .= '#'.$trace[0]['line'];
+				: $message .= $trace['type'];
+			isset($trace['function']) && $message .= $trace['function'].'()';
+			isset($lineno) && $message .= '#'.$lineno;
 			$message .= ':';
 			$this->bHtml && $message .= '</tt>';
 		}

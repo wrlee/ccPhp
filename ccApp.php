@@ -118,7 +118,7 @@ class ccApp
 								/** @var int Operation mode bitmask. See MODE_* constants */
 	protected $devMode = CCAPP_DEVELOPMENT;
 								/** @var boolean Central place to hold debug status */
-//	protected $bDebug = FALSE;
+//	protected $bDebug = false;
 								/** @var string Path to the root of app specific files (not the web-facing ones). */
 	protected $apppath=NULL;
 								/** @var string Path to working directory (for cache, etc) */
@@ -221,8 +221,8 @@ class ccApp
 	 * Add a path to the list of site-specific paths to search when
 	 * loading site-specific classes.
 	 * @param string $path Is the path to be included in the search
-	 *        or, if $classname is specified, then the full fliepath. If the first
-	 *        char is not '/' (or '\', as appropriate) then the site dir is
+	 *        or, if $classname is specified, then the full filepath. If the first
+	 *        char is not '/' (or '\', as appropriate) then the app dir is
 	 *        assumed.
 	 * @param string $classname is an optional class name that, when sought, will
 	 *        load the specified file specified by $path. If prefixed with a '\',
@@ -245,13 +245,26 @@ class ccApp
 			$path = $this->apppath;
 		elseif ($path[0] != DIRECTORY_SEPARATOR)
 			$path = $this->apppath.$path;
-		if ($classname)
-			$this->classpath[$classname] = $path;
+
+		if (    $classname && $classname[0] == '\\'
+			  && $this->classLoader && method_exists('addPsr4') )
+		{
+			$classname = substr($classname,1).$classname[0];	// Move '\' to end
+			$this->classLoader->addPsr4($classname, [$path]);
+		}
+		elseif ( $classname && $this->classLoader && method_exists('addClassMap') ) {
+			$this->classLoader->addClassMap([ $classname => [ $path ] ]);
+		}
 		else
 		{
-			if (substr($path,-1) != DIRECTORY_SEPARATOR)
-				$path .= DIRECTORY_SEPARATOR;
-			$this->classpath[] = $path;
+			if ($classname)
+				$this->classpath[$classname] = $path;
+			else
+			{
+				if (substr($path,-1) != DIRECTORY_SEPARATOR)
+					$path .= DIRECTORY_SEPARATOR;
+				$this->classpath[] = $path;
+			}
 		}
 		return $this;
 	} // addClassPath()
@@ -268,7 +281,7 @@ class ccApp
 	 * @deprecated This will be subsumed by ClassLoader-style functionality,
 	 * 	separating this functionality into a separate class.
 	 */
-	public function addPhpPath($path,$prefix=FALSE)
+	public function addIncludePath($path,$prefix=false)
 	{
 		set_include_path(
 			$prefix
@@ -276,7 +289,7 @@ class ccApp
 				: get_include_path() . PATH_SEPARATOR . $path
 		);
 		return $this;
-	} // addPhpPath()
+	} // addIncludePath()
 
 	/**
 	 * Instance specific autoload() searches site specific paths.
@@ -319,7 +332,7 @@ class ccApp
 			// class to load has a namespace; if namespace names match, then use
 			// registered path as source.
 // echo __METHOD__.'#'.__LINE__.' '.substr($class,1).'\\'." === ".substr($className,0,strlen($class)).$nl;
-			if (   $class[0] === '\\' && strpos($className,'\\') !== FALSE
+			if (   $class[0] === '\\' && strpos($className,'\\') !== false
 				 && substr($class,1).'\\' === substr($className,0,strlen($class)) )
 			{
 // echo __METHOD__.'#'.__LINE__." class=$class path=$path$nl";
@@ -419,7 +432,7 @@ register_shutdown_function(function ()
 		case E_USER_ERROR:
 		case E_USER_WARNING:
 		case E_USER_NOTICE:
-			return FALSE;
+			return false;
 		break;
 
 		case E_COMPILE_ERROR:
@@ -462,7 +475,7 @@ register_shutdown_function(function ()
 		if ( $dir[0] != DIRECTORY_SEPARATOR )			// Not absolute path?
 			$dir = $this->apppath . $dir;					// Prefix with site's path
 		if (!is_dir($dir))							      // Path does not exist?
-			mkdir($dir,0744,TRUE);                    // Create path
+			mkdir($dir,0744,true);                    // Create path
 		return $dir;									      // Return modified path
 	} // createAppDir()
 
@@ -478,7 +491,7 @@ register_shutdown_function(function ()
 		if ( $dir[0] != DIRECTORY_SEPARATOR )			// Not absolute path?
 			$dir = $this->apppath.$this->temppath.$dir;// Prefix with site's working path
 		if (!is_dir($dir))								// Path does not exist?
-			mkdir($dir,0744,TRUE);						// Create path
+			mkdir($dir,0744,true);						// Create path
 		return $dir;									// Return modified path
 	} // createWorkingDir()
 
@@ -509,18 +522,18 @@ register_shutdown_function(function ()
 			{
 				case 300: case 301: case 302: case 303:
 				case 305: case 306: case 307:
-					header($_SERVER['SERVER_PROTOCOL'].' '.$e->getCode().' '.$e->getMessage(), TRUE, $e->getCode());
+					header($_SERVER['SERVER_PROTOCOL'].' '.$e->getCode().' '.$e->getMessage(), true, $e->getCode());
 					$this->redirect($e->getLocation(), $e->getCode(), $e->getMessage());
 					break;
 				case 304:
-					header($_SERVER['SERVER_PROTOCOL'].' '.$e->getCode().' '.$e->getMessage(), TRUE, $e->getCode());
+					header($_SERVER['SERVER_PROTOCOL'].' '.$e->getCode().' '.$e->getMessage(), true, $e->getCode());
 					break;
 				case 404: $this->show404($request);
 					break;
 				default:				// No other stati supported right now.
 //					http_response_code($e->getCode());
 					if (!headers_sent())
-						header($_SERVER['SERVER_PROTOCOL'].' '.$e->getCode().' '.$e->getMessage(), TRUE, $e->getCode());
+						header($_SERVER['SERVER_PROTOCOL'].' '.$e->getCode().' '.$e->getMessage(), true, $e->getCode());
 					throw $e;
 			}
 		}
@@ -734,13 +747,13 @@ register_shutdown_function(function ()
 			: $_SERVER['SCRIPT_URI'];
 
 		$p = strpos($path,'//');	// Offset past the protocol scheme spec
-		if ($p === FALSE)			// No protocol scheme.
+		if ($p === false)			// No protocol scheme.
 		{							// Don't know what to do here... bad input.
 		}
 		else 								// Set $path to the part past the domain:port part
 		{									// suffixed with a '/'
 			$p = strpos($path,'/',$p+2);	// First path separator past the scheme
-			if ($p === FALSE)				// No '/': this app is at the root.
+			if ($p === false)				// No '/': this app is at the root.
 				$path .= '/';				// Ensure it ends with a '/'
 			else
 				$path = substr($path,0,$p+1);	// Ignore path after the domain portion.
@@ -837,7 +850,7 @@ register_shutdown_function(function ()
 		if (!headers_sent())
 		{
 			http_response_code(404);
-//			header($_SERVER['SERVER_PROTOCOL'].' 404 Not Found', TRUE, 404);
+//			header($_SERVER['SERVER_PROTOCOL'].' 404 Not Found', true, 404);
 			header('Content-type: text/html');
 		}
 		?>
@@ -941,10 +954,10 @@ register_shutdown_function(function ()
 			$trace = debug_backtrace();		// Get whole stack list
 			array_shift($trace);					// Ignore this function
 			ccTrace::showTrace($trace);		// Display stack.
-			return TRUE;
+			return true;
 		}
 		else
-			return FALSE; 	// chain to normal error handler
+			return false; 	// chain to normal error handler
 	} // onError()
 
 	/**
@@ -989,7 +1002,7 @@ register_shutdown_function(function ()
 	{
 		if (!headers_sent())
 		{
-			header($_SERVER['SERVER_PROTOCOL'].' '.$status.' '.$message, TRUE, $status);
+			header($_SERVER['SERVER_PROTOCOL'].' '.$status.' '.$message, true, $status);
 			header('Location: '.$url);
 			echo "Redirecting to {$url} via header&hellip;";
 		}
