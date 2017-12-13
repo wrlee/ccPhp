@@ -4,7 +4,7 @@
  */
 
 /**
- * ccPhp-specific Logger which adds trace() support.
+ * Custom, ccPhp-specific log-levels, augments standard \Psr\Log\LogLevels.
  */
 class ccLogLevel
 	extends \Psr\Log\LogLevel
@@ -15,6 +15,7 @@ class ccLogLevel
 }
 
 /**
+ * ccPhp-specific Logger which adds trace() support.
  *
  */
 class ccLogger
@@ -23,38 +24,63 @@ class ccLogger
 
 	private static $levels=NULL;
 
-	private $bHtml	=true; // Only applies to stdout
-	private $bStdout=true;
-	private $bPhplog=false;
-	private $file	=NULL;
+	private $bHtml		= true; // Only applies to stdout
+	private $bScreen	= true;
+	private $bPhpLog	= false;
+	private $file		= null;
 
 	// Destinations
-	const HTML		=1;
-	const STDOUT	=2;
-	const PHPLOG	=4;
-	const FILE		=8;
+	const HTML		= 1;
+	const SCREEN	= 2;
+	const PHPLOG	= 4;
+	const FILE		= 8;
 
 	function __construct()
 	{
 		if (! self::$levels) {
 			$reflection = new ReflectionClass('ccLogLevel');
 			self::$levels=array_flip($reflection->getConstants());
-
 //			print_r(self::$levels);
 		}
+	} // __construct()
+
+	function enableHtml(bool $setting=true)
+	{
+		$this->bHtml = $setting;
+		return $this;	// Allow chaining
+	}
+	function enableScreen(bool $setting=true)
+	{
+		$this->bScreen = $setting;
+		return $this;	// Allow chaining
+	}
+	/**
+	 * Output to Php log (where errors go). NULL goes to stderr.
+	 * @param bool $setting
+	 */
+	function enablePhpLog(bool $setting=true)
+	{
+		$this->bPhpLog = $setting;
+		return $this;	// Allow chaining
+	}
+	/**
+	 * Define where Php log output should go, e.g., file, stderr, etc.
+	 * @param string $setting Filename. If NULL, output is routed to stderr
+	 * (i.e., usually the screen).
+	 */
+	function setPhpLog(string $setting)
+	{
+		ini_set('error_log', $setting ? $setting : null);
+		return $this;
 	}
 
-	function enableHtml(bool $setting=true) {
-		$this->bHtml = $setting;
-	}
-	function enableStdout(bool $setting=true) {
-		$this->bStdout = $setting;
-	}
-	function setFile(string $filepath=NULL) {
-		if ($filepath != $this->file) {
-			// rest ini_set(logfile)
-		}
-		$this->file = filepath;
+	/**
+	 * @todo Allow bool value to enable/disable output error_log() w/o setting target.
+	 */
+	function setFile(string $filepath=NULL)
+	{
+		$this->file = $filepath;
+		return $this;	// Allow chaining
 	}
 
 	/**
@@ -105,27 +131,30 @@ class ccLogger
 			throw new \Psr\Log\InvalidArgumentException();
 
 		$content = '';
-		if ($this->bStdout) {
-			$content .= $message.PHP_EOL;
-//			if ($context)
-//				$content .= print_r($context, true);
+//		if ($context)
+//			$content .= print_r($context, true);
 
-			if ($this->bStdout)
-			{
-				if ($this->bHtml) {
-					$content = str_replace(
-						[PHP_EOL,       ' '],
-						['<br>'.PHP_EOL,'&nbsp;'],
-						$content);
-				}
-				echo $content;
-			}
-			if ($this->file) {
-				//echo $content;
-			}
-			if ($this->bPhplog) {
-				//echo $content;
-			}
+		$content .= $message;
+
+		if ($this->file)
+			error_log($content.PHP_EOL,3,$this->file);
+		if ($this->bPhpLog && ini_get('error_log')) {
+			error_log($content);		// Output to default log
 		}
+
+		// HTML-ify for screen output
+		if ($this->bHtml) {
+			$content = str_replace(
+				[PHP_EOL,       ' '],
+				['<br>'.PHP_EOL,'&nbsp;'],
+				$content);
+		}
+		if ($this->bScreen) {
+			echo $content;
+			if ($this->bHtml) echo '<br>';
+			echo PHP_EOL;
+		}
+		if ($this->bPhpLog && ! ini_get('error_log'))
+			error_log($content);		// Output to default log
 	} // log()
 } // ccLogger
