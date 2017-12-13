@@ -75,7 +75,8 @@ class ccLogger
 	}
 
 	/**
-	 * @todo Allow bool value to enable/disable output error_log() w/o setting target.
+	 * @todo Allow bool value to enable/disable file output w/o setting target. Or
+	 * add enableFile($set, $file=null)
 	 */
 	function setFile(string $filepath=NULL)
 	{
@@ -105,8 +106,12 @@ class ccLogger
 			isset($trace['class']) && $message .= $trace['class'];
 			isset($trace['type']) && $trace['type'] == '->' && $this->bHtml
 				? $message .= '&rarr;'
-				: $message .= $trace['type'];
-			isset($trace['function']) && $message .= $trace['function'].'()';
+				: isset($trace['type']) && $message .= $trace['type'];
+			if (isset($trace['function'])) {
+				$message .= (in_array(substr($trace['function'],0,7),['include','require'] ))
+								? $trace['file']
+								: $trace['function'].'()';
+			}
 			isset($lineno) && $message .= '#'.$lineno;
 			$message .= ':';
 			$this->bHtml && $message .= '</tt>';
@@ -138,23 +143,23 @@ class ccLogger
 
 		if ($this->file)
 			error_log($content.PHP_EOL,3,$this->file);
-		if ($this->bPhpLog && ini_get('error_log')) {
-			error_log($content);		// Output to default log
-		}
+
+		$bToStderr = ini_get('error_log');
+		$bToStderr = ! $bToStderr && ! is_string($bToStderr);
+
+		if ($this->bPhpLog && ! $bToStderr)
+			error_log($content);		// Output to default log file
 
 		// HTML-ify for screen output
-		if ($this->bHtml) {
-			$content = str_replace(
-				[PHP_EOL,       ' '],
-				['<br>'.PHP_EOL,'&nbsp;'],
-				$content);
-		}
+		if ($this->bHtml)
+			$content = nl2br(str_replace( ' ', '&nbsp;', $content));
+
 		if ($this->bScreen) {
 			echo $content;
 			if ($this->bHtml) echo '<br>';
 			echo PHP_EOL;
 		}
-		if ($this->bPhpLog && ! ini_get('error_log'))
+		if ($this->bPhpLog && $bToStderr)
 			error_log($content);		// Output to default log
 	} // log()
 } // ccLogger
