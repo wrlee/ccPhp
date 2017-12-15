@@ -12,12 +12,12 @@ interface ccErrorHandlerInterface
 	const ERROR_CODES = [
 		E_ERROR			=> 'Error',			// 1
 		E_PARSE			=> 'Parsing Error', // 4
-//				E_CORE_ERROR	=> 'Core Error',	// 16
-//				E_CORE_WARNING	=> 'Core Warning',	// 32
+//		E_CORE_ERROR	=> 'Core Error',	// 16
+//		E_CORE_WARNING	=> 'Core Warning',	// 32
 		E_COMPILE_ERROR	=> 'Compile Error',	// 64
-//				E_COMPILE_WARNING => 'Compile Warning',	// 128
+//		E_COMPILE_WARNING => 'Compile Warning',	// 128
 		E_WARNING		=> 'Warning',		// 2
-		E_NOTICE		=> 'Notice',		// 8
+		E_NOTICE			=> 'Notice',		// 8
 		E_USER_ERROR	=> 'User Error',	// 256
 		E_USER_WARNING	=> 'User Warning',	// 512
 		E_USER_NOTICE	=> 'User Notice',	// 1024
@@ -39,7 +39,12 @@ interface ccErrorHandlerInterface
 } // interface ccErrorHandlerInterface
 
 /**
- * Contain error and exception handlers.
+ * Contain error and exception handlers. This class can be used it different
+ * ways:
+ * 1. The simplest, instantiate and call register().
+ * 2. You can also derive from the class and implement your own handlers.
+ * 3. You can use this class as a consiltated mechanism to activate your own
+ *    methods, even if they are not part of the class.
  */
 trait ccErrorHandlerTrait
 {
@@ -49,6 +54,9 @@ trait ccErrorHandlerTrait
 
 	/**
 	 * Register error and exception handlers.
+	 * @todo Allow variable argument list:
+	 * 	(callback $onerror=null, callback $onexception=null, callback $onshutdown=null)
+	 *		If $onerror can be an array [ callback, $option ], $option defaults to E_ALL, otherwise
 	 */
 	function register($error_types=E_ALL)
 	{
@@ -57,6 +65,9 @@ trait ccErrorHandlerTrait
 
 		if (method_exists($this, 'onException'))
 			set_exception_handler( [$this, 'onException'] );
+
+		if (method_exists($this, 'onShutdown'))
+			register_shutdown_function( [$this, 'onShutdown'] );
 	}
 
 	/**
@@ -162,6 +173,33 @@ trait ccErrorHandlerTrait
 
 		return false;
 	} // onException()
+
+	/**
+	 * Shutdown handler.
+	 * Capture last error to report errors that are not normally trapped by error-
+	 * handling functions, e.g., fatal and parsing errors.
+	 * @todo Activate only for debug mode.
+	 */
+	public function onShutdown()
+	{
+		$err=error_get_last();
+		switch ($err['type'])
+		{
+			case E_WARNING:
+			case E_NOTICE:
+			case E_USER_ERROR:
+			case E_USER_WARNING:
+			case E_USER_NOTICE:
+				return false;
+				break;
+
+			case E_COMPILE_ERROR:
+			case E_PARSE:
+			default:
+				return ccApp::onError($err['type'], $err['message'], $err['file'], $err['line'], $GLOBALS);
+		}
+  //	trigger_error($err['message'],$err['type']);
+} // onShutdown()
 
 	/**
 	 * Display call-stack.

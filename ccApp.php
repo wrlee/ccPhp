@@ -131,7 +131,7 @@ class ccApp
 	/**
 	 * Save $_me as a singularity and (hack).
 	 */
-	protected function __construct()	// As a singleton: block public allocation
+	protected function __construct(...$args)	// As a singleton: block public instantiation
 	{
 		self::$_me=$this;
 		$callstack = (PHP_VERSION_ID < 50400) ? debug_backtrace(0) : debug_backtrace(0,2);
@@ -295,8 +295,8 @@ class ccApp
 //		$classFilename = str_replace('\\', DIRECTORY_SEPARATOR, $className).'.php';
 
 // global $bb,$eb, $bi,$ei, $btt,$ett, $rarr,$ldquo,$rdquo,$hellip,$nbsp,$nl;
-// ccTrace::s_out( '#'.__LINE__.' '.ccTrace::getCaller(0,dirname(self::getApp()->getAppPath())).': '.$className." $rarr ".$classFilename.$nl);
-// ccTrace::s_out( '#'.__LINE__.' '.ccTrace::getCaller(3).': '.$className." $rarr ".$classFilename.$nl);
+// ccTrace::s_out( '#'.__LINE__.' '.ccTrace::getCallerString(0,dirname(self::getApp()->getAppPath())).': '.$className." $rarr ".$classFilename.$nl);
+// ccTrace::s_out( '#'.__LINE__.' '.ccTrace::getCallerString(3).': '.$className." $rarr ".$classFilename.$nl);
 // if (strpos($className, 'PicturesToc') > -1)
 // echo __FUNCTION__.'#'.__LINE__." $className $rarr $classFilename".$nl;
 // self::tr('&nbsp;&nbsp;&nbsp;'.$this->apppath.$classFilename);
@@ -395,11 +395,40 @@ class ccApp
 		if ( !class_exists(__NAMESPACE__.'\ccErrorHandler', false) ) {
 			set_error_handler(__CLASS__.'::onError');
 			set_exception_handler(__CLASS__.'::onException');
-		}
+			/**
+			 * Shutdown handler.
+			 * Capture last error to report errors that are not normally trapped by error-
+			 * handling functions, e.g., fatal and parsing errors.
+			 * @todo Activate only for debug mode.
+			 */
+			// function cc_onShutdown()
+			register_shutdown_function(function ()
+			{
+			    $err=error_get_last();
+				switch ($err['type'])
+				{
+					case E_WARNING:
+					case E_NOTICE:
+					case E_USER_ERROR:
+					case E_USER_WARNING:
+					case E_USER_NOTICE:
+						return false;
+					break;
+
+					case E_COMPILE_ERROR:
+					case E_PARSE:
+					default:
+						return ccApp::onError($err['type'], $err['message'], $err['file'], $err['line'], $GLOBALS);
+				}
+			//	trigger_error($err['message'],$err['type']);
+			}
+			); // register_shutdown_function()
+			// register_shutdown_function(__NAMESPACE__.'\cc_onShutdown');
+			}
 		else {
-	// echo __FUNCTION__.'#'.__LINE__." ccErrorHandler loaded<br>".PHP_EOL;
+// 		echo __FUNCTION__.'#'.__LINE__." ccErrorHandler loaded<br>".PHP_EOL;
 		}
-/*		public function errorHandlerCallback($code, $string, $file, $line, $context)
+	/*		public function errorHandlerCallback($code, $string, $file, $line, $context)
 		{
 			$e = new Excpetion($string, $code);
 			$e->line = $line;
@@ -407,35 +436,6 @@ class ccApp
 			throw $e;
 		}
 */
-		/**
-		 * Shutdown handler.
-		 * Capture last error to report errors that are not normally trapped by error-
-		 * handling functions, e.g., fatal and parsing errors.
-		 * @todo Activate only for debug mode.
-		 */
-		// function cc_onShutdown()
-		register_shutdown_function(function ()
-		{
-		    $err=error_get_last();
-			switch ($err['type'])
-			{
-				case E_WARNING:
-				case E_NOTICE:
-				case E_USER_ERROR:
-				case E_USER_WARNING:
-				case E_USER_NOTICE:
-					return false;
-				break;
-
-				case E_COMPILE_ERROR:
-				case E_PARSE:
-				default:
-					return ccApp::onError($err['type'], $err['message'], $err['file'], $err['line'], $GLOBALS);
-			}
-		//	trigger_error($err['message'],$err['type']);
-		}
-		); // register_shutdown_function()
-		// register_shutdown_function(__NAMESPACE__.'\cc_onShutdown');
 // [END] Global hooks
 
 		if (substr($appPath,-1) != DIRECTORY_SEPARATOR)	// Ensure path-spec
@@ -452,12 +452,13 @@ class ccApp
 	} // createApp()
 
 	/**
-	 * Create site-specific directory, if it doesn't exist.
+	 * Create app-specific directory. If this is a relative path, it is assumed to
+	 * be relative to the app's root path (this is not the web-facing directory,
+	 * but the directory where the app sits).
 	 *
-	 * @param string $dir Directory name (relative to site-path), if not an
-	 *		  absolute path.
+	 * @param string $dir Relative or absolute directory name
 	 *
-	 * @return string Semi-normalized path name (suffixed with '/' prefixed w/
+	 * @return string Full path name (suffixed with '/' prefixed w/
 	 *			site-path.
 	 * @todo Accept array of directory names (to move common code here)
 	 */

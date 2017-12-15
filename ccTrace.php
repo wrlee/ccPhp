@@ -322,6 +322,80 @@ echo __METHOD__.'#'.__LINE__.'() deprecated<br>'.PHP_EOL;
 	}
 
 	/**
+	 * Return caller's backtrace record.
+	 * @param int $traceOffset How far back in the callback stack to look.
+	 * @param string $path Matching root path to display (ignore stack entries
+	 *        that do not match in order to show only "app" sources).
+	 *
+	 * @return array Backtrace element
+	 * @todo "Fix" return information (see getCallerString() and its adjustments to
+	 *       $traceOffset in certain cirmcumstances.
+	 * @todo Rename to getCaller() once no conflicts with the old version are confirmed. 
+	 */
+	static function getCallerX($traceOffset = 1, $path=NULL)
+	{
+		if (PHP_VERSION_ID >= 50400)
+			$trace = debug_backtrace(
+					DEBUG_BACKTRACE_IGNORE_ARGS
+					|DEBUG_BACKTRACE_PROVIDE_OBJECT
+					,$traceOffset+1);
+		elseif (PHP_VERSION_ID >= 50306)
+			$trace = debug_backtrace(
+					DEBUG_BACKTRACE_IGNORE_ARGS
+					|DEBUG_BACKTRACE_PROVIDE_OBJECT
+				);
+		else
+			$trace = debug_backtrace(TRUE);
+// $debug_caller = FALSE;
+
+		if ($path && file_exists($path))	// Search first file in app
+		{
+// if ($debug_caller) $out .= '#'.__LINE__.' '.$path.' ';
+			if (substr($path,-1) != DIRECTORY_SEPARATOR)
+				$path .= DIRECTORY_SEPARATOR;
+			// for ($traceOffset=$traceOffset+1;$traceOffset;$traceOffset--)
+				// array_shift($trace);		// Ignore 1st entries & reset offset
+			// Ignore 1st entries & search for entries that start w/path
+			for ($traceOffset;
+				 isset($trace[$traceOffset])
+				 && (!isset($trace[$traceOffset]['file'])
+					 || strpos($trace[$traceOffset]['file'],$path) !== 0);
+				 $traceOffset++);
+		}
+		elseif (!isset($trace[$traceOffset]['file']))
+			$traceOffset += 2;	// If no location, caller was invoked indirectly, so skip indirection call
+
+/*		$file = $trace[$traceOffset]['file'];
+		$line = $trace[$traceOffset]['line'];
+
+		$traceOffset++;			// Get name of function that included
+
+		if (isset($trace[$traceOffset]['class']))	// Set class info, if exists
+		{
+// if ($debug_caller) $out .= '#'.__LINE__.' ';
+			$out .= $bb.$trace[$traceOffset]['class'].$eb;
+			if (isset($trace[$traceOffset]['object'])
+				&& get_class($trace[$traceOffset]['object']) != $trace[$traceOffset]['class'])
+				$out .= $bi.'('.get_class($trace[$traceOffset]['object']).')'.$ei;
+			if (isset($trace[$traceOffset]['type']))
+				$out .= ($trace[$traceOffset]['type'] == '->' ? $rarr : $trace[$traceOffset]['type']);
+		}
+		if (isset($trace[$traceOffset]['function'])
+			&& !( $trace[$traceOffset]['function'] === 'include'
+				 || $trace[$traceOffset]['function'] === 'include_once'
+				 || $trace[$traceOffset]['function'] === 'require'
+				 || $trace[$traceOffset]['function'] === 'require_once'
+				)
+			)
+			$out .= $bb.$trace[$traceOffset]['function'].$eb.'()'
+				  . '#'.$line;
+
+		else						// If no acceptable function name, show path
+			$out .= self::fmtPath($file,$line);
+*/
+		return $trace[$traceOffset];
+	}
+	/**
 	 * Return formated phrase of caller.
 	 * @param int $traceOffset How far back in the callback stack to look.
 	 * @param string $path Matching root path to display (ignore stack entries
@@ -329,7 +403,7 @@ echo __METHOD__.'#'.__LINE__.'() deprecated<br>'.PHP_EOL;
 	 *
 	 * @return string Caller [filename][ [class{::|->}[{function}()][#{line#}]
 	 */
-	static function getCaller($traceOffset = 1, $path=NULL)
+	static function getCallerString($traceOffset = 1, $path=NULL)
 	{
 		global $bb,$eb, $bi,$ei, $btt,$ett, $rarr,$ldquo,$rdquo,$hellip,$nbsp,$nl;
 
@@ -394,7 +468,7 @@ echo __METHOD__.'#'.__LINE__.'() deprecated<br>'.PHP_EOL;
 			$out .= self::fmtPath($file,$line);
 
 		return $out;
-	} // getCaller()
+	} // getCallerString()
 
 	/**
 	 * Display PHP source content from a file with line nuumbers.
@@ -532,7 +606,7 @@ echo __METHOD__.'#'.__LINE__.'() deprecated<br>'.PHP_EOL;
 // echo '<pre>';
 // debug_print_backtrace();
 // echo '</pre>';
-		$out = self::getCaller(1);	// Get formatted source-code line decoration
+		$out = self::getCallerString(1);	// Get formatted source-code line decoration
 
 		if ($msg === '' || $msg === NULL || is_string($msg))
 			self::s_out($out.' '.$msg.$nl);
