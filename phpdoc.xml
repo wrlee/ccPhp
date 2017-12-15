@@ -10,6 +10,8 @@
   </transformer>
   <files>
     <directory>.</directory>
+    <file>vendor/psr/log/Psr/Log/*</file>
+    <file>vendor/composer/ClassLoader.php</file>
 	<ignore>composer.json</ignore>
 	<ignore>vendor/*</ignore>
   </files>
