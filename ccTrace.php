@@ -3,6 +3,8 @@
  * This is an example (and default case) for a class that performs logging. It
  * is attached to, but loosely coupled from the ccApp class.
  *
+ * @author
+ *
  * @see http://logging.apache.org/log4php/docs
  * @see http://codefury.net/projects/klogger/
  */
@@ -12,25 +14,39 @@ list ($bb,  $eb,   $bi,  $ei,   $btt,  $ett,   $rarr,   $ldquo,   $rdquo,   $hel
 array('<b>','</b>','<i>','</i>','<tt>','</tt>','&rarr;','&ldquo;','&rdquo;','&hellip;','&nbsp;','<br/>'.PHP_EOL,'<font color="red">','</font>');
 
 /*
-interface ccDebugSourceInterface					// Class supports developer
-{															// support functions
-	function getCaller($depth, $path);			// Get caller label
-	function showSource($file,$line=0,$context=-1);	// Display PHP sourcefile
-	function showStack(Array $traceback=NULL);  	// Renamed from showTrace()
-} // interface ccDebugSourceInterface
-
-interface ccTraceInterface							// Class implements trace output
+trait ccTraceTrait								// Class implements trace output
 {
-	function setOutput($path=NULL);				// bool|string ON|OFF|destination
-//	function setHtml($bEnable=TRUE);				// Enale/disable HTML formatting
-//	function setSuppress($bSuppress=TRUE);		// Suppress output
-	function tr(...);									// Trace output
-	function out($string);							// Unbuffered output
-} // interface ccTraceInterface
+	function getCaller($depth);				// Get caller info
+
+	function setOutput($path=NULL);			// bool|string ON|OFF|destination
+//	function setHtml($bEnable=TRUE);			// Enale/disable HTML formatting
+//	function setSuppress($bSuppress=TRUE);	// Suppress output
+
+	function tr(...);								// Trace output
+	function out($string);						// Unbuffered output?
+
+														// Show stacktrace, ignoring $ignore stack-frames
+														// Renamed from showTrace()
+	function showStack($ignore=1,Array $traceback=NULL);
+														// Display PHP sourcefile
+	function showSource($file,$line=0,$context=-1);
+} // interface ccTraceTrait
 */
 
 /**
- * Trace output class.
+ * Trace output class. ccTrace provides functionaltiy to help in diagnosing what's
+ * going on in Php by formatting to readable output the values and call stacks.
+ * The output, itself, is performed by a \Psr\Log\Logger class (though this
+ * separation output functionality to Logger is evolving).
+ *
+ * This class's methods are primarily static.
+ * @todo Allow settings to be applied, early, so that its functions can do
+ * something useful, early (e.g., setLogger())
+ * @todo See how this class may work better when its methods don't rely on being
+ * static. This would allow use of LoggerAwareTrait or implemeting LoggerAwareInterface
+ * @todo Allow definition/supporession of types of output (add support for
+ * $DefaultLevel, $thresholdLevel)
+ * @todo Add utility methods to return content vs. outputing content.
  */
 class ccTrace
 //	implements	\Psr\Log\LoggerAwareInterface// setLogger()
@@ -38,10 +54,10 @@ class ccTrace
 {
 //	use \Psr\Log\LoggerAwareTrait;		//setLogger()
 
-	protected $DefaultLevel = 9;			// Default output level of detail
-	protected $ThresholdLevel=5;
+//	protected $DefaultLevel = 9;			// Default output level of detail
+//	protected $ThresholdLevel=5;
 
-	static protected $bSuppress=false;	// Suppress output?
+	static protected $bSuppress=false;	// Suppress output in s_out()
 
 	static protected $bHtml=true;			// Format for HTML?
 	static protected $Output=null;		// Destination
@@ -55,7 +71,7 @@ class ccTrace
 	 * file. It also sets a class variable (i.e., static),  $bHttml, to signal
 	 * output methods for special output handling.
 	 *
-	 * @param boolean $bEnable Enable or disable HTML output.
+	 * @param bool $bEnable Enable or disable HTML output.
 	 */
 	static function setHtml($bEnable=TRUE)
 	{
@@ -80,10 +96,11 @@ array('<b>','</b>','<i>','</i>','<tt>','</tt>','&rarr;','&ldquo;','&rdquo;','&he
 	/**
 	 * Sets a logger.
 	 *
-	 * @param Psr\Log\LoggerInterface $logger
+	 * @param \Psr\Log\LoggerInterface $logger
 	 */
 	public static function setLogger(\Psr\Log\LoggerInterface $logger)
 	{
+// echo __METHOD__.'#'.__LINE__.'()<br>'.PHP_EOL;
 		 self::$logger = $logger;
 //		 return $this;
 	}
@@ -149,7 +166,9 @@ array('<b>','</b>','<i>','</i>','<tt>','</tt>','&rarr;','&ldquo;','&rdquo;','&he
 	 * is displayed in stdout. When displayed, it is influenced by the bHtml setting.
 	 * Unlike s_out() this output is not affected by the setSuppress() setting.
 	 * @param string $msg
+	 * @param bool $bNoNewline Suppress trailing newline.
 	 * @param bool $noNewLine If msg is displayed, the newline can be suppressed
+	 * @deprecated Use Logger::log() or Logger::debug(), instead
 	 */
 	function out($msg, $bNoNewline=FALSE)
 	{
@@ -189,7 +208,7 @@ echo __METHOD__.'#'.__LINE__.'() deprecated<br>'.PHP_EOL;
 	/**
 	 * Format a line of the trace stack.
 	 * @param array $line Content reprsenting a stack frame.
-	 * @return string Stack trace line.
+	 * @return string Formatted call stack line.
 	 *
 	 * @see debug_traceback() http://us.php.net/manual/en/function.debug-backtrace.php
 	 * @see Exception::getTrace() http://us.php.net/manual/en/exception.gettrace.php
@@ -233,7 +252,7 @@ echo __METHOD__.'#'.__LINE__.'() deprecated<br>'.PHP_EOL;
 						&& count($arg) == 2)
 					{
 // $arg[0] is found to be the name of the class, a string, rather than an object...
-// did something change?
+// did something change? So, if $arg[0] is a string, use it, otherwise get_class()
 //echo __METHOD__.'#'.__LINE__.'()<pre>';
 //var_dump($arg);
 //echo '</pre>'.PHP_EOL;
@@ -288,7 +307,9 @@ echo __METHOD__.'#'.__LINE__.'() deprecated<br>'.PHP_EOL;
 	 * Format filepath for output. For HTML output, this will highlight the filename
 	 * part of the path and suffix a line number.
 	 * (e.g., '/root/part1/.../filename.ext[#line]')
-	 * @return string Formatted path name
+	 * @param string $path Path string.
+	 * @param string|int $line Line number to be included.
+	 * @return string Formatted path string
 	 */
 	static function fmtPath($path, $line=NULL)
 	{
@@ -425,6 +446,7 @@ EOD;
 	static function showTrace(Array $trace=NULL)
 	{
 		global $bb,$eb, $bi,$ei, $btt,$ett, $rarr,$ldquo,$rdquo,$hellip,$nbsp,$nl;
+// echo __METHOD__.'#'.__LINE__."() ".print_r($trace)."<br>".PHP_EOL;
 
 		$trace === NULL && $trace=debug_backtrace();
 
@@ -433,7 +455,7 @@ EOD;
 		{
 			if (isset($line['file']) && isset($line['line']))
 			{
-				self::s_out( ($entry++).'. '.self::fmtTraceLine($line).$nl);
+				self::s_out( ($entry++).'. '.self::fmtTraceLine($line));
 				if (   $line['function'] == 'call_user_func'
 					 || $line['function'] == 'call_user_func_array')
 				{
@@ -479,6 +501,7 @@ echo __METHOD__.'#'.__LINE__.'() deprecated<br>'.PHP_EOL;
 	 */
 	static function s_out($string)
 	{
+// echo __METHOD__.'#'.__LINE__.'() {self::$logger}!!<br>'.PHP_EOL;
 		if (self::$logger && self::$logger instanceof ccLogger)
 		{
 			self::$logger->debug($string);

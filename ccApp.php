@@ -56,10 +56,11 @@ namespace {
 	include __DIR__.DIRECTORY_SEPARATOR.'inc/portable.php';
 
 	// Load composer's autoloader
-	if (  ! class_exists('Composer\Autoload\ClassLoader', false)
+	if (  ! class_exists('\Composer\Autoload\ClassLoader', false)
 		  && file_exists(__DIR__.DIRECTORY_SEPARATOR.'vendor/autoload.php') )
 	{
 //		echo __FILE__.'#'.__LINE__.'<br>'.PHP_EOL;
+		// HACK! Remember class loader so it can be assigned w/in ccApp
 		$composerClassloader = require(__DIR__.DIRECTORY_SEPARATOR.'vendor/autoload.php');
 	}
 } // namespace
@@ -170,6 +171,7 @@ class ccApp
 	 * @deprecated This will be subsumed by ClassLoader-style functionality,
 	 * 	separating this functionality into a separate class.
 	 * @param string $className Name of class to load.
+	 * @return bool|null True if loaded, null otherwise
 	 * @see createApp() where this method is registered.
 	 */
 	public final static function _autoload($className)
@@ -178,17 +180,12 @@ class ccApp
 		// Check instance specific autoload. If a derived autoload exists, call it, it takes priority
 		if (self::$_me && method_exists(self::$_me,'autoload'))
 		{
-			self::$_me->autoload($className); // Using spl_autoload_register()?
+			if (self::$_me->autoload($className)) // Using spl_autoload_register()?
+				return true;
 		}
-// if (strpos($className, 'ccTrace') > 0) {
-// echo '<pre>';
-// var_dump(debug_backtrace());
-// echo '</pre>';
-// }
 
-// echo __FUNCTION__.'#'.__LINE__."($className) class? ".(class_exists($className,false)?1:0)." trait? ".(trait_exists($className,false)?1:0)." <br>";
 		// Check framework-specific directories
-		if (!class_exists($className,false) && !trait_exists($className,false))
+//		if (!class_exists($className,false) && !trait_exists($className,false))
 		{
 			if (   __NAMESPACE__ != ''
 				 && __NAMESPACE__ == substr($className, 0, strlen(__NAMESPACE__)))
@@ -287,6 +284,7 @@ class ccApp
 	/**
 	 * Instance specific autoload() searches site specific paths.
 	 * @param  string $className Name of class to load.
+	 * @return bool|null True if loaded, null otherwise
 	 * @deprecated This will be subsumed by ClassLoader-style functionality,
 	 * 	separating this functionality into a separate class.
 	 */
@@ -308,7 +306,7 @@ class ccApp
 		if ($this->apppath && file_exists($this->apppath . $classFilename))
 		{
 			include($this->apppath . $classFilename);
-			return;
+			return true;
 		}
 		else foreach ($this->classpath as $class => $path)
 		{
@@ -319,7 +317,7 @@ class ccApp
 //				if (!file_exists($path))
 //					throw new Exception($path . " does not exist in ".getcwd());
 				if (require($path))
-					return;
+					return true;
 			}
 			// If class-association registered w/ccApp is a namespace, check whether
 			// class to load has a namespace; if namespace names match, then use
@@ -328,19 +326,15 @@ class ccApp
 			if (   $class[0] === '\\' && strpos($className,'\\') !== false
 				 && substr($class,1).'\\' === substr($className,0,strlen($class)) )
 			{
-// echo __METHOD__.'#'.__LINE__." class=$class path=$path$nl";
 				$namespaceClassName = substr($className,strlen($class)).'.php';
-// echo __METHOD__.'#'.__LINE__.' '.$className." $rarr ".$path.$namespaceClassName.$nl;
 				if (include($path . $namespaceClassName))
-					return;
+					return true;
 			}
-// echo __METHOD__.'#'.__LINE__." still here$nl";
 			if (file_exists($path . $classFilename))
 //			elseif (@include($path . $classFilename))
 			{							// Else if assumed name exists...
-// echo __METHOD__.'#'.__LINE__." Exists=$path$classFilename$nl";
 				include($path . $classFilename);
-				return;
+				return true;
 			}
 		}
 // echo '#'.__LINE__.' '.$className.$rarr.$classFilename.$nl;
@@ -378,66 +372,72 @@ class ccApp
 //	    }
 //
 // [BEGIN] Global hooks
-global $composerClassloader;
-if ($composerClassloader || class_exists('Composer\Autoload\ClassLoader')) {
-//	echo __FUNCTION__.'#'.__LINE__." here<br>".PHP_EOL;
-}
-else {
-	// We are using spl_autoload_* features to simplify search for class files. If
-	// the app has defined an __autoload() of their own without chaining it with
-	// the spl_autoload_register() call, then this will add it automatically.
-	if (function_exists('__autoload'))
-	{
-		spl_autoload_register('__autoload', true, true);
-	}
-	spl_autoload_register(__CLASS__.'::_autoload', true);
-}
+		// If no composer, then handle class-loading locally.
+		// @todo Separate this into external class or functions
+		if ( ! class_exists('\Composer\Autoload\ClassLoader',false) ) {
+			// We are using spl_autoload_* features to simplify search for class files. If
+			// the app has defined an __autoload() of their own without chaining it with
+			// the spl_autoload_register() call, then this will add it automatically.
+			if (function_exists('__autoload'))
+			{
+				spl_autoload_register('__autoload', true, true);
+			}
+			spl_autoload_register(__CLASS__.'::_autoload', true);
+		}
+		else {
+//			echo __FUNCTION__.'#'.__LINE__." ClassLoader loaded...<br>".PHP_EOL;
+		}
 
-//set_include_path(get_include_path().PATH_SEPARATOR.__DIR__);
-// require dirname(__DIR__).DIRECTORY_SEPARATOR.'SplClassLoader.php';
-// $classLoader = new \SplClassLoader(__NAMESPACE__, dirname(__DIR__));
-// $classLoader->register();
-
-set_error_handler(__CLASS__.'::onError');
-set_exception_handler(__CLASS__.'::onException');
-/*public function errorHandlerCallback($code, $string, $file, $line, $context)
-{
-	$e = new Excpetion($string, $code);
-	$e->line = $line;
-	$e->file = $file;
-	throw $e;
-}
+		//set_include_path(get_include_path().PATH_SEPARATOR.__DIR__);
+		// require dirname(__DIR__).DIRECTORY_SEPARATOR.'SplClassLoader.php';
+		// $classLoader = new \SplClassLoader(__NAMESPACE__, dirname(__DIR__));
+		// $classLoader->register();
+		if ( !class_exists(__NAMESPACE__.'\ccErrorHandler', false) ) {
+			set_error_handler(__CLASS__.'::onError');
+			set_exception_handler(__CLASS__.'::onException');
+		}
+		else {
+	// echo __FUNCTION__.'#'.__LINE__." ccErrorHandler loaded<br>".PHP_EOL;
+		}
+/*		public function errorHandlerCallback($code, $string, $file, $line, $context)
+		{
+			$e = new Excpetion($string, $code);
+			$e->line = $line;
+			$e->file = $file;
+			throw $e;
+		}
 */
-/**
- * Shutdown handler.
- * Capture last error to report errors that are not normally trapped by error-
- * handling functions, e.g., fatal and parsing errors.
- * @todo Activate only for debug mode.
- */
-// function cc_onShutdown()
-register_shutdown_function(function ()
-{
-    $err=error_get_last();
-	switch ($err['type'])
-	{
-		case E_WARNING:
-		case E_NOTICE:
-		case E_USER_ERROR:
-		case E_USER_WARNING:
-		case E_USER_NOTICE:
-			return false;
-		break;
+		/**
+		 * Shutdown handler.
+		 * Capture last error to report errors that are not normally trapped by error-
+		 * handling functions, e.g., fatal and parsing errors.
+		 * @todo Activate only for debug mode.
+		 */
+		// function cc_onShutdown()
+		register_shutdown_function(function ()
+		{
+		    $err=error_get_last();
+			switch ($err['type'])
+			{
+				case E_WARNING:
+				case E_NOTICE:
+				case E_USER_ERROR:
+				case E_USER_WARNING:
+				case E_USER_NOTICE:
+					return false;
+				break;
 
-		case E_COMPILE_ERROR:
-		case E_PARSE:
-		default:
-			return ccApp::onError($err['type'], $err['message'], $err['file'], $err['line'], $GLOBALS);
-	}
-//	trigger_error($err['message'],$err['type']);
-}
-); // register_shutdown_function()
-// register_shutdown_function(__NAMESPACE__.'\cc_onShutdown');
+				case E_COMPILE_ERROR:
+				case E_PARSE:
+				default:
+					return ccApp::onError($err['type'], $err['message'], $err['file'], $err['line'], $GLOBALS);
+			}
+		//	trigger_error($err['message'],$err['type']);
+		}
+		); // register_shutdown_function()
+		// register_shutdown_function(__NAMESPACE__.'\cc_onShutdown');
 // [END] Global hooks
+
 		if (substr($appPath,-1) != DIRECTORY_SEPARATOR)	// Ensure path-spec
 			$appPath .= DIRECTORY_SEPARATOR;					// suffixed w/'/'
 
@@ -896,28 +896,24 @@ register_shutdown_function(function ()
 				E_USER_ERROR	=> 'User Error',	// 256
 				E_USER_WARNING	=> 'User Warning',	// 512
 				E_USER_NOTICE	=> 'User Notice',	// 1024
-				E_STRICT		=> 'Strict'			// 2048
+				E_STRICT		=> 'Strict',			// 2048
+				E_RECOVERABLE_ERROR => 'Recoverable Error', // 4096
+				E_DEPRECATED => 'Deprecated',				// 8092
+				E_USER_DEPRECATED => 'User Deprecated' // 16384
 			);
-			if ( PHP_VERSION_ID >= 50200 )
-			{
-				$errortype[E_RECOVERABLE_ERROR] = 'Recoverable Error';// 4096
-				if ( PHP_VERSION_ID >= 50300 )
-				{
-					$errortype[E_DEPRECATED] = 'Deprecated';				// 8092
-					$errortype[E_USER_DEPRECATED] = 'User Deprecated'; // 16384
-				}
-			}
 			if (!isset($errortype[$errno]))
 				$errortype[$errno] = "Error($errno)";
 
-			global $bred,$ered,$bb,$eb, $bi,$ei, $btt,$ett, $rarr,$ldquo,$rdquo,$hellip,$nbsp,$nl;
+			// Output text version w/o HTML
 			error_log("$errortype[$errno]: $errstr in $errfile#$errline",0);
+
+			global $bred,$ered,$bb,$eb, $bi,$ei, $btt,$ett, $rarr,$ldquo,$rdquo,$hellip,$nbsp,$nl;
 			$msg = "$bb$bred$errortype[$errno]$ered: $errstr$eb$nl"
 //				 . "        in $errfile#$errline";
 				 . "        in ".ccTrace::fmtPath($errfile,$errline);
 			$self = self::getApp();
-			if ($self)					// In case this is invoked before constructor
-				switch ($errno)
+			if ($self)					// In case instance exists, we can access devMode
+				switch ($errno)	// Classify errors
 				{
 					case E_COMPILE_ERROR:
 					case E_ERROR:
