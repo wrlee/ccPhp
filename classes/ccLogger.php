@@ -3,6 +3,8 @@
  * @author
  */
 
+// namespace ccPhp;
+
 /**
  * Custom, ccPhp-specific log-levels, augments standard \Psr\Log\LogLevels.
  */
@@ -10,45 +12,56 @@ class ccLogLevel
 	extends \Psr\Log\LogLevel
 {
 	const TRACE = 'trace';
-	const FRAMEWORK = 'ccphp';
-	const CCPHP = 'ccphp';
+//	const FRAMEWORK = 'ccphp';
+//	const CCPHP = 'ccphp';
 }
 
 /**
- * ccPhp-specific Logger which adds trace() support.
- *
+ * ccPhp-specific Logger which adds trace() support. Output can go to any of
+ * error_log, file, screen.  For screen output, it can be HTML formatted.
+ * @todo Allow error_log() header (e.g., date/time) formatting.
  */
 class ccLogger
 	extends \Psr\Log\AbstractLogger
 {
-
+				/** @var array $levels Array of LogLevel strings */
 	private static $levels=NULL;
-
-	private $bHtml		= true; // Only applies to stdout
+				/** @var bool $bHtml Should HTML formatted output be used? */
+	private $bHtml		= true;
+				/** @var bool $bScreen Should output go to screen? */
 	private $bScreen	= true;
+				/** @var bool $bPhpLog Should output go to the error_log()? */
 	private $bPhpLog	= false;
+				/** @var string $file If not null, target filename for output */
 	private $file		= null;
 
-	// Destinations
-	const HTML		= 1;
-	const SCREEN	= 2;
-	const PHPLOG	= 4;
-	const FILE		= 8;
-
+	/**
+	 * Initialize LogLevel array of strings.
+	 */
 	function __construct()
 	{
 		if (! self::$levels) {
-			$reflection = new ReflectionClass('ccLogLevel');
+			$reflection = new \ReflectionClass(__NAMESPACE__.'\ccLogLevel');
 			self::$levels=array_flip($reflection->getConstants());
-//			print_r(self::$levels);
 		}
 	} // __construct()
 
+	/**
+	 * Enable HTML formatted output (when available) for content destined to the
+	 * screen. This should not affect content sent to logs and files.
+	 * @param bool $setting enable/disable setting
+	 * @return ccLogger $this, allows chaining of settings methods.
+	 */
 	function enableHtml(bool $setting=true)
 	{
 		$this->bHtml = $setting;
 		return $this;	// Allow chaining
 	}
+	/**
+	 * Output to Php log (where errors go). NULL goes to stderr.
+	 * @param bool $setting enable/disable setting
+	 * @return ccLogger $this, allows chaining of settings methods.
+	 */
 	function enableScreen(bool $setting=true)
 	{
 		$this->bScreen = $setting;
@@ -56,7 +69,8 @@ class ccLogger
 	}
 	/**
 	 * Output to Php log (where errors go). NULL goes to stderr.
-	 * @param bool $setting
+	 * @param bool $setting enable/disable setting
+	 * @return ccLogger $this, allows chaining of settings methods.
 	 */
 	function enablePhpLog(bool $setting=true)
 	{
@@ -64,9 +78,11 @@ class ccLogger
 		return $this;	// Allow chaining
 	}
 	/**
-	 * Define where Php log output should go, e.g., file, stderr, etc.
+	 * Define where Php log output should go, e.g., file, stderr, etc. This is a
+	 * global setting and will affect where error_log() and errors will be directed.
 	 * @param string $setting Filename. If NULL, output is routed to stderr
 	 * (i.e., usually the screen).
+	 * @return ccLogger $this, allows chaining of settings methods.
 	 */
 	function setPhpLog(string $setting)
 	{
@@ -75,8 +91,12 @@ class ccLogger
 	}
 
 	/**
+	 * @param string|null $filepath Path to file to output. This setting implies
+	 *		that output will be active.
+	 * @todo Make sure that non-absolute paths are relative to the app-path.
 	 * @todo Allow bool value to enable/disable file output w/o setting target. Or
 	 * add enableFile($set, $file=null)
+	 * @return ccLogger $this, allows chaining of settings methods.
 	 */
 	function setFile(string $filepath=NULL)
 	{
@@ -124,8 +144,8 @@ class ccLogger
 	/**
 	 * Logs with an arbitrary level.
 	 *
-	 * @param mixed  $level
-	 * @param string $message
+	 * @param mixed  $level 	LogLevel settings.
+	 * @param string $message	Text to output.
 	 * @param array  $context
 	 *
 	 * @return void
@@ -150,9 +170,13 @@ class ccLogger
 		if ($this->bPhpLog && ! $bToStderr)
 			error_log($content);		// Output to default log file
 
-		// HTML-ify for screen output
+		// HTML-ify for screen output: Leading spaces and \n
 		if ($this->bHtml)
-			$content = nl2br(str_replace( ' ', '&nbsp;', $content));
+			$content =  nl2br(preg_replace_callback( '/^ +/m',
+									function ($matches) {
+										return str_repeat('&nbsp;', strlen($matches[0]));
+									}
+									, $content), false);
 
 		if ($this->bScreen) {
 			echo $content;

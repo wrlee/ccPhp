@@ -18,8 +18,8 @@ if (PHP_VERSION_ID < 50400) {
 		{
 			if (PHP_VERSION_ID < 50200)
 				define('E_RECOVERABLE_ERROR',4096);
-		    define('PHP_MAJOR_VERSION', $_version[0]);
-		    define('PHP_MINOR_VERSION', $_version[1]);
+			define('PHP_MAJOR_VERSION', $_version[0]);
+			define('PHP_MINOR_VERSION', $_version[1]);
 
 			$_version = explode('-', $_version[2]);
 			define('PHP_EXTRA_VERSION', $_version[0]);
