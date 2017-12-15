@@ -88,7 +88,7 @@ trait ccErrorHandlerTrait
 	{
 		if (error_reporting() & $errno)
 		{
-			$output = 'cc: ';
+			$output = '';			// Prefix
 			$severity = isset(self::ERROR_CODES[(int)$errno])
 							? self::ERROR_CODES[$errno]
 							: "Error($errno)";
@@ -97,7 +97,7 @@ trait ccErrorHandlerTrait
 
 			if (class_exists('ccTrace')) {
 				// Screen output:
-				$output  = 'cy: ';
+				$output  = '';			// Prefix
 				$output .= "<b style='color:red'>$severity</b>: \"$errstr\"".PHP_EOL
 				 			. "        in ".ccTrace::fmtPath($errfile,$errline);
 			}
@@ -127,7 +127,7 @@ trait ccErrorHandlerTrait
 	{
 		do
 		{
-			$output  = 'cc: ';
+			$output  = '';			// Prefix
 			$output  .= '<b style="color:red">'.get_class($exception)."</b>";
 			if ($exception->getCode() !== 0)
 				$output  .= "({$exception->getCode()})";
