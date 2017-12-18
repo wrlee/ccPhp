@@ -1,9 +1,6 @@
 <?php
-//namespace ccPhp;
-use \lessc;
-
-//use ccPhp\ccPageInterface;
-//use ccPhp\ccRequest;
+namespace ccPhp;
+//use \lessc;
 
 /**
  * @todo  Add settings for enable/disabling caching
@@ -12,7 +9,7 @@ use \lessc;
  * @todo  Consider whether/when compiled directory is needed
  */
 class ccLessCssController
-	extends lessc
+	extends \lessc
 	implements ccPageInterface
 {
 	protected $working_dir='lessphp/'; //.DIRECTORY_SEPARATOR;

@@ -2,6 +2,7 @@
 /**
  * @author
  */
+namespace ccPhp;
 
 /**
  *

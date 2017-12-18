@@ -2,7 +2,7 @@
 /**
  * ccPhp Support for Smarty integration.
  */
-//namespace ccPhp;
+namespace ccPhp;
 //use \Smarty;
 
 /**

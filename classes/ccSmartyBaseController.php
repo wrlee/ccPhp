@@ -1,8 +1,5 @@
 <?php
-//namespace ccPhp;
-
-// use ccPhp\ccSimpleController;
-// use ccPhp\ccRequest;
+namespace ccPhp;
 
 /**
  * This controller processes page requests that map to Smarty templates. By
@@ -13,6 +10,8 @@
  *
  * @see  ccSmartyController for an implementation which simply enables
  *       templates (but leverages the features of this class)
+ *
+ * @package ccPhp
  */
 abstract class ccSmartyBaseController
 	extends ccSimpleController

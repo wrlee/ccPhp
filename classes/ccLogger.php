@@ -3,7 +3,7 @@
  * @author
  */
 
-// namespace ccPhp;
+namespace ccPhp;
 
 /**
  * Custom, ccPhp-specific log-levels, augments standard \Psr\Log\LogLevels.

@@ -1,8 +1,5 @@
 <?php
-//!namespace ccPhp;
-
-// use ccPhp\ccController;
-//! use ccPhp\core\ccRequest;
+namespace ccPhp;
 
 /**
  * File: ccSimpleController
@@ -101,7 +98,7 @@ abstract class ccSimpleController
 	 *						rather than assuming it will do something useful.
 	 * @todo Allow $method to be actual function/method (rather than string)
 	 */
-	protected function setDefaultHandler($method, $suppressAuto=FALSE)
+	protected function setDefaultHandler($method, bool $suppressAuto=FALSE)
 	{
 		if (method_exists($this,$method)) {
 			$this->defaultHandler = $method;

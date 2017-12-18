@@ -8,7 +8,7 @@
  * @see http://logging.apache.org/log4php/docs
  * @see http://codefury.net/projects/klogger/
  */
-// namespace ccPhp;
+namespace ccPhp;
 
 list ($bb,  $eb,   $bi,  $ei,   $btt,  $ett,   $rarr,   $ldquo,   $rdquo,   $hellip,   $nbsp,   $nl,            $bred,               $ered) =
 array('<b>','</b>','<i>','</i>','<tt>','</tt>','&rarr;','&ldquo;','&rdquo;','&hellip;','&nbsp;','<br/>'.PHP_EOL,'<font color="red">','</font>');

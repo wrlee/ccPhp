@@ -1,5 +1,5 @@
 <?php
-//namespace ccPhp;
+namespace ccPhp;
 
 /**
  * A very simple Smarty template enabler. Add this to your project and add any

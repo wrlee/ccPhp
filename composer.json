@@ -17,12 +17,14 @@
     "require": {
 		 "psr/log": "^1.0"
     },
+    "require-dev": {
+    },
     "suggest": {
         "oyejorge/less.php": "v1.7.0.14",
         "smarty/smarty": "~3.1"
     },
 	"autoload": {
-		"psr-4": {"": ["", "classes/"] }
+		"psr-4": {"ccPhp\\": ["", "classes/"] }
 	},
 	"autoload-dev": {
 	}

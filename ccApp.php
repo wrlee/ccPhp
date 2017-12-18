@@ -66,7 +66,7 @@ namespace {
 	}
 } // namespace
 
-namespace //! ccPhp
+namespace ccPhp
 {
 /**
  * Framework class representing the "application". You can derive this class, but

@@ -1,16 +1,16 @@
 <?php
-//!namespace ccPhp;
+namespace ccPhp;
 /**
  * @package ccPhp
  *
- * A ccPageInterface can throw this exception when it is "successfully" 
+ * A ccPageInterface can throw this exception when it is "successfully"
  * handling a page rendering but its handling results in a non-200 (and non-
- * 404 result-code. 
- * 
+ * 404 result-code.
+ *
  * This should, generally, _not_ be used to throw a 404 "page not found"
- * result code since throwing this exception (or any exception) will 
- * circumvent other ccPageInterface implementations that might be able to 
- * handle the URL. That is, 404s should be implied by returning false from 
+ * result code since throwing this exception (or any exception) will
+ * circumvent other ccPageInterface implementations that might be able to
+ * handle the URL. That is, 404s should be implied by returning false from
  * the render handler of the ccPageInterface, rather than throwing this
  * exception as a 404.
  */
@@ -23,7 +23,7 @@ class ccHttpStatusException extends \Exception
 	{
 		$this->status = $status;
 		// http://www.w3schools.com/tags/ref_httpmessages.asp
-		switch ($status) 
+		switch ($status)
 		{
 			// Only a part of the request has been received by the server, but
 			// as long as it has not been rejected, the client should continue
@@ -36,46 +36,46 @@ class ccHttpStatusException extends \Exception
 			// The request is OK
 			case 200: $message = 'OK';
 				break;
-			// The request is complete, and a new resource is created 
+			// The request is complete, and a new resource is created
 			case 201: $message = 'Created';
 				break;
 			// The request is accepted for processing, but the processing is not
 			// complete
 			case 202: $message = 'Accepted';
 				break;
-			case 203: $message = 'Non-authoritative Information';	 
+			case 203: $message = 'Non-authoritative Information';
 				break;
-			case 204: $message = 'No Content';	 
+			case 204: $message = 'No Content';
 				break;
-			case 205: $message = 'Reset Content';	 
+			case 205: $message = 'Reset Content';
 				break;
 			case 206: $message = 'Partial Content';
 				break;
 
-			case 304:  $message = 'Not Modified'; 
+			case 304:  $message = 'Not Modified';
 				break;
 
-			case 300: case 301: case 302: case 303: 
-			case 305: case 306: case 307: 
+			case 300: case 301: case 302: case 303:
+			case 305: case 306: case 307:
 				if ($message === NULL)
 					throw new ErrorException('Location not specified for redirection' );
 				$this->location = $message;
 				switch ($status)
 				{
 					// A link list. The user can select a link and go to that
-					// location. Maximum five addresses  
+					// location. Maximum five addresses
 					case 300: $message = 'Multiple Choices';
 						break;
-					// The requested page has moved to a new url 
+					// The requested page has moved to a new url
 					case 301: $message = 'Moved Permanently';
 						break;
-					// The requested page has moved temporarily to a new url 
+					// The requested page has moved temporarily to a new url
 					case 302: $message = 'Found';
 						break;
-					// The requested page can be found under a different url 
+					// The requested page can be found under a different url
 					case 303: $message = 'See Other';
-						break; 
-					case 305: $message = 'Use Proxy';	 
+						break;
+					case 305: $message = 'Use Proxy';
 						break;
 //					case 306: $message = 'Unused'; // This code was used in a previous version. It is no longer used, but the code is reserved
 //						break;
@@ -114,11 +114,11 @@ class ccHttpStatusException extends \Exception
 			// The request could not be completed because of a conflict
 			case 409: $message = 'Conflict';
 				break;
-			// The requested page is no longer available 
+			// The requested page is no longer available
 			case 410: $message = 'Gone';
 				break;
 			// The "Content-Length" is not defined. The server will not accept
-			// the request without it 
+			// the request without it
 			case 411: $message = 'Length Required';
 				break;
 			// The precondition given in the request evaluated to false by the server
@@ -130,14 +130,14 @@ class ccHttpStatusException extends \Exception
 				break;
 			// The server will not accept the request, because the url is too
 			// long. Occurs when you convert a "post" request to a "get" request
-			// with a long query information 
+			// with a long query information
 			case 414: $message = 'Request-url Too Long';
 				break;
 			// The server will not accept the request, because the media type is
-			// not supported 
+			// not supported
 			case 415: $message = 'Unsupported Media Type';
 				break;
-//			case 416: $message = '';	 
+//			case 416: $message = '';
 //				break;
 			case 417: $message = 'Expectation Failed';
 				break;

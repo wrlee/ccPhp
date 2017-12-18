@@ -3,7 +3,7 @@
  * @author Bill Lee <github@cachecrew.com>
  * @copyright (c) LGPLv3
  */
-//!namespace ccPhp;
+namespace ccPhp;
 
 /*
  * 2010-10-23 Better handling of path parsing into components and document values
