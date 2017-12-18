@@ -217,6 +217,7 @@ echo __METHOD__.'#'.__LINE__.'() deprecated<br>'.PHP_EOL;
 	static function fmtTraceLine($line)
 	{
 		global $bb,$eb, $bi,$ei, $btt,$ett, $rarr,$ldquo,$rdquo,$hellip,$nbsp,$nl;
+		if (!$rarr) self::setHtml(false); // In case setHtml() hasn't been invoked.
 
 		$out = '';
 		if (isset($line['class']))
@@ -330,7 +331,7 @@ echo __METHOD__.'#'.__LINE__.'() deprecated<br>'.PHP_EOL;
 	 * @return array Backtrace element
 	 * @todo "Fix" return information (see getCallerString() and its adjustments to
 	 *       $traceOffset in certain cirmcumstances.
-	 * @todo Rename to getCaller() once no conflicts with the old version are confirmed. 
+	 * @todo Rename to getCaller() once no conflicts with the old version are confirmed.
 	 */
 	static function getCallerX($traceOffset = 1, $path=NULL)
 	{
@@ -520,7 +521,7 @@ EOD;
 	static function showTrace(Array $trace=NULL)
 	{
 		global $bb,$eb, $bi,$ei, $btt,$ett, $rarr,$ldquo,$rdquo,$hellip,$nbsp,$nl;
-// echo __METHOD__.'#'.__LINE__."() ".print_r($trace)."<br>".PHP_EOL;
+// 	echo __METHOD__.'#'.__LINE__."() ".print_r($trace,true)."<br>".PHP_EOL;
 
 		$trace === NULL && $trace=debug_backtrace();
 

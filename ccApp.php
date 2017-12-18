@@ -50,6 +50,7 @@
  * 2013-09-12 Remove getPage()
  * 2017-11-07 If no ccRequest is passed to dispatch(), it is created.
  * 2017-12-07 Renamed $sitepath --> $apppath to better reflect its purpose.
+ * 2017-12-17 Simplfied DevMode usage: simple boolean
  */
 //******************************************************************************\
 namespace {
@@ -108,8 +109,8 @@ class ccApp
 								 * path from domain root for the site.
 								 */
 	protected $UrlOffset=NULL;
-								/** @var int Operation mode bitmask. See MODE_* constants */
-	protected $devMode = CCAPP_DEVELOPMENT;
+								/** @var bool Dev mode active */
+	protected $devMode = true;
 								/** @var boolean Central place to hold debug status */
 //	protected $bDebug = false;
 								/** @var string Path to the root of app specific files (not the web-facing ones). */
@@ -633,6 +634,7 @@ class ccApp
 
 	/**
 	 * Get/set app's disposition mask.
+	 * @return bool Dev mode active.
 	 */
 	public function getDevMode()
 	{
@@ -640,16 +642,7 @@ class ccApp
 	}
 	/**
 	 * Set "how" the app should behave based on the $mode bit-mask.
-	 * @param integer $mode [description]
-	 *		MODE_DEBUG	Debugging output
-	 *		MODE_INFO	PHP info msgs
-	 *		MODE_WARN	PHP warnings
-	 *		MODE_ERR	PHP errors
-	 *		MODE_TRACEBACK	Show tracebacks
-	 *		MODE_REVEAL	Reveal paths
-	 *		MODE_MINIMIZE	Use minimized resources (scripts, CSS, etc.)
-	 *		MODE_PROFILE	Enable profile
-	 *		MODE_CACHE	Enable caching where it can
+	 * @param bool $mode Dev mode?
 	 */
 	public function setDevMode($mode)
 	{
@@ -853,7 +846,7 @@ class ccApp
 		<h1>404 Not Found</h1>
 		This is not the page you are looking for.<hr/>
 		<?php
-		if ($this->getDevMode() & self::MODE_TRACEBACK)
+		if ($this->devMode)
 		{
 			$trace = debug_backtrace();	// Get whole stack list
 			array_shift($trace);				// Ignore this function
@@ -912,7 +905,7 @@ class ccApp
 			$msg = "$bb$bred$errortype[$errno]$ered: $errstr$eb$nl"
 //				 . "        in $errfile#$errline";
 				 . "        in ".ccTrace::fmtPath($errfile,$errline);
-			$self = self::getApp();
+/*			$self = self::getApp();
 			if ($self)					// In case instance exists, we can access devMode
 				switch ($errno)	// Classify errors
 				{
@@ -941,6 +934,7 @@ class ccApp
 			else
 				echo "errno($errno): $msg<br/>";
 //			self::log($msg);
+*/
 			$trace = debug_backtrace();		// Get whole stack list
 			array_shift($trace);					// Ignore this function
 			ccTrace::showTrace($trace);		// Display stack.
@@ -1017,8 +1011,8 @@ EOD;
 		{
 			if (is_string($this->error404))
 				$this->error404 = new $this->error404;
-			if (($this->getDevMode() & CCAPP_DEVELOPMENT)
-				&& !($this->error404 instanceof ccPageInterface))
+			if (    $this->getDevMode()
+				  && ! ($this->error404 instanceof ccPageInterface))
 			{
 				trigger_error(get_class($this->error404).' does not implement ccPageInterface', E_WARNING);
 			}
@@ -1027,15 +1021,6 @@ EOD;
 		else 						// No app specific page
 			$this->on404($request);	// Perform local 404 rendering
 	} // show404()
-
-
-	// static function out($string)
-	// {
-		// if (!(ccApp::$_me->devMode & CCAPPE_DEVELOPMENT))
-			// return;
-//		//error_log($string,3,'/home/wrlee/htd.log');
-		// echo $string;
-	// }
 
 	/**
 	 * Output to log file.
@@ -1085,6 +1070,6 @@ EOD;
 
 // Just because PHP doesn't support setting class-consts via expressions, had to
 // create global consts :-(
-define('CCAPP_DEVELOPMENT',(ccApp::MODE_DEBUG|ccApp::MODE_INFO|ccApp::MODE_WARN|ccApp::MODE_ERR|ccApp::MODE_TRACEBACK|ccApp::MODE_REVEAL));
-define('CCAPP_PRODUCTION',(ccApp::MODE_CACHE*2)|ccApp::MODE_CACHE);
+//define('CCAPP_DEVELOPMENT',(ccApp::MODE_DEBUG|ccApp::MODE_INFO|ccApp::MODE_WARN|ccApp::MODE_ERR|ccApp::MODE_TRACEBACK|ccApp::MODE_REVEAL));
+//define('CCAPP_PRODUCTION',(ccApp::MODE_CACHE*2)|ccApp::MODE_CACHE);
 } // namespace ccPhp
