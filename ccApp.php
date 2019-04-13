@@ -356,10 +356,41 @@ class ccApp
 	 * @todo Consider allowing instance of ccApp to be passed.
 	 * @todo Consider blocking this from creating a 2nd instance.
 	 * @todo Load cached version, if available.
-	 * @todo Allow parameters passe to constructor.
+	 * @todo Allow parameters passed to constructor.
 	 */
 	public static function createApp($appPath, $className=NULL)
 	{
+/*		{ // TODO: argument block sets app settings
+			$args=[];	// Formal parameters
+			foreach ($args as $setting => $value) {
+				$setting = strtolower($setting);	// Normalize to lowercase
+				switch ($setting) {
+					case 'appdir':
+					case 'app-dir':
+					case 'dir':
+						$this->appPath = $value;
+						break;
+
+					case 'Logger':
+						$this->logger = $value;
+						break;
+
+					case 'disable-errorhandler':
+					case 'errorhandler':
+						$this->errorhandler = $value;
+						break;
+
+					case 'devmode':
+						$this->devMode = $value;
+						break;
+
+					default:
+						// Unexpected setting
+						break;
+				}
+			}
+		}
+*/
 //		$sessActive = (session_status() == PHP_SESSION_ACTIVE);
 //	    if (!$sessActive)					// If session support not running
 //	    	session_start();				   //   turn on to presist browser info
