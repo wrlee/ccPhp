@@ -183,7 +183,9 @@ trait ccErrorHandlerTrait
 	 */
 	public function onShutdown()
 	{
-		$err=error_get_last();
+		$err = error_get_last();
+		if ( is_null($err) ) return;
+
 		switch ($err['type'])
 		{
 			case E_WARNING:

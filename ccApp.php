@@ -78,9 +78,8 @@ namespace ccPhp
  * @todo Consider that flags can be user defined, with some pre-defined meanings.
  */
 class ccApp
-	implements
+//	implements
 //		\Psr\Log\LoggerAwareInterface,// setLogger()
-		\Serializable
 {
 	use \Psr\Log\LoggerAwareTrait;	// setLogger()
 												/** Debugging output */
@@ -1074,29 +1073,41 @@ EOD;
 	 * serializable implementation to save instance.
 	 * @return [type] Serialized object
 	 */
-	public function serialize ( )
+	public function __serialize(): array
 	{
-		return serialize($this);
+		return [
+	//		'config' => $this->config,
+			'UrlOffset' => $this->UrlOffset,
+			'devMode' => $this->devMode,
+	//		'bDebug' => $this->bDebug,
+			'apppath' => $this->apppath,
+			'temppath' => $this->temppath,
+			'page' => $this->page,
+			'error404' => $this->error404,
+			'classpath' => $this->classpath,
+			'current_request' => $this->current_request,
+		];
 	}
+
 	/**
 	 * serializable implementation to restore object.
 	 * @param  [type] $serialized Serialized object.
 	 */
-	public function unserialize ( $serialized )
+	public function __unserialize ( array $serialized ): void
 	{
 		self::$_me = $this;
-		$temp = unserialize($serialized);
-//		$this->config = $temp->config;
-		$this->UrlOffset = $temp->UrlOffset;
-		$this->devMode = $temp->devMode;
-//		$this->bDebug = $temp->bDebug;
-		$this->apppath = $temp->apppath;
-		$this->temppath = $temp->temppath;
-		$this->page = $temp->page;
-		$this->error404 = $temp->error404;
-		$this->classpath = $temp->classpath;
-		$this->current_request = $temp->current_request;
+//		$this->config = $serialized->config;
+		$this->UrlOffset = $serialized->UrlOffset;
+		$this->devMode = $serialized->devMode;
+//		$this->bDebug = $serialized->bDebug;
+		$this->apppath = $serialized->apppath;
+		$this->temppath = $serialized->temppath;
+		$this->page = $serialized->page;
+		$this->error404 = $serialized->error404;
+		$this->classpath = $serialized->classpath;
+		$this->current_request = $serialized->current_request;
 	}
+
 } // class ccApp
 
 // Just because PHP doesn't support setting class-consts via expressions, had to

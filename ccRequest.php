@@ -158,9 +158,14 @@ class ccRequest implements \ArrayAccess, \IteratorAggregate
 		$url =
 		 isset($_SERVER['REDIRECT_SCRIPT_URI'])
 			? $_SERVER['REDIRECT_SCRIPT_URI']
-			: isset($_SERVER['SCRIPT_URI'])
+			: ( isset($_SERVER['SCRIPT_URI'])
 			  ? $_SERVER['SCRIPT_URI']
-			  : $_SERVER['REQUEST_SCHEME'].'://'.$_SERVER['SERVER_NAME'].($_SERVER['SERVER_PORT'] != 80 ? ':'.$_SERVER['SERVER_PORT'] : '').preg_replace('/\?.*$/','',$_SERVER['REQUEST_URI']);
+			  : ( $_SERVER['REQUEST_SCHEME'].'://'.$_SERVER['SERVER_NAME'].($_SERVER['SERVER_PORT'] != 80 
+			      ? ':'.$_SERVER['SERVER_PORT'] 
+				  : '').preg_replace('/\?.*$/','',$_SERVER['REQUEST_URI']) 
+				)
+			  )
+		;
 // echo __METHOD__.'#'.__LINE__.' "'.$url.'"<br/>';
 		return $url;
 	} // getUrl()
@@ -269,9 +274,10 @@ class ccRequest implements \ArrayAccess, \IteratorAggregate
 				 ? $this->userAgentInfo['browser'] == 'IE'
 				 	? $this->userAgentInfo['version']
 					: false
-			    : isset($this->userAgentInfo['Browser']) && $this->userAgentInfo['Browser'] == 'IE'
+			    : ( isset($this->userAgentInfo['Browser']) && $this->userAgentInfo['Browser'] == 'IE'
 					? $this->userAgentInfo['version']
-					: false;
+					: false
+				  );
 	}
 
 	/**
@@ -334,7 +340,7 @@ class ccRequest implements \ArrayAccess, \IteratorAggregate
 	 * Mimics browscap and get_browser() functionality when get_browser() is not
 	 * supported.
 	 *
-	 * @todo Check that get_browser() won't work before doing our own processing.
+	 * @todo Replace reliance on *browscap.ini files... for now do nothing
 	 * @todo Pass .ini file in as a parameter.
 	 * @todo Look for .ini in site path instead of framework path.
 	 */
@@ -347,7 +353,9 @@ class ccRequest implements \ArrayAccess, \IteratorAggregate
 //			ccTrace::tr($ini);
 			return get_browser(NULL, TRUE);
 		}
-		else {
+	
+		// @todo Replace reliance on *browscap.ini files... for now do nothing
+		return [];
 
 		$sessActive = (session_status() == PHP_SESSION_ACTIVE);
 	    $agent = $this->getUserAgent();
@@ -366,13 +374,14 @@ class ccRequest implements \ArrayAccess, \IteratorAggregate
 		}
 		else 							// Simulate get_browser() call
 		{
+			define('CAP_FILE', 'inc'.DIRECTORY_SEPARATOR.'full_php_browscap.ini');
 			$yu=array();
 			$q_s=array("#\.#","#\*#","#\?#");
 			$q_r=array("\.",".*",".?");
 			if (defined('INI_SCANNER_RAW'))
-				$brows=parse_ini_file(ccApp::getApp()->getFrameworkPath().'full_php_browscap.ini',true,INI_SCANNER_RAW);
+				$brows=parse_ini_file(ccApp::getApp()->getFrameworkPath().CAP_FILE,true,INI_SCANNER_RAW);
 			else
-				$brows=parse_ini_file(ccApp::getApp()->getFrameworkPath().'full_php_browscap.ini',true);
+				$brows=parse_ini_file(ccApp::getApp()->getFrameworkPath().CAP_FILE,true);
 			foreach($brows as $k=>$t){
 				if(fnmatch($k,$agent)) {
 					$yu['browser_name_pattern']=$k;
@@ -404,7 +413,6 @@ class ccRequest implements \ArrayAccess, \IteratorAggregate
 		else
 			return [];
 
-		} // else get_browser() not avail
 	} // parseUserAgent()
 
 	/**
@@ -548,7 +556,7 @@ class ccRequest implements \ArrayAccess, \IteratorAggregate
  	 * @param $offset Index offset
 	 * @return bool Element exists?
  	 */
-	public function offsetExists( $offset )
+	public function offsetExists( mixed $offset ): bool
 	{
 		if (!$this->properties)
 			$this->initProperties();
@@ -559,7 +567,7 @@ class ccRequest implements \ArrayAccess, \IteratorAggregate
 	 * @param $offset Index offset
 	 * @return element
 	 */
-	public function offsetGet( $offset )
+	public function offsetGet( mixed $offset ): mixed
 	{
 		if (!$this->properties)
 			$this->initProperties();
@@ -572,16 +580,16 @@ class ccRequest implements \ArrayAccess, \IteratorAggregate
 	 * @param $offset Element offset
 	 * @param $value value to set at element
 	 */
-	public function offsetSet( $offset, $value ) { }
+	public function offsetSet( mixed $offset, mixed $value ): void { }
 	/**
 	 * Satisfy interface requirements (unused)
 	 * @param $offset Element offset
 	 */
-	public function offsetUnset( $offset ) { }
+	public function offsetUnset( mixed $offset ): void { }
 	/**
 	 * Return iterator to satisfy interface requirements.
 	 */
-   public function getIterator()
+   public function getIterator(): \Traversable
 	{
 		if (!$this->properties)
 			$this->initProperties();
