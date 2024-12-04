@@ -184,7 +184,7 @@ trait ccErrorHandlerTrait
 	public function onShutdown()
 	{
 		$err = error_get_last();
-		if ( is_null($err) ) return;
+		if ( is_null($err) ) return; // No errors have occurred
 
 		switch ($err['type'])
 		{
